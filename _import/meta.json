@@ -1,7 +1,7 @@
 [
  {
   "n": 1,
-  "week": "April 6\u201312",
+  "week": "April 6–12",
   "file": "01.html",
   "len": 14826,
   "heads": [
@@ -17,11 +17,14 @@
    "78,000 Tech Workers Laid Off in Q1, but the Picture Is Complicated",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "Three things defined AI this week: Anthropic built its most powerful model ever and refused to release it publicly.",
+  "date": "4/12/2026",
+  "title": "Prompted — Week of April 6–12, 2026"
  },
  {
   "n": 2,
-  "week": "April 13\u201319",
+  "week": "April 13–19",
   "file": "02.html",
   "len": 13512,
   "heads": [
@@ -30,7 +33,7 @@
    "White House Meets Anthropic; Federal Standoff Begins to Thaw",
    "Meta Cuts 8,000 Jobs, Explicitly Tied to AI",
    "Infrastructure Megadeals: The Bottleneck Moves from Chips to Power",
-   "Stanford AI Index 2026: China Has \u201cNearly Erased\u201d the US Lead",
+   "Stanford AI Index 2026: China Has “Nearly Erased” the US Lead",
    "Illinois Introduces Dueling AI Liability Bills, OpenAI and Anthropic on Opposite Sides",
    "Deepfake Ads Arrive in the US Midterms at Scale",
    "Cursor Reportedly Raising $2B at $50B+",
@@ -38,47 +41,56 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "One of the densest weeks in AI this year. Three frontier labs shipped flagship-class models on the same day.",
+  "date": "4/19/2026",
+  "title": "Prompted — Week of April 13–19, 2026"
  },
  {
   "n": 3,
-  "week": "April 20\u201326",
+  "week": "April 20–26",
   "file": "03.html",
   "len": 9569,
   "heads": [
    "The Biggest Developments",
-   "GPT-5.5 Lands as a \u201cWork\u201d Model",
+   "GPT-5.5 Lands as a “Work” Model",
    "Google Bets the Cloud on Agents",
-   "Anthropic\u2019s Compute Deal Shows Infrastructure Is the New Moat",
+   "Anthropic’s Compute Deal Shows Infrastructure Is the New Moat",
    "DeepSeek V4 Keeps Pressure on from Below",
    "Enterprise Adoption Widens Beyond Tech",
    "Governance Gets Messier, Not Cleaner",
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "A week that made the shape of the AI race a lot clearer. The competition isn’t really about chatbots anymore, it’s about who controls the full stack, from model to silicon to workflow.",
+  "date": "4/26/2026",
+  "title": "Prompted — Week of April 20–26, 2026"
  },
  {
   "n": 4,
-  "week": "April 27\u2013May 3",
+  "week": "April 27–May 3",
   "file": "04.html",
   "len": 10497,
   "heads": [
    "The Biggest Developments",
-   "Big Tech\u2019s AI Capex Hit a New Gear",
+   "Big Tech’s AI Capex Hit a New Gear",
    "OpenAI Loosened Its Microsoft Deal, and Showed Up on AWS",
    "The Pentagon Went Wide on AI Vendors",
-   "DeepSeek\u2019s V4 Fallout: Price Cuts and a Huawei Chip Scramble",
+   "DeepSeek’s V4 Fallout: Price Cuts and a Huawei Chip Scramble",
    "AI Is Becoming a Timing Problem in Cybersecurity",
-   "The Musk\u2013OpenAI Trial Opened",
+   "The Musk–OpenAI Trial Opened",
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This was a structural week for AI, not a flashy one. The biggest stories weren’t about which model felt smartest, they were about who controls distribution, who pays for compute, and who’s quietly integrating frontier models into critical systems.",
+  "date": "5/3/2026",
+  "title": "Prompted — Week of April 27–May 3, 2026"
  },
  {
   "n": 5,
-  "week": "May 4\u201310",
+  "week": "May 4–10",
   "file": "05.html",
   "len": 10390,
   "heads": [
@@ -87,15 +99,18 @@
    "Anthropic Bet Big on Compute, and on Agents Inside Office Software",
    "The Labs Are Buying Their Way into Deployment",
    "AlphaEvolve Quietly Shipped into Real Infrastructure",
-   "Meta Got Sued Over Llama\u2019s Training Data",
+   "Meta Got Sued Over Llama’s Training Data",
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week wasn’t about one lab winning. It was about the whole AI stack moving at once.",
+  "date": "5/10/2026",
+  "title": "Prompted — Week of May 4–10, 2026"
  },
  {
   "n": 6,
-  "week": "May 11\u201317",
+  "week": "May 11–17",
   "file": "06.html",
   "len": 10489,
   "heads": [
@@ -103,11 +118,14 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week had no shiny new flagship model, and that’s exactly the point.",
+  "date": "5/17/2026",
+  "title": "Prompted — Week of May 11–17, 2026"
  },
  {
   "n": 7,
-  "week": "May 18\u201324",
+  "week": "May 18–24",
   "file": "07.html",
   "len": 10647,
   "heads": [
@@ -120,11 +138,14 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week didn’t deliver one blockbuster model. It delivered a direction.",
+  "date": "5/24/2026",
+  "title": "Prompted — Week of May 18–24, 2026"
  },
  {
   "n": 8,
-  "week": "May 25\u201331",
+  "week": "May 25–31",
   "file": "08.html",
   "len": 11314,
   "heads": [
@@ -138,11 +159,14 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week was about consolidation, not surprise. No single breakthrough redefined what AI can do.",
+  "date": "5/31/2026",
+  "title": "Prompted — Week of May 25–31, 2026"
  },
  {
   "n": 9,
-  "week": "June 1\u20137",
+  "week": "June 1–7",
   "file": "09.html",
   "len": 13501,
   "heads": [
@@ -155,11 +179,14 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week in AI was less about a single headline model and more about where power is quietly piling up.",
+  "date": "6/7/2026",
+  "title": "Prompted — Week of June 1–7, 2026"
  },
  {
   "n": 10,
-  "week": "June 8\u201314",
+  "week": "June 8–14",
   "file": "10.html",
   "len": 15342,
   "heads": [
@@ -172,17 +199,20 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This week the action in AI moved from launching models to fighting over how they get deployed.",
+  "date": "6/14/2026",
+  "title": "Prompted — Week of June 8–14, 2026"
  },
  {
   "n": 11,
-  "week": "June 15\u201321",
+  "week": "June 15–21",
   "file": "11.html",
   "len": 15627,
   "heads": [
    "The Biggest Developments",
-   "Anthropic\u2019s Export-Control Fight Became a G7-Level Policy Story",
-   "GLM-5.2 Was the Week\u2019s Most Important Open-Weight Release",
+   "Anthropic’s Export-Control Fight Became a G7-Level Policy Story",
+   "GLM-5.2 Was the Week’s Most Important Open-Weight Release",
    "Europe Moved from Regulating AI to Building It",
    "Databricks Showed Enterprise AI Becoming an Agent-Platform Business",
    "China Pushed AI into Robotics and Everyday Consumer Products",
@@ -190,44 +220,53 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "The Anthropic story that dominated last week did not cool off, it climbed to the G7.",
+  "date": "6/21/2026",
+  "title": "Prompted — Week of June 15–21, 2026"
  },
  {
   "n": 12,
-  "week": "June 22\u201328",
+  "week": "June 22–28",
   "file": "12.html",
   "len": 13391,
   "heads": [
    "The Biggest Developments",
    "Frontier Models Now Ship Under Government Supervision",
-   "Anthropic Accuses Alibaba of a Record \u201cDistillation Attack\u201d on Claude",
+   "Anthropic Accuses Alibaba of a Record “Distillation Attack” on Claude",
    "A Nobel Laureate Leaves Google for Anthropic",
-   "China\u2019s Open-Weights GLM-5.2 Tops Independent Leaderboards",
+   "China’s Open-Weights GLM-5.2 Tops Independent Leaderboards",
    "Samsung Deploys ChatGPT and Codex Company-Wide",
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "This was the week the most capable AI models stopped acting like consumer software and started acting like controlled technology.",
+  "date": "6/28/2026",
+  "title": "Prompted — Week of June 22–28, 2026"
  },
  {
   "n": 13,
-  "week": "June 29\u2013July 5",
+  "week": "June 29–July 5",
   "file": "13.html",
   "len": 17472,
   "heads": [
    "The Biggest Developments",
-   "The Frontier Models Come Back, on Washington\u2019s Terms",
+   "The Frontier Models Come Back, on Washington’s Terms",
    "Sonnet 5 Makes Agentic AI the Default, Not the Upgrade",
    "Microsoft Bets $2.5 Billion That Deployment Is the Business",
    "The U.N. Gives AI Governance a Scientific Backbone",
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "Last week ended with the most capable American models sitting behind government gates.",
+  "date": "7/5/2026",
+  "title": "Prompted — Week of June 29–July 5, 2026"
  },
  {
   "n": 14,
-  "week": "July 6\u201312",
+  "week": "July 6–12",
   "file": "14.html",
   "len": 17959,
   "heads": [
@@ -241,11 +280,14 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "For once, the labs made the theme easy to spot. OpenAI, Meta, Google, and xAI all shipped in the same seven days, and every launch pointed at the same target: AI that does work, not AI that answers questions.",
+  "date": "7/12/2026",
+  "title": "Prompted — Week of July 6–12, 2026"
  },
  {
   "n": 15,
-  "week": "July 13\u201319",
+  "week": "July 13–19",
   "file": "15.html",
   "len": 18967,
   "heads": [
@@ -258,17 +300,20 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "No American lab shipped a blockbuster model this week, and it barely mattered.",
+  "date": "7/19/2026",
+  "title": "Prompted — Week of July 13–19, 2026"
  },
  {
   "n": 16,
-  "week": "July 19\u201326",
+  "week": "July 19–26",
   "file": "16.html",
   "len": 22329,
   "heads": [
    "The Biggest Developments",
-   "Opus 5 Takes the Lead at Half the Flagship\u2019s Price",
-   "OpenAI\u2019s Models Broke Out of the Sandbox",
+   "Opus 5 Takes the Lead at Half the Flagship’s Price",
+   "OpenAI’s Models Broke Out of the Sandbox",
    "The Bill for the Buildout Arrives",
    "Europe Sends Google the First Bill",
    "The Price of Pirated Training Data Is Now Official",
@@ -276,17 +321,20 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "Most weeks pick a theme. This one showed the whole industry at once.",
+  "date": "7/26/2026",
+  "title": "Prompted — Week of July 19–26, 2026"
  },
  {
   "n": 17,
-  "week": "July 26\u2013August 2",
+  "week": "July 26–August 2",
   "file": "17.html",
   "len": 22696,
   "heads": [
    "The Biggest Developments",
    "The Sandbox Escapes Were Not a One-Off",
-   "Europe\u2019s AI Rulebook Goes Live",
+   "Europe’s AI Rulebook Goes Live",
    "Earnings Sort the Buildout into Sellers and Spenders",
    "Open Weights Become a National-Security Fight",
    "Nvidia Buys into the Most Secretive Lab in AI",
@@ -294,6 +342,9 @@
    "Worth Knowing Briefly",
    "Patterns Worth Watching",
    "Why This Week Matters"
-  ]
+  ],
+  "dek": "Last week this newsletter reported one AI system breaking out of its test environment.",
+  "date": "8/2/2026",
+  "title": "Prompted — Week of July 26–August 2, 2026"
  }
 ]
