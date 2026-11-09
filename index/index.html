@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prompted Index</title>
+<link rel="icon" type="image/svg+xml" href="favicon.svg">
+<meta name="description" content="Plain definitions for the AI terms that show up in Prompted, a free weekly AI brief.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Prompted Index: a broadsheet front page set by a machine.
+     Arial Black-weight headlines (Prompted's masthead), Newsreader serif for anything you read, mono for data.
+     Layout: centered nameplate with ears, column rules, and a live front-page leaderboard. */
+  --paper:#ffffff; --sheet:#f6f6f3; --ink:#121212; --muted:#5f5e58; --hair:#d3d1c8; --red:#c3142d;
+  --head:Arial,"Helvetica Neue",Helvetica,sans-serif;
+  --serif:"Newsreader",Georgia,"Times New Roman",serif;
+  --mono:Arial,"Helvetica Neue",Helvetica,sans-serif;
+  --grain:.06; --grain-blend:multiply; --dot:rgba(0,0,0,.16);
+  --w:1160px;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0f0f0e;--sheet:#161615;--ink:#efede6;--muted:#9a988f;--hair:#2e2d2a;--red:#c3142d;--grain:.09;--grain-blend:screen;--dot:rgba(255,255,255,.12);color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0f0f0e;--sheet:#161615;--ink:#efede6;--muted:#9a988f;--hair:#2e2d2a;--red:#c3142d;--grain:.09;--grain-blend:screen;--dot:rgba(255,255,255,.12);color-scheme:dark}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:var(--paper)}
+body{color:var(--ink);font-family:var(--serif);font-size:18px;line-height:1.55;-webkit-font-smoothing:antialiased;font-optical-sizing:auto}
+body::before{content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:var(--grain);mix-blend-mode:var(--grain-blend);
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>")}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--red);outline-offset:3px}
+.wrap{max-width:var(--w);margin:0 auto;padding:0 28px}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase}
+.num{font-variant-numeric:tabular-nums}
+
+/* labels: plain Arial, sentence case */
+.mono,.kicker,.toggle button,.e-cols h4,.parts>h4,.next h4,.part.hit h5::after,.item em,.lead i,.lead .c,.alpha a,.alpha span,.crumbs,.fig span,.board h2 small,.search .kbd{letter-spacing:0!important;text-transform:none!important}
+.kicker,.e-cols h4,.parts>h4,.next h4{font-size:13px!important;font-weight:700!important}
+.fig span,.crumbs,.board h2 small,.status,.item em,.lead .c{font-size:13px!important}
+.toggle button{font-size:13px!important;font-weight:700}
+/* section headings: real headings, like the newsletter's */
+.e-cols h4,.parts>h4,.next h4{font-family:var(--head)!important;font-size:22px!important;font-weight:700!important;letter-spacing:-.02em!important;color:var(--ink)!important;border-bottom:1px solid var(--hair);padding-bottom:8px;margin-bottom:14px!important}
+.board h2{font-size:22px!important;letter-spacing:-.02em!important;border-bottom:3px solid var(--ink)!important;padding-bottom:10px!important}
+.board h2 small{font-family:var(--head);font-weight:400}
+/* browse-by-letter grid in the hero */
+.letters{margin-top:30px}
+.letters h3{font-family:var(--head);font-size:22px;font-weight:700;letter-spacing:-.02em;border-bottom:1px solid var(--hair);padding-bottom:8px;margin-bottom:12px}
+.lgrid{display:grid;grid-template-columns:repeat(13,1fr);gap:6px}
+.lgrid a,.lgrid span{aspect-ratio:1;display:grid;place-items:center;font-family:var(--head);font-weight:700;font-size:17px;text-decoration:none;border:1px solid var(--hair)}
+.lgrid a{border-color:var(--ink)}
+.lgrid a:hover{background:var(--red);border-color:var(--red);color:#fff}
+.lgrid span{color:var(--hair)}
+@media (max-width:680px){.lgrid{grid-template-columns:repeat(9,1fr)}}
+/* ---------- nameplate ---------- */
+.plate{padding-top:26px}
+.plate-mid{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding-bottom:14px}
+.nameplate{font-family:var(--head);font-weight:700;font-size:clamp(40px,6.4vw,76px);line-height:.9;letter-spacing:-.045em;text-decoration:none;white-space:nowrap}
+.nameplate em{font-style:normal;color:var(--red)}
+.sub-btn{font-family:var(--head);font-size:14px;font-weight:700;text-decoration:none;background:var(--red);color:#fff;padding:10px 16px;white-space:nowrap;margin-bottom:6px}
+.sub-btn:hover{filter:brightness(1.1)}
+.plate-rule{border-top:3px solid var(--ink)}
+.dateline{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--hair);color:var(--muted)}
+/* ---------- front page ---------- */
+.front{display:grid;grid-template-columns:minmax(0,1.45fr) 1px minmax(0,1fr);gap:34px;padding:30px 0 0}
+.front .vr{background:var(--hair)}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--red)}
+.lead-h{font-family:var(--head);font-weight:700;font-size:clamp(28px,3.4vw,40px);line-height:1.08;letter-spacing:-.03em;margin:10px 0 16px;text-wrap:balance}
+.deck{font-size:21px;line-height:1.45;color:var(--ink);max-width:31em}
+.search{display:flex;align-items:center;gap:12px;border:1.5px solid var(--ink);background:var(--sheet);padding:12px 14px;margin-top:26px}
+.search svg{flex:none;color:var(--muted)}
+.search input{flex:1;min-width:0;font-family:var(--head);font-size:19px;font-weight:700;color:var(--ink);background:transparent;border:0;outline:0}
+.search input::placeholder{font-weight:400;color:var(--muted)}
+.search .kbd{border:1px solid var(--hair);padding:1px 6px;color:var(--muted)}
+.figures{display:grid;grid-template-columns:repeat(3,1fr);margin-top:22px;border-top:1px solid var(--ink)}
+.fig{padding:10px 14px 0 0}
+.fig+.fig{border-left:1px solid var(--hair);padding-left:14px}
+.fig{display:flex;align-items:baseline;gap:7px}
+.fig b{display:inline;font-family:var(--head);font-size:30px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.fig span{color:var(--muted);font-size:15px!important}
+
+.board h2{font-family:var(--head);font-size:13px;font-weight:700;letter-spacing:.02em;display:flex;justify-content:space-between;align-items:baseline;border-bottom:3px solid var(--ink);padding-bottom:8px}
+.board h2 small{color:var(--muted)}
+.lead{display:grid;grid-template-columns:26px 1fr auto;gap:4px 10px;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--hair);text-decoration:none}
+.lead i{font-style:normal;color:var(--red)}
+.lead .n{font-family:var(--head);font-weight:700;font-size:17px;letter-spacing:-.01em}
+.lead .c{color:var(--muted)}
+.lead .t{grid-column:2/4;height:7px;background-image:radial-gradient(var(--dot) 1px,transparent 1.2px);background-size:5px 5px;position:relative}
+.lead .t u{position:absolute;inset:0 auto 0 0;background:var(--ink);transform-origin:left;animation:grow .9s cubic-bezier(.2,.7,.2,1) both}
+.lead:hover .n{color:var(--red)}.lead:hover .t u{background:var(--red)}
+.board p{font-size:14px;color:var(--muted);margin-top:12px;font-style:italic}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+
+/* ---------- index ---------- */
+.section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-top:46px;border-top:3px solid var(--ink);padding:14px 0 10px}
+.section-head h2{font-family:var(--head);font-weight:700;font-size:26px;letter-spacing:-.03em}
+.toggle{display:flex;border:1px solid var(--ink)}
+.toggle button{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;background:transparent;color:var(--ink);border:0;padding:8px 12px;cursor:pointer}
+.toggle button[aria-pressed="true"]{background:var(--ink);color:var(--paper)}
+.alpha{display:flex;flex-wrap:wrap;border-bottom:1px solid var(--hair);position:sticky;top:0;z-index:5;background:var(--paper)}
+.alpha a,.alpha span{font-family:var(--mono);font-size:12px;flex:1;min-width:26px;text-align:center;padding:8px 0;text-decoration:none}
+.alpha a:hover{background:var(--ink);color:var(--paper)}
+.alpha span{color:var(--hair)}
+.status{color:var(--muted);padding:14px 0 0}
+.letter{scroll-margin-top:50px;margin-top:22px}
+.letter h3{font-family:var(--head);font-weight:700;font-size:58px;line-height:.9;letter-spacing:-.05em;border-bottom:1px solid var(--ink);padding-bottom:4px}
+.cols{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:34px;padding-top:4px}
+@media (max-width:1000px){.cols{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:680px){.cols{grid-template-columns:1fr}}
+.item{display:block;break-inside:avoid;text-decoration:none;padding:12px 0 13px;border-bottom:1px solid var(--hair)}
+.item .row{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.item b{font-family:var(--head);font-size:17px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.item b[data-rank]::before{content:attr(data-rank);font-family:var(--mono);font-weight:400;font-size:11px;color:var(--red);margin-right:8px}
+.item em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--muted);white-space:nowrap}
+.item p{font-size:15.5px;line-height:1.45;color:var(--muted);margin-top:3px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.item:hover b{color:var(--red)}
+@media (min-width:681px){.item p{min-height:calc(3em * 1.45)}}
+.letter h3 small{font-size:15px;font-weight:400;letter-spacing:0;color:var(--muted);margin-left:10px;font-family:var(--head)}
+.flat{margin-top:22px;border-top:1px solid var(--ink);padding-top:4px}
+.empty{padding:50px 0;font-size:20px;font-style:italic;color:var(--muted)}
+
+/* ---------- entry ---------- */
+.entry{padding:24px 0 80px}
+.crumbs{display:flex;justify-content:space-between;color:var(--muted);border-bottom:1px solid var(--hair);padding-bottom:10px}
+.crumbs a{text-decoration:none;color:var(--ink)}
+.crumbs a:hover{color:var(--red)}
+.e-head{display:grid;grid-template-columns:minmax(0,1fr) 250px;gap:40px;padding:30px 0 26px;border-bottom:1px solid var(--ink)}
+.e-head h1{font-family:var(--head);font-weight:700;font-size:clamp(44px,7.4vw,96px);line-height:.88;letter-spacing:-.055em;margin-top:10px;text-wrap:balance}
+.e-head .def{font-size:25px;line-height:1.38;margin-top:20px;max-width:30em}
+.meter{border-left:1px solid var(--hair);padding-left:22px;align-self:end}
+.meter b{font-family:var(--head);font-size:60px;font-weight:700;letter-spacing:-.05em;line-height:.9;display:block}
+.meter b small{font-size:26px;color:var(--muted);font-weight:700}
+.meter span{display:block;color:var(--muted);margin-top:8px;line-height:1.5}
+.ticks{display:grid;grid-template-columns:repeat(15,1fr);gap:3px;margin-top:14px}
+.ticks i{height:14px;background:var(--hair)}
+.ticks i.on{background:var(--red)}
+.e-rule{border-top:3px solid var(--ink)}
+.e-cols{display:grid;grid-template-columns:1fr 1px 1fr;gap:30px;padding:26px 0;border-bottom:1px solid var(--hair)}
+.e-cols .vr{background:var(--hair)}
+.e-cols h4,.parts>h4,.next h4{font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--red);margin-bottom:8px}
+.e-cols p{font-size:19px;line-height:1.55}
+.e-cols p b{font-family:var(--head);font-weight:700;letter-spacing:-.01em}
+.parts{padding-top:24px}
+.part{display:grid;grid-template-columns:240px 1fr;gap:26px;padding:16px 0;border-bottom:1px solid var(--hair);scroll-margin-top:30px}
+.part h5{font-family:var(--head);font-size:19px;font-weight:700;letter-spacing:-.01em;line-height:1.25}
+.part p+p{margin-top:6px;color:var(--muted);font-size:16px}
+.part.hit{background:var(--sheet);box-shadow:inset 3px 0 0 var(--red);padding-left:18px;padding-right:18px}
+.part.hit h5::after{content:"The term you followed";display:block;font-family:var(--mono);font-size:10.5px;font-weight:400;letter-spacing:.1em;text-transform:uppercase;color:var(--red);margin-top:6px}
+.next{display:grid;grid-template-columns:240px 1fr;gap:26px;padding-top:26px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chips a{font-family:var(--head);font-size:15px;font-weight:700;text-decoration:none;border:1px solid var(--ink);padding:6px 11px}
+.chips a:hover{background:var(--ink);color:var(--paper)}
+.aka{font-size:16px;font-style:italic;color:var(--muted);margin-top:10px}
+.cta{margin-top:50px;border-top:3px solid var(--ink);padding:22px 0;display:grid;grid-template-columns:1fr auto;gap:20px;align-items:center}
+.cta p{font-family:var(--head);font-size:24px;font-weight:700;letter-spacing:-.03em;line-height:1.15}
+.cta p span{display:block;font-family:var(--serif);font-weight:400;font-size:17px;letter-spacing:0;color:var(--muted);margin-top:6px;font-style:italic}
+.cta a{font-family:var(--head);background:var(--red);color:#fff;font-weight:700;text-decoration:none;padding:13px 20px;white-space:nowrap}
+.cta a:hover{filter:brightness(1.1)}
+
+footer{margin-top:20px;border-top:1px solid var(--ink)}
+footer .wrap{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;padding-top:12px;padding-bottom:36px;color:var(--muted)}
+[hidden]{display:none!important}
+
+@media (max-width:900px){
+  .front{grid-template-columns:1fr;gap:30px}.front .vr{display:none}
+  .e-head{grid-template-columns:1fr;gap:22px}.meter{border-left:0;padding-left:0;border-top:1px solid var(--hair);padding-top:16px}
+  .part,.next{grid-template-columns:1fr;gap:4px}
+}
+@media (max-width:680px){
+  .wrap{padding:0 16px}
+  .nameplate{font-size:40px}
+  .sub-btn{padding:8px 12px;font-size:13px}
+  .dateline .hide-s{display:none}
+  .deck{font-size:19px}
+  .e-cols{grid-template-columns:1fr;gap:20px}.e-cols .vr{display:none}
+  .e-head .def{font-size:21px}
+  .cta{grid-template-columns:1fr}.cta a{justify-self:start}
+  .section-head{flex-wrap:wrap}
+  .alpha{position:static}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+.front-l{display:flex;flex-direction:column;justify-content:space-between;gap:28px}
+.front-l .lead-h{margin:0 0 14px}
+.front-l .search,.front-l .figures,.front-l .letters{margin-top:0}
+.section-head{align-items:center;margin-top:56px;padding:20px 0 0}
+.sh-r{display:flex;align-items:center;gap:18px}
+.section-head .status{padding:0;text-align:right}
+@media (max-width:680px){.section-head{flex-wrap:wrap}.sh-r{width:100%;justify-content:space-between}.section-head .status{text-align:left}}
+#list>.letter:first-child{margin-top:26px}
+.letter{margin-top:40px}
+.lead{grid-template-columns:auto 1fr auto!important;column-gap:12px!important}
+.lead i{text-align:right;min-width:.6em}
+.lead i{font-family:var(--head)!important;font-weight:700;font-size:24px!important;letter-spacing:-.03em!important;color:var(--red)!important;line-height:1;grid-row:1/3;align-self:center}
+.lead .n{grid-column:2}.lead .c{grid-column:3}.lead .t{grid-row:2}
+.fig span{white-space:nowrap}
+@media (max-width:680px){.fig b{font-size:24px}.fig span{font-size:13px!important}.fig{gap:5px}.fig+.fig{padding-left:10px}}
+.figures{border-top:0!important}
+.fig{padding-top:0!important}
+.sh-l{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.section-head{margin-top:52px;padding:18px 0 0}
+.letter{margin-top:34px!important}
+#list>.letter:first-child{margin-top:22px!important}
+.letter h3{display:flex;align-items:baseline;gap:12px;font-size:30px!important;line-height:1!important;letter-spacing:-.02em!important;border-bottom:0!important;padding:0!important;margin-bottom:6px}
+.letter h3::after{content:"";flex:1;align-self:center;border-top:1px solid var(--ink);margin-left:6px}
+.letter h3 small{margin-left:0!important;order:1}
+.letter h3::after{order:2}
+</style>
+</head>
+<body>
+<header class="plate"><div class="wrap">
+  <div class="plate-mid">
+    <a class="nameplate" href="#" id="home">Prompted <em>Index</em></a>
+    <a class="sub-btn" href="https://readprompted.beehiiv.com/?utm_source=index&amp;utm_medium=web&amp;utm_campaign=prompted_index" data-sub>Subscribe free</a>
+  </div>
+  <div class="plate-rule"></div>
+</div></header>
+
+<main id="view-home"><div class="wrap">
+  <section class="front">
+    <div class="front-l">
+      <div class="intro"><h1 class="lead-h">AI jargon in plain English.</h1>
+      <p class="deck">Each entry gives the short definition, what it means in practice, and why it keeps showing up in the news.</p></div>
+      <label class="search" for="q">
+        <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M13.5 13.5l5 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search 207 terms" autocomplete="off" aria-label="Search the index">
+      </label>
+      <div class="figures num" id="figs"></div>
+      <div class="letters"><h3>Browse by Letter</h3><div class="lgrid" id="lgrid"></div></div>
+    </div>
+    <div class="vr"></div>
+    <aside class="board" aria-label="Most used terms">
+      <h2>What Keeps Coming Up</h2>
+      <div id="leaders"></div>
+      <p id="board-note">Share of issues that used each term.</p>
+    </aside>
+  </section>
+
+  <div class="section-head" id="browse">
+    <div class="sh-l"><h2>The Index</h2><div class="status mono" id="status" aria-live="polite">Loading</div></div>
+    <div class="sh-r"><div class="toggle" role="group" aria-label="Order">
+      <button id="by-az" type="button" aria-pressed="true">A–Z</button>
+      <button id="by-use" type="button" aria-pressed="false">Most used</button>
+    </div></div>
+  </div>
+  <div id="list"></div>
+</div></main>
+
+<main id="view-entry" hidden><article class="entry"><div class="wrap" id="entry"></div></article></main>
+
+<footer><div class="wrap mono"><span>Prompted · Your Weekly AI Brief</span><span id="foot"></span></div></footer>
+
+<script>
+(function(){
+  const $=s=>document.querySelector(s);
+  const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let D=null,byDest={},byAnchor={},byTerm={},order='az';
+  const longDate=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})}catch(e){return d}};
+  const shortDate=d=>{try{return new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}catch(e){return d}};
+
+  fetch('data.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw 0;return r.json()}).then(init)
+    .catch(()=>{$('#status').textContent='The index could not load. Refresh to try again.'});
+
+  function init(d){
+    D=d;
+    d.destinations.forEach(x=>{byDest[x.id]=x;x.anchors.forEach(a=>byAnchor[a]=x)});
+    d.terms.forEach(t=>{byTerm[t.id]=t;t._d=byDest[t.dest];t._hay=(t.term+' '+t.surfaces.join(' ')+' '+(t._d?t._d.title+' '+t._d.def:'')).toLowerCase()});
+    const n=d.issuesTracked;
+    
+    $('#figs').innerHTML=`<div class="fig"><b>${d.terms.length}</b><span class="mono">terms</span></div><div class="fig"><b>${d.destinations.length}</b><span class="mono">entries</span></div><div class="fig"><b>${n}</b><span class="mono">issues read</span></div>`;
+    $('#q').placeholder=`Search ${d.terms.length} terms`;
+    $('#board-note').textContent=`Share of the ${n} issues that used each term.`;
+    $('#foot').textContent=`Updated ${longDate(d.updated)}`;
+    document.querySelectorAll('[data-sub]').forEach(a=>a.href=d.subscribeUrl);
+    leaders();
+    {const have=new Set(d.terms.map(t=>t.term[0].toUpperCase()));
+     $('#lgrid').innerHTML='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(k=>have.has(k)?`<a href="#" data-k="${k}">${k}</a>`:`<span>${k}</span>`).join('');
+     $('#lgrid').querySelectorAll('a').forEach(a=>a.onclick=e=>{e.preventDefault();$('#q').value='';setOrder('az');document.getElementById('L-'+a.dataset.k).scrollIntoView({behavior:reduce?'auto':'smooth'})});}
+    $('#q').addEventListener('input',()=>{draw();if($('#q').value)document.getElementById('browse').scrollIntoView({block:'start'})});
+    $('#by-az').onclick=()=>setOrder('az'); $('#by-use').onclick=()=>setOrder('use');
+    $('#home').onclick=e=>{e.preventDefault();home()};
+    document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement!==$('#q')&&!$('#view-home').hidden){e.preventDefault();$('#q').focus()}});
+    window.addEventListener('hashchange',route);
+    draw(); route();
+  }
+  function jump(){document.getElementById('browse').scrollIntoView({behavior:reduce?'auto':'smooth'})}
+  function leaders(){
+    const n=D.issuesTracked, top=D.terms.slice().sort((a,b)=>b.issues-a.issues||b.mentions-a.mentions).slice(0,6);
+    $('#leaders').innerHTML=top.map((t,i)=>`<a class="lead" href="#${esc(t.anchor)}"><i class="mono">${i+1}</i><span class="n">${esc(t.term)}</span><span class="c mono num">${t.issues}/${n}</span><span class="t"><u style="width:${(100*t.issues/n).toFixed(1)}%;animation-delay:${i*70}ms"></u></span></a>`).join('');
+  }
+  function setOrder(o){order=o;$('#by-az').setAttribute('aria-pressed',o==='az');$('#by-use').setAttribute('aria-pressed',o==='use');draw()}
+  function home(){history.replaceState(null,'',location.pathname+location.search);route()}
+
+  function item(t,rank){
+    return `<a class="item" href="#${esc(t.anchor)}"><span class="row"><b${rank?` data-rank="${String(rank).padStart(2,'0')}"`:''}>${esc(t.term)}</b><em class="num">${t.issues}/${D.issuesTracked}</em></span><p>${esc(t._d?t._d.def:'')}</p></a>`;
+  }
+  function draw(){
+    const raw=$('#q').value.trim(),q=raw.toLowerCase();
+    let L=D.terms.slice();
+    if(q){const w=q.split(/\s+/);L=L.filter(t=>w.every(x=>t._hay.includes(x)));L.sort((a,b)=>rank(b,q)-rank(a,q)||b.issues-a.issues)}
+    else if(order==='use')L.sort((a,b)=>b.issues-a.issues||b.mentions-a.mentions||a.term.localeCompare(b.term));
+    else L.sort((a,b)=>a.term.localeCompare(b.term,'en',{sensitivity:'base'}));
+    $('#status').textContent=q?`${L.length} ${L.length===1?'match':'matches'} for “${raw}”`:order==='use'?'Grouped by how many of the '+D.issuesTracked+' issues used each term':`${L.length} terms · A to Z`;
+    if(!L.length){$('#list').innerHTML=`<p class="empty">Nothing matches “${esc(raw)}” yet. Try a shorter word.</p>`;return}
+    if(q){$('#list').innerHTML=`<div class="cols flat">${L.map(t=>item(t)).join('')}</div>`;return}
+    if(order==='use'){
+      const B=[[20,'20+'],[10,'10–19'],[5,'5–9'],[1,'1–4']],G=B.map(()=>[]);
+      L.forEach(t=>G[B.findIndex(b=>t.issues>=b[0])].push(t));
+      $('#list').innerHTML=B.map((b,i)=>G[i].length?`<section class="letter band"><h3>${b[1]}<small>issues</small></h3><div class="cols">${G[i].map(t=>item(t)).join('')}</div></section>`:'').join('');
+      return}
+    const g={};L.forEach(t=>{const k=/[a-z]/i.test(t.term[0])?t.term[0].toUpperCase():'#';(g[k]=g[k]||[]).push(t)});
+    $('#list').innerHTML=Object.keys(g).sort().map(k=>`<section class="letter" id="L-${k}"><h3>${k}</h3><div class="cols">${g[k].map(t=>item(t)).join('')}</div></section>`).join('');
+  }
+  function rank(t,q){const s=t.term.toLowerCase();return s===q?5:s.startsWith(q)?4:t.surfaces.some(x=>x.toLowerCase()===q)?3:s.includes(q)?2:1}
+
+  function route(){
+    if(!D)return;
+    const h=decodeURIComponent(location.hash.slice(1));
+    const d=byAnchor[h]||D.destinations.find(x=>x.slug===h);
+    if(!d){$('#view-entry').hidden=true;$('#view-home').hidden=false;document.title='Prompted Index';return}
+    entry(d,h);
+  }
+  function boldTerm(text,names,all){
+    const t=esc(text);
+    const pat=n=>n.replace(/s$/i,'').replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'(?:s|es|ing)?';
+    const full=[...new Set(names.filter(Boolean))].sort((a,b)=>b.length-a.length);
+    const heads=[...new Set(full.map(n=>n.trim().split(/\s+/).pop()).filter(w=>w.length>2))];
+    for(const set of [full,heads]){
+      if(!set.length)continue;
+      const re=new RegExp('\\b('+set.map(pat).join('|')+')\\b','i'+(all?'g':''));
+      if(re.test(t)){re.lastIndex=0;return t.replace(re,'<b>$1</b>')}
+    }
+    return t;
+  }
+  function entry(d,anchor){
+    const n=D.issuesTracked,mine=D.terms.filter(t=>t.dest===d.id);
+    const names=[d.title,...mine.map(t=>t.term)];
+    const hit=mine.find(t=>t.anchor===anchor)||mine.slice().sort((a,b)=>b.issues-a.issues)[0];
+    const hide=d.treatment==='primary-at-top'||d.treatment==='already-at-top';
+    const parts=d.sections.filter(s=>!(hide&&s.id===d.primary));
+    const seen=new Set(),rel=(d.related||[]).map(id=>byTerm[id]).filter(t=>t&&t.dest!==d.id&&!seen.has(t.dest)&&seen.add(t.dest)).slice(0,8);
+    const aka=mine.map(t=>t.term).filter(x=>x!==d.title);
+    const on=hit.issues?Math.max(1,Math.round(15*hit.issues/n)):0;
+    const showHit=anchor&&anchor!==d.primary&&parts.some(s=>s.id===anchor);
+    $('#entry').innerHTML=`
+      <div class="crumbs mono"><a href="#" id="back">← The Index</a></div>
+      <header class="e-head">
+        <div>
+          ${showHit?`<div class="kicker">You followed “${esc(hit.term)}”</div>`:''}
+          <h1>${esc(d.title)}</h1>
+          <p class="def">${esc(d.def)}</p>
+        </div>
+        <div class="meter">
+          <b class="num">${hit.issues}<small>/${n}</small></b>
+          <span class="mono">Issues that used “${esc(hit.term)}”</span>
+          <div class="ticks" aria-hidden="true">${Array.from({length:15},(_,i)=>`<i class="${i<on?'on':''}"></i>`).join('')}</div>
+        </div>
+      </header>
+      <div class="e-rule"></div>
+      <section class="e-cols">
+        <div><h4>In plain English</h4><p>${boldTerm(d.plain,names,true)}</p></div>
+        <div class="vr"></div>
+        <div><h4>Why it matters</h4><p>${boldTerm(d.why,names,false)}</p></div>
+      </section>
+      ${parts.length?`<section class="parts"><h4>Also on this page</h4>${parts.map(s=>`
+        <div class="part${s.id===anchor&&showHit?' hit':''}" id="sec-${esc(s.id)}"><h5>${esc(s.title)}</h5><div><p>${esc(s.def)}</p>${s.plain?`<p>${esc(s.plain)}</p>`:''}${s.why?`<p>${esc(s.why)}</p>`:''}</div></div>`).join('')}</section>`:''}
+      ${rel.length||aka.length?`<section class="next"><h4>Read next</h4><div>${rel.length?`<div class="chips">${rel.map(t=>`<a href="#${esc(t.anchor)}">${esc(t._d.title)}</a>`).join('')}</div>`:''}${aka.length?`<p class="aka">This entry also covers ${esc(aka.join(', '))}.</p>`:''}</div></section>`:''}
+      <aside class="cta"><p>Prompted explains what changed in AI each week, and why it matters.<span>Free. One email every Monday morning.</span></p><a href="${esc(D.subscribeUrl)}">Subscribe free</a></aside>`;
+    $('#back').onclick=e=>{e.preventDefault();home()};
+    $('#view-home').hidden=true;$('#view-entry').hidden=false;
+    document.title=d.title+' · Prompted Index';
+    const el=showHit&&document.getElementById('sec-'+anchor);
+    if(el)el.scrollIntoView({block:'center'});else window.scrollTo(0,0);
+  }
+})();
+</script>
+</body>
+</html>
