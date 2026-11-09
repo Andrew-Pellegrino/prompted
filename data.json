@@ -5,11 +5,11 @@
  "indexUrl": "https://andrew-pellegrino.github.io/prompted/index/",
  "index": {
   "terms": 207,
-  "issuesTracked": 30,
+  "issuesTracked": 31,
   "top": [
    {
     "term": "AI model",
-    "issues": 30,
+    "issues": 31,
     "anchor": "ai-model"
    },
    {
@@ -18,18 +18,18 @@
     "anchor": "ai-agent"
    },
    {
+    "term": "Benchmark",
+    "issues": 27,
+    "anchor": "benchmark"
+   },
+   {
     "term": "Frontier model",
     "issues": 26,
     "anchor": "frontier-model"
    },
    {
-    "term": "Benchmark",
-    "issues": 26,
-    "anchor": "benchmark"
-   },
-   {
     "term": "Model training",
-    "issues": 24,
+    "issues": 25,
     "anchor": "model-training"
    },
    {
