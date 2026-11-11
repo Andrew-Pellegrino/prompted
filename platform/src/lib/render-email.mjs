@@ -37,11 +37,12 @@ function block(b, link) {
 }
 
 /** Subject and preview text derive from the issue; both can be overridden per send. */
-export const emailSubject = (issue) => issue.title;
+// Matches the established subject line: "Prompted | Your Weekly AI Brief | Week of November 1–8".
+export const emailSubject = (issue, site) => `${site.name} | ${site.tagline} | ${mastheadWeek(issue.week)}`;
 export const emailPreview = (issue) => issue.subtitle || '';
 
 export function renderIssueEmail(issue, site, opts = {}) {
-  const subject = opts.subject || emailSubject(issue);
+  const subject = opts.subject || emailSubject(issue, site);
   const preview = opts.preview ?? emailPreview(issue);
   // opts.trackLink(href) may return a redirect URL (click tracking); visible text is never changed.
   const link = makeLink(opts.trackLink);

@@ -72,7 +72,7 @@ test('email template: live masthead text, 608px, unsubscribe, no per-week image'
   assert.ok(email.html.includes('Week of November 1–8') && email.html.includes('Your Weekly AI Brief') && email.html.includes('Prepared for the John W. Altman Institute for Entrepreneurship'));
   const imgs = [...email.html.matchAll(/<img[^>]+src="([^"]+)"/g)].map((m) => m[1]);
   assert.deepEqual(imgs, ['https://preview.example/img/miami-altman-lockup.png'], 'only the stable institutional lockup is an image');
-  assert.equal(email.subject, 'Prompted — Week of November 1–8, 2026');
+  assert.equal(email.subject, 'Prompted | Your Weekly AI Brief | Week of November 1–8');
   const filled = fillRecipient(email.html, { unsubscribeUrl: 'https://x.test/u/abc', webUrl: 'https://x.test/i?a=1&b=2', openPixelUrl: null, token: 'abc' });
   assert.ok(!filled.includes('{{') && filled.includes('https://x.test/u/abc') && filled.includes('a=1&amp;b=2'));
   assert.ok(fillRecipient(email.text, { unsubscribeUrl: 'u', webUrl: 'https://x.test/i?a=1&b=2', openPixelUrl: null }, false).includes('a=1&b=2'));

@@ -55,3 +55,6 @@ code{background:var(--sheet);padding:1px 5px;border-radius:3px;font-size:13px;wo
 .steps{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px;padding:0;list-style:none;font-size:13px}
 .steps li{border:1px solid var(--hair);border-radius:99px;padding:2px 10px;color:var(--muted)}
 .steps li.done{border-color:var(--ok);color:var(--ok)}.steps li.now{border-color:var(--red);color:var(--red);font-weight:700}
+
+.alert{border-color:var(--red);border-left:4px solid var(--red)}
+.alert.soft{border-color:var(--warn);border-left-color:var(--warn)}

@@ -498,3 +498,47 @@ test('with Gmail connected but audience sending in dry run: tests go out for rea
     assert.equal(calls.filter((u) => u.includes('messages/send')).length, 1, 'no real email to the audience in dry-run mode');
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('test sends to a test inbox that is also a subscriber carry real unsubscribe and tracking links; Gmail health is recorded', async () => {
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-health', GMAIL_FROM_EMAIL: 'sender@gmail.test' }), c = client(env);
+  const sent = [], realFetch = globalThis.fetch;
+  let tokenBody = { access_token: 'at', expires_in: 3600, refresh_token_expires_in: 500000 };
+  globalThis.fetch = async (url, init) => {
+    if (String(url).includes('oauth2')) return new Response(JSON.stringify(tokenBody), { status: tokenBody.error ? 400 : 200 });
+    sent.push(Buffer.from(JSON.parse(init.body).raw, 'base64url').toString()); return new Response('{"id":"g"}');
+  };
+  try {
+    // the owner signs up with the authorised test inbox: the confirmation is a real email even in dry-run mode
+    const r = await signup(c, 'owner-test@example.com', { utm_source: 'owner_test' });
+    assert.equal(sent.length, 1);
+    assert.match(sent[0], /Subject: Confirm your subscription to Prompted/);
+    await signup(c, 'stranger@example.com');
+    assert.equal(sent.length, 1, 'a stranger signing up on the preview gets no real email');
+    await c.post(r.data.dev_confirm_url);
+    const person = one(env, "SELECT id, token FROM people WHERE email_norm = 'owner-test@example.com'");
+    await c.login();
+    const t = await c.post('/api/admin/sends/test', { issue_slug: 'week-of-august-9-16-2026', emails: ['owner-test@example.com'] });
+    assert.deepEqual([t.data.recipients.sent, t.data.providers, t.data.links.length], [1, ['gmail'], 1], 'four links in the issue, one distinct address');
+    const mime = sent[1], html = Buffer.from(mime.split('Content-Transfer-Encoding: base64\r\n\r\n')[2].split('\r\n--')[0].replace(/\r\n/g, ''), 'base64').toString();
+    assert.ok(mime.includes(`List-Unsubscribe: <https://preview.example/u/${person.token}>`) && mime.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
+    assert.ok(html.includes(`https://preview.example/u/${person.token}`) && html.includes(`/r/${t.data.id}/0/${person.token}`) && html.includes(`/o/${t.data.id}/${person.token}.gif`));
+    assert.ok(mime.startsWith('From: Prompted <sender@gmail.test>\r\nTo: <owner-test@example.com>\r\nSubject: =?UTF-8?B?'));
+    // a tracked link forwards to the original address and is counted; unsubscribe really unsubscribes
+    const click = await c.get(`/r/${t.data.id}/0/${person.token}`);
+    assert.equal(click.status, 302);
+    assert.equal(click.headers.get('location'), new URL(one(env, 'SELECT url FROM send_links WHERE send_id = ? AND idx = 0', t.data.id).url).href);
+    await c.get(`/o/${t.data.id}/${person.token}.gif`);
+    const after = (await c.get(`/api/admin/sends/${t.data.id}`)).data;
+    assert.deepEqual([after.opened, after.clicked, after.links[0].clicks], [1, 1, 1]);
+    await c.post(`/u/${person.token}`);
+    assert.equal(one(env, 'SELECT status FROM people WHERE id = ?', person.id).status, 'unsubscribed');
+    // health check: working, with the 7-day expiry Google reports for an app in Testing mode
+    let h = (await c.post('/api/admin/gmail/check')).data.health;
+    assert.equal(h.ok, true);
+    assert.ok(new Date(h.expires_at) - Date.now() > 5 * 864e5 && new Date(h.expires_at) - Date.now() < 6 * 864e5);
+    assert.ok((await c.get('/api/admin/dashboard')).data.gmail_health.expires_at);
+    tokenBody = { error: 'invalid_grant' };
+    h = (await c.post('/api/admin/gmail/check')).data.health;
+    assert.deepEqual([h.ok, /expired or was revoked/.test(h.error)], [false, true]);
+  } finally { globalThis.fetch = realFetch; }
+});

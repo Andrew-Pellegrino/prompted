@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 31 of 31 pass.
+- `npm test`: 32 of 32 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -71,6 +71,33 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   only for addresses in `TEST_RECIPIENTS`.
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
+
+## First real email tests (November 11) — delivery NOT yet confirmed
+
+The owner connected the dedicated sending account through the dashboard. Verified on the live preview:
+audience sending is dry run, test sends use Gmail, one authorised test inbox, only synthetic people in the
+database, a test send to any other address is refused.
+
+Three real messages were then sent to the authorised test inbox only, all accepted by Google's API:
+the latest issue as a test, a signup confirmation, and a plain message with no links or images.
+**None of the three was visible in the recipient's Inbox or All Mail** when checked through the Gmail
+connector several minutes later, while other mail arriving in the same minutes was visible. The connector
+cannot see the Spam folder. The plain message being missing too points at the brand-new sending account's
+reputation, not at the newsletter's content or the `workers.dev` links. Waiting on the owner to look in
+the test inbox's Spam folder and in the sending account's inbox for any "message blocked" notice.
+
+Do not send more tests until that is known; repeated filtered mail makes a new account look worse.
+Do not treat Gmail as the production sender until tests land in the inbox reliably.
+
+Google reports that the stored sign-in expires on November 18, 2026, which confirms the Google Cloud app is
+in "Testing" mode. Durable fix: publish the app (Google Cloud, Audience, Publish app), then click
+Reconnect in the dashboard once. The dashboard shows the expiry date and re-checks the sign-in four times
+a day.
+
+Also added: the established subject line format ("Prompted | Your Weekly AI Brief | Week of ..."), test
+sends that carry a real unsubscribe link and tracking when the test inbox is also a subscriber record,
+real confirmation emails to authorised test inboxes, a plain delivery-check button, and a Gmail sign-in
+health check with a dashboard warning.
 
 ## Added since the first deploy
 

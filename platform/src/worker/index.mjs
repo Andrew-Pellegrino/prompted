@@ -2,7 +2,8 @@
 import { json, fail, HttpError, all, first, run, now, hmac, safeEqual, verifyPassword, rateLimited, pruneRateLimits, audit, clientIp, siteConfig, listIssues, loadIssue } from './core.mjs';
 import { subscribe, confirm, unsubscribe, setStatus, createPerson, updatePerson, getPerson, listPeople, peopleQuery, PEOPLE_COLUMNS, STATUSES, normalizeEmail, suppress } from './people.mjs';
 import { planImport, commitImport, reconcile } from './imports.mjs';
-import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings } from './sending.mjs';
+import { sendTransactional } from './sending.mjs';
+import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
 import { runQA } from '../lib/qa.mjs';
@@ -163,7 +164,10 @@ async function gmailCallback(env, url) {
     env.DB.prepare("INSERT INTO settings (key, value) VALUES ('gmail_from_email', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(email || ''),
   ]);
   await run(env.DB, "DELETE FROM settings WHERE key = 'delivery_last_problem'");
-  await audit(env.DB, 'owner', 'gmail.connect', null, null, { account: email });
+  // Google reports an expiry only while the Google Cloud app is in "Testing" mode (then: 7 days).
+  const expires_at = tok.refresh_token_expires_in ? new Date(Date.now() + Number(tok.refresh_token_expires_in) * 1000).toISOString() : null;
+  await run(env.DB, "INSERT INTO settings (key, value) VALUES ('gmail_health', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ checked_at: now(), ok: true, error: null, expires_at }));
+  await audit(env.DB, 'owner', 'gmail.connect', null, null, { account: email, sign_in_expires: expires_at });
   return Response.redirect((await siteConfig(env)).url + '/admin/#tools', 303);
 }
 
@@ -182,7 +186,8 @@ async function adminApi(request, env, path, url) {
   const actor = await sessionActor(env, request);
   if (!actor) return fail(401, 'Sign in required.');
   if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env);
-  if (path === 'gmail/disconnect' && method === 'POST') { await run(db, "DELETE FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email')"); await audit(db, actor, 'gmail.disconnect'); return json({ ok: true }); }
+  if (path === 'gmail/check' && method === 'POST') return json({ ok: true, health: await checkGmailHealth(env) });
+  if (path === 'gmail/disconnect' && method === 'POST') { await run(db, "DELETE FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email','gmail_health')"); await audit(db, actor, 'gmail.disconnect'); return json({ ok: true }); }
   if (method !== 'GET' && !sameOrigin(request)) return fail(403, 'Cross-site request blocked.');
   if (path === 'logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': 'prompted_admin=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0' });
   if (path === 'me') return json({ ok: true, actor, env: env.SITE_ENV || 'preview', send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun' });
@@ -283,6 +288,18 @@ async function adminApi(request, env, path, url) {
   }
   if (path === 'sends' && method === 'POST') return json(await prepareSend(env, (await body(request, 2000)).issue_slug, actor), 201);
   if (path === 'sends/test' && method === 'POST') { const b = await body(request, 5000); return json(await testSend(env, b.issue_slug, b.emails, actor), 201); }
+  // Delivery diagnostic: a short personal-style message with no links, images or tracking, to an authorised
+  // test inbox only. If this reaches the inbox while the newsletter does not, the cause is the links or
+  // the layout; if this is filtered too, the cause is the sending account's reputation.
+  if (path === 'sends/diagnostic' && method === 'POST') {
+    const b = await body(request, 2000), to = normalizeEmail(b.email);
+    if (!String(env.TEST_RECIPIENTS || '').split(',').map(normalizeEmail).includes(to)) return fail(403, 'Not an authorised test inbox.');
+    const stamp = now().slice(0, 16).replace('T', ' ');
+    const text = `Hi,\n\nThis is a plain delivery check from the Prompted platform, sent ${stamp} UTC. It has no links, images or tracking.\n\nIf you can read this in your inbox, plain delivery from the sending account works.\n\nPrompted`;
+    const res = await sendTransactional(env, to, `Prompted delivery check ${stamp}`, `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5">${esc(text).replace(/\n/g, '<br>')}</div>`, text);
+    await audit(db, actor, 'send.diagnostic', null, null, { ok: res.ok, provider: res.provider || null });
+    return json({ ok: !!res.ok, provider: res.provider || null, error: res.error || null });
+  }
   if ((m = /^sends\/(\d+)$/.exec(path)) && method === 'GET') return json({ ...(await getSend(db, Number(m[1]))), failures: await all(db, "SELECT email_norm, status, last_error, attempts FROM send_recipients WHERE send_id = ? AND status IN ('failed','skipped','bounced','complained') LIMIT 200", Number(m[1])) });
   if ((m = /^sends\/(\d+)\/(approve|schedule|cancel|retry-failed|extend)$/.exec(path)) && method === 'POST') {
     const id = Number(m[1]);
@@ -296,8 +313,9 @@ async function adminApi(request, env, path, url) {
     const m = await withMailSettings(env);
     return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), test_quotas: await quotas(env, true), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
       last_problem: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'delivery_last_problem'"))?.value || 'null'),
+      gmail_health: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'gmail_health'"))?.value || 'null'),
       gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: await gmailRedirect(env) },
-      configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO/.test((await siteConfig(env)).postal_address) } });
+      configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO|not a real address|preview only/i.test((await siteConfig(env)).postal_address) } });
   }
   if (path === 'metrics/beehiiv' && method === 'POST') return json(await importBeehiivMetrics(env, await body(request), actor));
   if (path === 'metrics/growth' && method === 'POST') return json(await importGrowth(env, await body(request), actor));
@@ -341,7 +359,12 @@ export default {
   },
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
-      try { await tick(env); if (new Date().getUTCMinutes() === 0) await pruneRateLimits(env.DB); }
+      try {
+        await tick(env);
+        const t = new Date();
+        if (t.getUTCMinutes() === 0) await pruneRateLimits(env.DB);
+        if (t.getUTCMinutes() === 7 && t.getUTCHours() % 6 === 0) await checkGmailHealth(env); // four times a day; sends nothing
+      }
       catch (e) { console.error('cron failed', e?.message); }
     })());
   },

@@ -40,6 +40,7 @@ export async function dashboard(env) {
       platform: platform.find((m) => m.issue_slug === i.slug) || null })).reverse(),
     sends: sends.map((s) => ({ ...s, totals: JSON.parse(s.totals), unsubscribes: unsubBySend.find((u) => u.send_id === s.id)?.n || 0 })),
     imports: imports.map((b) => ({ ...b, totals: JSON.parse(b.totals) })),
+    gmail_health: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'gmail_health'"))?.value || 'null'),
     quotas: await quotas(env), send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun',
     notes: METRIC_NOTES,
   };

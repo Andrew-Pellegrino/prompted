@@ -107,7 +107,14 @@ export async function testSend(env, slug, emails, actor) {
   const res = await run(db, `INSERT INTO sends (issue_slug, kind, subject, preview, status, content_sha256, created_by, created_at, started_at) VALUES (?, 'test', ?, ?, 'sending', ?, ?, ?, ?)`,
     slug, '[TEST] ' + email.subject, email.preview, await contentHash(issue), actor, now(), now());
   const id = res.meta.last_row_id;
-  await db.batch(list.map((e) => stmt(db, "INSERT INTO send_recipients (send_id, person_id, email_norm, token, status) VALUES (?, NULL, ?, 'test', 'queued')", id, e)));
+  // If a test inbox is also a subscriber record, the test carries that record's own unsubscribe and
+  // tracking links, so the whole reader journey can be exercised. Otherwise it gets inert "test" links.
+  const known = new Map((await all(db, `SELECT id, email_norm, token FROM people WHERE email_norm IN (${list.map(() => '?').join(',')})`, ...list)).map((p) => [p.email_norm, p]));
+  const urls = [...new Set(issue.blocks.flatMap((b) => (b.type === 'list' ? b.items.flat() : b.children || [])).filter((r) => /^https?:\/\//.test(r.href || '')).map((r) => r.href))];
+  await db.batch([
+    ...list.map((e) => stmt(db, "INSERT INTO send_recipients (send_id, person_id, email_norm, token, status) VALUES (?, ?, ?, ?, 'queued')", id, known.get(e)?.id ?? null, e, known.get(e)?.token ?? 'test')),
+    ...urls.map((u, i) => stmt(db, 'INSERT OR IGNORE INTO send_links (send_id, idx, url) VALUES (?, ?, ?)', id, i, u)),
+  ]);
   await audit(db, actor, 'send.test', 'send', id, { slug, recipients: list.length });
   await processSend(env, await first(db, 'SELECT * FROM sends WHERE id = ?', id));
   return getSend(db, id);
@@ -142,7 +149,7 @@ export async function processSend(env, send) {
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
     const links = await all(db, 'SELECT idx, url FROM send_links WHERE send_id = ?', send.id);
     const linkIdx = new Map(links.map((l) => [l.url, l.idx]));
-    const track = env.TRACK_CLICKS !== 'false' && send.kind === 'issue';
+    const track = env.TRACK_CLICKS !== 'false';
     const email = renderIssueEmail(issue, site, { subject: send.subject, preview: send.preview, trackLink: track ? (href) => (linkIdx.has(href) ? `${site.url}/r/${send.id}/${linkIdx.get(href)}/{{TOKEN}}` : href) : null });
     const { from, replyTo } = senderFor(env, provider);
     const webUrl = `${site.url}/issues/${issue.slug}/?utm_source=newsletter&utm_medium=email&utm_campaign=${issue.slug}`;
@@ -157,7 +164,7 @@ export async function processSend(env, send) {
       // Outside production, real providers may only reach authorised test inboxes.
       if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) { results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } }); continue; }
       const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
-      const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS !== 'false' && send.kind === 'issue' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
+      const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS !== 'false' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
       let res;
       try {
         res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });
@@ -254,7 +261,7 @@ export async function retryFailed(env, id, actor) {
 /** One-off transactional message (subscription confirmation). Uses the same providers and quota. */
 export async function sendTransactional(env, to, subject, html, text) {
   env = await withMailSettings(env);
-  const pick = await pickProvider(env, 0);
+  const pick = await pickProvider(env, 0, testAllowlist(env).includes(normalizeEmail(to)));
   if (!pick) return { ok: false, error: 'no sending quota left today' };
   const { provider } = pick;
   if (provider.name !== 'dryrun' && !isProduction(env) && !testAllowlist(env).includes(normalizeEmail(to))) return { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' };
@@ -276,4 +283,27 @@ export async function sendConfirmation(env, person) {
 <p style="font-size:12px;color:#5f5e58">${esc(site.name)} · ${esc(site.postal_address)}</p></div>`;
   const text = `Please confirm that you want to receive ${site.name}.\n\nConfirm: ${url}\n\nIf you did not ask for this, ignore this email.\n\n${site.name} · ${site.postal_address}`;
   return sendTransactional(env, person.email_norm, `Confirm your subscription to ${site.name}`, html, text);
+}
+
+/**
+ * Check that the stored Gmail sign-in still works, by asking Google for a short-lived access token.
+ * Sends nothing. Records the result (and the sign-in's expiry date, which Google only reports while the
+ * Google Cloud app is in "Testing" mode) so the dashboard can warn the owner before a Monday send.
+ */
+export async function checkGmailHealth(env) {
+  env = await withMailSettings(env);
+  if (!env.GMAIL_CLIENT_ID || !env.GMAIL_REFRESH_TOKEN) return null;
+  const health = { checked_at: now(), ok: false, error: null, expires_at: null };
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ client_id: env.GMAIL_CLIENT_ID, client_secret: env.GMAIL_CLIENT_SECRET, refresh_token: env.GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token' }) });
+    const j = await res.json().catch(() => ({}));
+    health.ok = res.ok && !!j.access_token;
+    if (!health.ok) health.error = /invalid_grant/.test(j.error || '') ? 'The Gmail sign-in has expired or was revoked. Reconnect Gmail.' : `Google answered ${res.status} ${j.error || ''}`.trim();
+    if (j.refresh_token_expires_in) health.expires_at = new Date(Date.now() + Number(j.refresh_token_expires_in) * 1000).toISOString();
+  } catch (e) { health.error = 'Could not reach Google: ' + String(e.message || e).slice(0, 120); }
+  const prev = JSON.parse((await first(env.DB, "SELECT value FROM settings WHERE key = 'gmail_health'"))?.value || '{}');
+  if (!health.expires_at && health.ok && prev.expires_at && new Date(prev.expires_at) > new Date()) health.expires_at = prev.expires_at; // keep the date learned at connection time
+  await run(env.DB, "INSERT INTO settings (key, value) VALUES ('gmail_health', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify(health));
+  return health;
 }
