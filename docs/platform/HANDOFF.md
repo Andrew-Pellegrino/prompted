@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 37 of 37 pass.
+- `npm test`: 38 of 38 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -71,6 +71,19 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   only for addresses in `TEST_RECIPIENTS`.
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
+
+## Domain decision pending with the owner (read `DOMAIN-OPTIONS.md`)
+
+- eu.org: the iPhone's `document.txt` turned out to be the blank form, not a result page. Two submissions
+  on two devices produced no confirmation and there is no way to see pending requests. Assessed as not
+  worth more of the owner's time.
+- The owner relaxed the $0 rule for a domain (roughly $5, a little more for a good reason) and asked for a
+  comparison. Recommendation written up: `readprompted.org` at Cloudflare Registrar, with
+  `promptedbrief.com` as the `.com` alternative. **Nothing has been bought. Do not buy, add a payment
+  method, or change the domain plan without the owner's explicit approval.**
+- A new automated test proves the domain change is one setting: the site is rebuilt for a different
+  address and no file keeps the old one.
+- The pending `prompted.eu.org` entry in Cloudflare can stay or be removed by the owner; it costs nothing.
 
 ## Domain application in progress (November 11)
 

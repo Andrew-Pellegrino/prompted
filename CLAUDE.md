@@ -16,7 +16,9 @@ sent, even to the test inbox, without the owner's approval for that send.
 
 1. Never commit, push, merge or deploy to `main` without the owner's explicit approval.
 2. Never edit `index/` on this branch. The platform reads it; only the Index task writes it.
-3. $0 additional spend. No paid plans, domains, credits or billing activation without separate approval.
+3. No spending without the owner's explicit approval for that purchase. The owner has said a small domain
+   cost is acceptable in principle (`docs/platform/DOMAIN-OPTIONS.md`); nothing has been bought. No paid
+   plans, credits or billing activation otherwise.
 4. Production systems are read-only until an approved cutover: beehiiv, the Distribution CRM, roster files,
    Typefully, scheduled tasks, live sends.
 5. No private data in this public repository, ever: no subscriber lists, rosters, CRM notes, exports, API
@@ -50,7 +52,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 37 tests, in-memory SQLite behind the D1 interface
+npm test               # 38 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)

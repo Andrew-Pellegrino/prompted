@@ -66,6 +66,9 @@ making until B1 has been tested.
 
 ## Plan
 
+Update: the free `eu.org` route has stalled and the owner is open to a low-cost domain. See
+`DOMAIN-OPTIONS.md`. The steps below are the same whichever domain is used.
+
 1. **Apply for the free domain now** (owner, `OWNER-SETUP.md` step 6). Nothing else waits on it.
 2. **Let the Google account age.** No more automated sends from it for now. Optional and free: reply to the
    delivery check from the test inbox, and answer from the Prompted account, so it has some ordinary

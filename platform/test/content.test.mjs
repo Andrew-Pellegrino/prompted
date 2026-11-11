@@ -157,3 +157,21 @@ test('approved text imports without changing a word, and round-trips an existing
   assert.throws(() => importIssueText('No title line\n\nBody'), /first line/);
   assert.throws(() => importIssueText('# Week of Sometime\n\nBody'));
 });
+
+test('changing the domain is one setting: a build for another address keeps no trace of the old one', async () => {
+  const { readdir } = await import('node:fs/promises');
+  await build({ SITE_URL: 'https://brand-new-domain.example', SITE_ENV: 'production' });
+  const walk = async (dir) => (await Promise.all((await readdir(dir, { withFileTypes: true })).map((e) => (e.isDirectory() ? walk(path.join(dir, e.name)) : [path.join(dir, e.name)])))).flat();
+  const stale = [];
+  for (const f of await walk(path.join(ROOT, 'dist'))) {
+    if (!/\.(html|json|xml|txt|js|css)$/.test(f)) continue;
+    const text = await readFile(f, 'utf8');
+    if (/workers\.dev|preview\.example|beehiiv\.com\/subscribe/.test(text)) stale.push(path.relative(ROOT, f));
+  }
+  assert.deepEqual(stale, []);
+  const issue = await readFile(path.join(ROOT, 'dist', 'issues', 'week-of-november-1-8-2026', 'index.html'), 'utf8');
+  assert.ok(issue.includes('<link rel="canonical" href="https://brand-new-domain.example/issues/week-of-november-1-8-2026/">'));
+  assert.ok((await readFile(path.join(ROOT, 'dist', 'email', 'week-of-november-1-8-2026.html'), 'utf8')).includes('https://brand-new-domain.example/img/miami-altman-lockup.png'));
+  assert.ok((await readFile(path.join(ROOT, 'dist', 'sitemap.xml'), 'utf8')).includes('https://brand-new-domain.example/issues/'));
+  await build({ SITE_URL: 'https://preview.example', SITE_ENV: 'preview' });
+});
