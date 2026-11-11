@@ -1,0 +1,112 @@
+# Deliverability: findings and plan
+
+Written November 11, 2026, after the first real test emails. This supersedes the optimistic parts of
+`DELIVERY-VERDICT.md` about Gmail. Delivery (the provider accepts the message) is solved. Inbox placement
+(the reader actually sees it) is not, and it is the thing that matters.
+
+## What happened
+
+Three real messages were sent from the dedicated personal Google account through the Gmail API to the
+owner's one authorised test inbox. All three were delivered. **Gmail put all three in Spam.** The owner
+marked them "Not spam". The sending account's own inbox shows no rejection notices.
+
+| Message | Links | Images | List-Unsubscribe header | Result |
+| --- | --- | --- | --- | --- |
+| Latest issue as a test | yes (`workers.dev`) | one | yes | Spam |
+| Signup confirmation | one (`workers.dev`) | none | no | Spam |
+| Plain delivery check | none | none | no | Spam |
+
+## What the evidence rules out
+
+The plain message's headers were read in full:
+
+- `spf=pass`, `dkim=pass` (signed by `gmail.com`), `dmarc=pass`. **Authentication is not the cause.**
+- The plain message had no links, images, tracking or unsubscribe header and was still filtered.
+  **So the newsletter's content, layout, links and unsubscribe handling are not the main cause either.**
+- The headers show the message entered through `gmailapi.google.com`, sent by an account created the same
+  day with no prior history.
+
+What remains is **sender reputation**: a brand-new account whose first-ever messages are automated. Google
+does not publish its reasons, so this is an inference, but it is the only explanation consistent with all
+three results, and it matches what deliverability sources describe for new senders.
+
+Not yet checked: whether Gmail kept the `List-Unsubscribe` header on the issue test (the owner can open
+that message, choose "Show original", and search for `List-Unsubscribe`), and what the grey banner in the
+Spam folder said.
+
+## Why "Not spam" does not settle it
+
+Marking a message "Not spam" mostly teaches that one mailbox. It helps the owner's inbox. It says little
+about the roughly 255 other readers, most of whom are on a university Google Workspace with its own filters.
+
+## The options, honestly
+
+No $0 option gives instant inbox placement. Reputation is earned by sending mail people want, consistently,
+from an identity that stays the same. The question is which identity is worth building.
+
+| | A. Personal Gmail account | B1. Free `eu.org` domain + Brevo | B2. Paid domain + Brevo |
+| --- | --- | --- | --- |
+| Cost | $0 | $0 | about $10–12 a year (outside the $0 rule) |
+| Authentication | Passes, as `gmail.com` | Passes as our own domain once DNS is set | Same |
+| Whose reputation | One consumer account. Cannot be measured or moved | Our domain's. Moves with us between providers | Same |
+| Starting reputation | None, and today's result shows it | None: a new domain also needs warming | None, but a normal namespace |
+| Known weakness | Built for person-to-person mail. Lockout risk. 400 a day | The `eu.org` namespace is also used for throwaway addresses, so some filters may be wary. Unmeasured. Approval can take days or never come | None specific |
+| Feedback | None (no bounce or complaint reports) | Bounce and complaint reports; DMARC reports | Same |
+| Capacity | about 400 a day | 300 a day (Brevo), plus 100 (Resend) | Same |
+| Shared sending servers | Google's | Brevo's free pool: placement moves with the pool (one blogger measured 86 percent; indicative only) | Same |
+| Verdict | Keep as a test tool and fallback. Not the foundation | **The $0 route to try**, but it must prove itself in tests before anything depends on it | The most dependable route. Flagged, not proposed |
+
+Other free hosted newsletter services (Substack, Buttondown, Kit) deliver well because they lend their own
+reputation, which is exactly what beehiiv does now. Using one would swap one dependency for another.
+
+**The plain statement:** the $0 rule and the independence goal now pull against inbox reliability. The $0
+path (B1) may work, but it is unproven. If B1 tests badly, the choice becomes: keep beehiiv as the sender
+for longer, or approve a small yearly domain cost. That is the owner's decision, and it does not need
+making until B1 has been tested.
+
+## Plan
+
+1. **Apply for the free domain now** (owner, `OWNER-SETUP.md` step 6). Nothing else waits on it.
+2. **Let the Google account age.** No more automated sends from it for now. Optional and free: reply to the
+   delivery check from the test inbox, and answer from the Prompted account, so it has some ordinary
+   two-way history. Publish the Google Cloud app so the sign-in stops expiring weekly.
+3. **When the domain is approved:**
+   - DNS on Cloudflare (free). Move the preview site onto the domain, so links in the email and the sender
+     address share one domain instead of pointing at `workers.dev`.
+   - Brevo: add the domain, publish SPF, DKIM and a DMARC record (`p=none` with a reporting address).
+   - Cloudflare Email Routing (free) so replies and bounce notices to the domain reach the owner.
+   - The dashboard's "Check a sending domain" must say Ready.
+4. **Seed tests, each with the owner's approval:** the owner's own inboxes at Gmail, Outlook and iCloud,
+   plus the owner's university inbox as a recipient, because that is where most readers are.
+   Pass mark: inbox, not spam, three tests running at each.
+5. **Announce the move from beehiiv first.** Two issues in a row carry one line: "Prompted is moving to a new
+   sending address, [address]. Add it to your contacts so issues keep arriving." A trusted sender telling
+   readers to expect the new one is the strongest free signal available.
+6. **Warm up over about four weeks** using staged sends and the warm-up cap: most engaged readers first
+   (about 20), then about 60, then about 150, then everyone. beehiiv keeps sending to everyone not yet
+   moved, so nobody misses an issue and nobody gets two. Hold or step back at the first sign of spam
+   placement, bounces or complaints.
+7. **Full cutover only when** the seed inboxes are clean, delivery is above 95 percent, there are no
+   complaints, and unsubscribe works end to end.
+
+## What the platform now does to help
+
+- **Warm-up cap** (`WARMUP = "start date,first-day cap,growth"`): real sending is limited per day and the
+  limit rises gradually. Nothing real is sent before the start date.
+- **Staged sends:** a tagged group first, then "everyone not yet included", never anyone twice.
+- **Tracking off by default.** Tracking pixels and redirect links make a new sender look like bulk mail,
+  and open counts are unreliable anyway. Unsubscribes, bounces and web visits are still measured.
+- **Cleaner email:** no invisible padding characters in the preview line; subject matches the established
+  format.
+- **Sending-domain check** in the dashboard (Tools): reads SPF, DKIM and DMARC for any domain and says
+  what is missing. Verified live against a correctly set-up domain and an empty one.
+- **Plain delivery check** button, for telling "the account is filtered" apart from "the content is filtered".
+- **Gmail sign-in health** shown in the dashboard, with the expiry date while the Google app is in Testing.
+
+## Sources
+
+- New-sender reputation and first-contact filtering: https://suped.com/email-deliverability/answers/why-do-my-first-emails-to-new-gmail-recipients-go-to-spam , https://www.suped.com/learn/email-deliverability/why-does-gmail-mark-emails-from-new-domains-as-spam , https://developer.nylas.com/docs/cookbook/email/email-deliverability/ , https://mailgun.com/blog/deliverability/prevent-gmail-blocking-emails
+- Gmail API mail is authenticated normally: https://www.gmass.co/blog/gmail-vs-api-deliverability/
+- Brevo free plan, shared servers, warm-up: https://marcandrews.com/brevo-deliverability-uk-2026/ , https://www.brevo.com/blog/how-to-warm-up-email-domain/ , https://www.brevo.com/blog/ip-warming/
+- `eu.org` namespace and throwaway addresses: https://www.pulse.bot/cybersecurity/news/you-see-an-email-ending-in-euorg-must-be-legit-right-76d89522-70f1-48a1-8c80-4dd729ecb7bb/
+- Google Postmaster Tools coverage and volume: https://www.suped.com/knowledge/email-deliverability/tools/what-email-volume-is-required-to-see-data-in-google-postmaster-tools

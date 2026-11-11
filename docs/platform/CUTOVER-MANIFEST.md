@@ -14,7 +14,10 @@ free `eu.org` domain or a `workers.dev` address.
 | Site, archive, Index copy and signup work in a deployed preview | **Passed** on the preview, November 11 (synthetic data). |
 | Private database deployed with dashboard login | **Passed**: anonymous, forged and cross-site requests are refused. |
 | Real subscriber ledger imported and reconciled against beehiiv counts | Not started (needs the deployed database and owner approval). |
-| A sending identity exists and passes SPF/DKIM/DMARC checks | Not started (owner steps in OWNER-SETUP.md). |
+| A sending identity exists and passes SPF/DKIM/DMARC checks | Gmail account connected and authenticating, but its mail lands in Spam. A dedicated domain is the plan (`DELIVERABILITY.md`). |
+| Test issues reach the inbox (not Spam) at Gmail, Outlook, iCloud and a university inbox, three times running | **Failed** on the first attempt from the Gmail account (Spam). |
+| New sending address announced to readers from beehiiv in two issues | Not started. |
+| Warm-up completed with staged sends while beehiiv covers the rest | Not started. |
 | Test issue received and compared in Gmail, Outlook and Apple Mail | Not started. |
 | Postal address set in the footer | Not set. QA blocks real sends until it is. |
 | One full dry run of a Monday send against the real ledger | Not started. |

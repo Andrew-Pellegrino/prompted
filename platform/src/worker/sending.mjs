@@ -121,10 +121,25 @@ export async function testSend(env, slug, emails, actor) {
 }
 
 /** Remaining quota per provider today, after the reserve kept for confirmations and tests. */
+/**
+ * Warm-up cap for today, or null when no warm-up is configured.
+ * WARMUP = "YYYY-MM-DD,first-day cap,daily growth factor": the cap starts small and grows each day, so a
+ * new sender address builds a history gradually instead of appearing with a full-list send on day one.
+ * Before the start date nothing real is sent at all.
+ */
+export function warmupCap(env, at = new Date()) {
+  const [start, first, growth] = String(env.WARMUP || '').split(',').map((s) => s.trim());
+  if (!start) return null;
+  const days = Math.floor((Date.UTC(at.getUTCFullYear(), at.getUTCMonth(), at.getUTCDate()) - Date.parse(start + 'T00:00:00Z')) / 864e5);
+  if (!(days >= 0)) return 0;
+  return Math.floor((Number(first) || 20) * Math.pow(Math.max(1, Number(growth) || 1.25), days));
+}
+
 export async function quotas(env, forTest = false) {
   env = await withMailSettings(env);
   const usage = Object.fromEntries((await all(env.DB, 'SELECT provider, count FROM provider_usage WHERE day = ?', today())).map((u) => [u.provider, u.count]));
-  return providerChain(env, { forTest }).map((p) => ({ name: p.name, limit: p.dailyLimit(env), used: usage[p.name] || 0, remaining: Math.max(0, p.dailyLimit(env) - (usage[p.name] || 0)) }));
+  const cap = warmupCap(env);
+  return providerChain(env, { forTest }).map((p) => ({ name: p.name, limit: p.name === 'dryrun' || cap === null ? p.dailyLimit(env) : Math.min(p.dailyLimit(env), cap), warmup_cap: p.name === 'dryrun' ? null : cap, used: usage[p.name] || 0, remaining: Math.max(0, (p.name === 'dryrun' || cap === null ? p.dailyLimit(env) : Math.min(p.dailyLimit(env), cap)) - (usage[p.name] || 0)) }));
 }
 
 async function pickProvider(env, reserve = 0, forTest = false) {
@@ -149,7 +164,7 @@ export async function processSend(env, send) {
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
     const links = await all(db, 'SELECT idx, url FROM send_links WHERE send_id = ?', send.id);
     const linkIdx = new Map(links.map((l) => [l.url, l.idx]));
-    const track = env.TRACK_CLICKS !== 'false';
+    const track = env.TRACK_CLICKS === 'true';
     const email = renderIssueEmail(issue, site, { subject: send.subject, preview: send.preview, trackLink: track ? (href) => (linkIdx.has(href) ? `${site.url}/r/${send.id}/${linkIdx.get(href)}/{{TOKEN}}` : href) : null });
     const { from, replyTo } = senderFor(env, provider);
     const webUrl = `${site.url}/issues/${issue.slug}/?utm_source=newsletter&utm_medium=email&utm_campaign=${issue.slug}`;
@@ -164,7 +179,7 @@ export async function processSend(env, send) {
       // Outside production, real providers may only reach authorised test inboxes.
       if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) { results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } }); continue; }
       const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
-      const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS !== 'false' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
+      const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
       let res;
       try {
         res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });

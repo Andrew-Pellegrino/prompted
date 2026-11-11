@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 32 of 32 pass.
+- `npm test`: 34 of 34 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -72,7 +72,22 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
 
-## First real email tests (November 11) — delivery NOT yet confirmed
+## Deliverability is the open problem (read `DELIVERABILITY.md`)
+
+The owner found all three test messages in Spam and marked them "Not spam". The plain message's headers
+show SPF, DKIM and DMARC all passing, and that message had no links or images, so the cause is the new
+sending account's reputation, not setup or content. **The owner has asked for no further real test sends
+without approval.** Gmail is now a test tool and fallback, not the planned production sender.
+
+Next on this front: the owner applies for the free `eu.org` domain; when it arrives, set up Brevo on it,
+move the site onto it, run approved seed tests, announce the new address from beehiiv, and warm up with
+staged sends while beehiiv covers everyone not yet moved. If the free domain tests badly, the owner
+decides between staying on beehiiv for sending and a small yearly domain cost.
+
+Built for this, deployed and verified live with no email sent: warm-up cap, tracking off by default,
+cleaner preview line, sending-domain DNS check in the dashboard.
+
+## First real email tests (November 11) — delivered, but to Spam
 
 The owner connected the dedicated sending account through the dashboard. Verified on the live preview:
 audience sending is dry run, test sends use Gmail, one authorised test inbox, only synthetic people in the

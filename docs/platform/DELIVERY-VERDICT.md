@@ -1,5 +1,8 @@
 # Email delivery at $0: verdict
 
+> Update, November 11, 2026: the first real tests from the Gmail account were delivered but placed in Spam.
+> Read `DELIVERABILITY.md` for the findings and the revised plan. The provider limits below still hold.
+
 Checked November 10–11, 2026. Figures marked (official) come from the provider's own pages or documentation;
 figures marked (third-party) come from review sites and must be re-checked in the account before relying on them.
 

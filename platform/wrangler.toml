@@ -24,8 +24,13 @@ EMAIL_PROVIDERS = "brevo,resend,gmail"
 FROM_NAME = "Prompted"
 SEND_CHUNK = "20"
 QUOTA_RESERVE = "10"
-TRACK_OPENS = "true"
-TRACK_CLICKS = "true"
+# Off by default: tracking pixels and redirect links make mail from a new sender look like bulk mail.
+# Turn on only once the sender has an established reputation.
+TRACK_OPENS = "false"
+TRACK_CLICKS = "false"
+# Warm-up: cap real sends per day and raise the cap gradually. Empty = no warm-up cap.
+# Format: start date, first-day cap, daily growth factor. Example: "2026-12-01,20,1.25"
+WARMUP = ""
 # Kept out of this public repository and stored as Worker secrets (wrangler secret put):
 #   personal details: POSTAL_ADDRESS, TEST_RECIPIENTS, FROM_EMAIL, GMAIL_FROM_EMAIL, REPLY_TO
 #   credentials: ADMIN_PASSWORD_HASH, SESSION_SECRET, WEBHOOK_SECRET,

@@ -6,6 +6,7 @@ import { mastheadWeek, scheduledSendFor } from './weeks.mjs';
 
 const strip = (html) => html.replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, ' ')
   .replace(/&(amp|lt|gt|quot|#39|nbsp|zwnj|#847);/g, (m, e) => ({ amp: '&', lt: '<', gt: '>', quot: '"', '#39': "'", nbsp: ' ', zwnj: '', '#847': '' }[e]));
+// (the zero-width entities above are no longer emitted; kept so older rendered mail still parses)
 const squash = (s) => s.replace(/\s+/g, '');
 
 /**

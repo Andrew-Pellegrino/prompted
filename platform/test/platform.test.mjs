@@ -500,7 +500,7 @@ test('with Gmail connected but audience sending in dry run: tests go out for rea
 });
 
 test('test sends to a test inbox that is also a subscriber carry real unsubscribe and tracking links; Gmail health is recorded', async () => {
-  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-health', GMAIL_FROM_EMAIL: 'sender@gmail.test' }), c = client(env);
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-health', GMAIL_FROM_EMAIL: 'sender@gmail.test', TRACK_OPENS: 'true', TRACK_CLICKS: 'true' }), c = client(env);
   const sent = [], realFetch = globalThis.fetch;
   let tokenBody = { access_token: 'at', expires_in: 3600, refresh_token_expires_in: 500000 };
   globalThis.fetch = async (url, init) => {
@@ -540,5 +540,53 @@ test('test sends to a test inbox that is also a subscriber carry real unsubscrib
     tokenBody = { error: 'invalid_grant' };
     h = (await c.post('/api/admin/gmail/check')).data.health;
     assert.deepEqual([h.ok, /expired or was revoked/.test(h.error)], [false, true]);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('warm-up ramp caps real sending per day and grows gradually; tracking is off unless switched on', async () => {
+  const { warmupCap } = await import('../src/worker/sending.mjs');
+  assert.equal(warmupCap({}), null);
+  assert.equal(warmupCap({ WARMUP: '2026-12-01,20,1.25' }, new Date('2026-11-30T23:00:00Z')), 0, 'nothing before the start date');
+  assert.deepEqual([0, 1, 2, 7, 14].map((d) => warmupCap({ WARMUP: '2026-12-01,20,1.25' }, new Date(Date.UTC(2026, 11, 1 + d, 12)))), [20, 25, 31, 95, 454]);
+  const start = new Date().toISOString().slice(0, 10);
+  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', WARMUP: `${start},5,1.5`, SEND_CHUNK: '50' });
+  const c = await audience(env, 12);
+  const bodies = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { bodies.push(JSON.parse(init.body)); return new Response('{"messageId":"m"}', { status: 201 }); };
+  try {
+    const q = (await c.get('/api/admin/providers')).data.quotas[0];
+    assert.deepEqual([q.name, q.limit, q.warmup_cap], ['brevo', 5, 5]);
+    const send = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+    await c.post(`/api/admin/sends/${send.data.id}/approve`);
+    await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+    env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+    env.QUOTA_RESERVE = '0';
+    for (let i = 0; i < 4; i++) await tick(env);
+    const s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+    assert.deepEqual([s.status, s.recipients.sent, s.recipients.queued], ['sending', 5, 7], 'day one stops at the warm-up cap');
+    const html = bodies[0].htmlContent;
+    assert.ok(!html.includes('/r/') && !html.includes('/o/') && html.includes('https://'), 'no tracking redirects or pixels by default');
+    assert.ok(!/&#847;|&zwnj;/.test(html), 'no invisible padding characters');
+    assert.ok(html.includes('/u/'), 'the unsubscribe link is always present');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('sending-domain check reads SPF, DKIM and DMARC and explains what is missing', async () => {
+  const env = await makeEnv(), c = client(env);
+  await c.login();
+  const zone = { 'good.example': { TXT: ['"v=spf1 include:spf.brevo.com ~all"'], MX: ['10 mx.good.example.'] }, '_dmarc.good.example': { TXT: ['"v=DMARC1; p=quarantine; rua=mailto:d@good.example"'] }, 'brevo1._domainkey.good.example': { CNAME: ['b1.good-example.dkim.brevo.com.'] },
+    'bad.example': { TXT: ['"v=spf1 +all"', '"v=spf1 include:x ~all"'] } };
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => { const u = new URL(url); return new Response(JSON.stringify({ Answer: ((zone[u.searchParams.get('name')] || {})[u.searchParams.get('type')] || []).map((data) => ({ data })) })); };
+  try {
+    const good = (await c.get('/api/admin/deliverability/domain?domain=Good.Example')).data;
+    assert.deepEqual([good.ready, good.dkim, good.findings.map((f) => f.level)], [true, { brevo: 'brevo1' }, ['ok', 'ok', 'ok', 'ok']]);
+    const bad = (await c.get('/api/admin/deliverability/domain?domain=bad.example')).data;
+    assert.equal(bad.ready, false);
+    assert.deepEqual(bad.findings.filter((f) => f.level === 'error').map((f) => f.item), ['SPF', 'DMARC', 'DKIM']);
+    assert.equal((await c.get('/api/admin/deliverability/domain?domain=gmail.com')).data.ready, false);
+    assert.equal((await c.get('/api/admin/deliverability/domain?domain=not a domain')).status, 400);
+    c.dropCookie();
+    assert.equal((await c.get('/api/admin/deliverability/domain?domain=good.example')).status, 401);
   } finally { globalThis.fetch = realFetch; }
 });
