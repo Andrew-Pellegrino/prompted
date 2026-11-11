@@ -115,7 +115,12 @@ non-profits, small commercial sites are tolerated, and holders must not send uns
 Prompted mails only people who subscribed, with one-click unsubscribe, so it fits. eu.org gives no support
 and no promised approval time.
 
-### 6a. Add the domain to Cloudflare (owner) — to get the two name servers
+### 6a. Add the domain to Cloudflare (owner) — DONE November 11
+
+Cloudflare accepted `prompted.eu.org` on the Free plan with no DNS records. It is "pending" there until
+eu.org approves the name. Assigned name servers (not secret): `alfred.ns.cloudflare.com` and
+`olga.ns.cloudflare.com`. If Cloudflare ever drops the pending domain and it has to be added again, the
+name servers may change, and the eu.org record must then be updated to match.
 
 Claude's access token may not add domains, so this is an owner step.
 

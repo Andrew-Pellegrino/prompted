@@ -80,7 +80,13 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   and reports the two name servers. Then the owner submits the eu.org request (`OWNER-SETUP.md` 6a, 6b).
 - After approval: `OWNER-SETUP.md` 6c. The site moves onto the domain by uncommenting one `routes` line in
   `wrangler.toml` and changing `SITE_URL`.
+- Update: Cloudflare accepted `prompted.eu.org` (pending) and assigned `alfred.ns.cloudflare.com` and
+  `olga.ns.cloudflare.com`. The owner has the eu.org request form instructions (check option: "server
+  names"). Waiting for the owner to submit and for eu.org to approve. One forum post from April 2026 claims
+  eu.org had stopped approving names; unconfirmed. Revisit the options if nothing arrives in two to
+  three weeks.
 - Nothing here guarantees approval or good inbox placement. Both are tested before anything depends on them.
+- The confirm and unsubscribe screens now carry the site's header, footer and typography.
 
 Added this session, deployed and verified live with no email sent: inbox placement log with the
 three-in-a-row gate, stricter security headers, a fuller subscribe page, corrected confirmation-email

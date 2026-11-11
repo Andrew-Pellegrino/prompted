@@ -13,7 +13,14 @@ import { esc } from '../lib/html.mjs';
 
 const SESSION_HOURS = 12;
 const GIF = Uint8Array.from(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), (c) => c.charCodeAt(0));
-const page = (title, body, status = 200) => new Response(`<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>${esc(title)} — Prompted</title><link rel="stylesheet" href="/assets/styles.css"><link rel="icon" href="/favicon.svg"></head><body><div class="wrap"><div class="prose" style="text-align:center"><p class="kicker">Prompted</p><h1>${esc(title)}</h1>${body}</div></div></body></html>`, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
+const page = (title, body, status = 200) => new Response(`<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>${esc(title)} — Prompted</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head>
+<body>
+<div class="nav"><div class="wrap"><a class="brand" href="/"><img src="/favicon.svg" alt="" width="26" height="26">Prompted</a><nav aria-label="Main"><a href="/issues/">Archive</a><a href="/index/">Index</a></nav></div></div>
+<main id="main"><div class="wrap"><div class="prose action"><h1>${esc(title)}</h1>${body}</div></div></main>
+<footer class="site"><div class="wrap"><p>Prompted. Your Weekly AI Brief.</p><nav aria-label="Footer"><a href="/issues/">Archive</a><a href="/privacy/">Privacy</a></nav></div></footer>
+</body></html>`, { status, headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
 const body = async (request, max = 6_000_000) => {
   const text = await request.text();
   if (text.length > max) throw new HttpError(413, 'Request is too large.');
@@ -66,7 +73,7 @@ async function confirmRoute(request, env, token) {
     if (!person) return page('Link not recognised', '<p>This confirmation link is not valid. You can <a href="/subscribe/">subscribe again</a>.</p>', 404);
     if (person.status === 'active') return Response.redirect(new URL('/subscribe/confirmed/', request.url), 303);
     // A button (POST) rather than confirming on GET, so mail scanners that pre-fetch links cannot confirm for someone.
-    return page('Confirm your subscription', `<form method="post"><button class="btn" type="submit">Yes, subscribe me to Prompted</button></form>`);
+    return page('Confirm your subscription', `<p>One click and you are in. Prompted is free and arrives once a week.</p><form method="post"><button class="btn big" type="submit">Yes, subscribe me to Prompted</button></form><p class="fine">If you did not ask to subscribe, just close this page. Nothing will be sent.</p>`);
   }
   const person = await confirm(db, token);
   if (!person || person.status !== 'active') return page('We could not confirm this address', '<p>Please contact us by replying to any Prompted email.</p>', 409);
@@ -79,7 +86,7 @@ async function unsubscribeRoute(request, env, token) {
     const person = await first(db, 'SELECT status FROM people WHERE token = ?', token);
     if (!person) return page('Link not recognised', '<p>This unsubscribe link is not valid.</p>', 404);
     if (person.status === 'unsubscribed') return Response.redirect(new URL('/unsubscribed/', request.url), 303);
-    return page('Unsubscribe from Prompted?', `<form method="post"><button class="btn" type="submit">Unsubscribe</button></form><p class="fine">You will stop receiving the weekly brief immediately.</p>`);
+    return page('Unsubscribe from Prompted?', `<p>You will stop receiving the weekly brief straight away.</p><form method="post"><button class="btn big" type="submit">Unsubscribe</button></form><p class="fine">Changed your mind? Close this page and nothing changes.</p>`);
   }
   // POST covers both the button above and RFC 8058 one-click unsubscribe from mail clients.
   const person = await unsubscribe(db, token);
