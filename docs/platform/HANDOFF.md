@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 36 of 36 pass.
+- `npm test`: 37 of 37 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -85,7 +85,15 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   names"). Waiting for the owner to submit and for eu.org to approve. One forum post from April 2026 claims
   eu.org had stopped approving names; unconfirmed. Revisit the options if nothing arrives in two to
   three weeks.
+- Update 2: the owner submitted the eu.org form twice (iPhone, then Brave on Windows). Neither showed a
+  visible confirmation; the iPhone produced a downloaded `document.txt`, Windows returned a blank form.
+  Reading eu.org's published source shows what each outcome means (`OWNER-SETUP.md`, section 6b-notes).
+  **Whether a request is pending is still unknown.** Next owner step: open `document.txt` and report its
+  last lines. Alternatives to eu.org have not been evaluated in depth and nothing has been switched.
 - Nothing here guarantees approval or good inbox placement. Both are tested before anything depends on them.
+- New dashboard tool: **Publish, Check a new issue before publishing**. Paste approved text, get the same
+  QA a send must pass, the subject and preview line, the exact email preview, and the issue file to
+  download. Nothing is published or sent. Verified live with synthetic text.
 - The confirm and unsubscribe screens now carry the site's header, footer and typography.
 
 Added this session, deployed and verified live with no email sent: inbox placement log with the

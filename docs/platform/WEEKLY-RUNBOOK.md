@@ -15,6 +15,10 @@ npm run new-issue -- path/to/approved.md
 
    This prints the QA result without writing anything. Add `--write` when it is clean.
 
+   No command line: in the dashboard open **Publish, Check a new issue before publishing**, paste the
+   text, read the checks and the email preview, and download the issue file. That file is what gets
+   added to `platform/content/issues/`.
+
 2. **Build and check.**
 
 ```bash

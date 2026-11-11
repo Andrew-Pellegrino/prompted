@@ -630,3 +630,31 @@ test('tag everyone matching a filter, optionally only the first N longest-standi
   c.dropCookie();
   assert.equal((await c.post('/api/admin/people/tag-filtered', { tag: 'x' })).status, 401);
 });
+
+test('draft check: pasted approved text becomes an issue with QA, a file to download and an exact email preview; nothing is published', async () => {
+  const env = await makeEnv(), c = client(env);
+  const text = ['# Week of November 8–15, 2026', '> A one-line summary for the preview.', '', 'An opening paragraph that frames the week in one go.', '',
+    '## The Biggest Developments', '', '### A Story Headline', '', 'A body paragraph with **bold words** and [a link](https://example.com/story).', '',
+    '## Worth Knowing Briefly', '', 'A brief item.', '', '## Patterns Worth Watching', '', 'A pattern.', '', '## Why This Week Matters', '',
+    '**If you are a student,** a takeaway.', '', 'That’s the week. See you next Monday.', '', '— Prompted'].join('\n');
+  assert.equal((await c.post('/api/admin/issues/draft', { text })).status, 401);
+  await c.login();
+  assert.equal((await c.get('/api/admin/issues/draft/email')).status, 404);
+  const d = (await c.post('/api/admin/issues/draft', { text })).data;
+  assert.deepEqual([d.issue.number, d.issue.slug, d.filename, d.already_published], [32, 'week-of-november-8-15-2026', '032-week-of-november-8-15-2026.json', false]);
+  assert.equal(d.qa.ok, true, JSON.stringify(d.qa.findings));
+  assert.equal(d.subject, 'Prompted | Your Weekly AI Brief | Week of November 8–15');
+  assert.equal(d.issue.blocks.find((b) => b.role === 'closing').children[0].text, 'That’s the week. See you next Monday.');
+  assert.match(d.issue.source.content_sha256, /^[a-f0-9]{64}$/);
+  const email = String((await c.get('/api/admin/issues/draft/email')).data);
+  assert.ok(email.includes('Week of November 8–15') && email.includes('A Story Headline') && email.includes('https://example.com/story'));
+  // a draft with house-format problems is reported, not rejected
+  const bad = (await c.post('/api/admin/issues/draft', { text: text.replace('That’s the week. See you next Monday.', 'See you next week!').replace('## Worth Knowing Briefly\n\nA brief item.\n\n', '') })).data;
+  assert.equal(bad.qa.ok, false);
+  assert.ok(bad.qa.findings.some((f) => f.code === 'closing') && bad.qa.findings.some((f) => f.code === 'sections-missing'));
+  assert.equal((await c.post('/api/admin/issues/draft', { text: 'no title line' })).status, 400);
+  // an existing week is flagged; the published list is untouched
+  const dup = (await c.post('/api/admin/issues/draft', { text: text.replace('November 8–15, 2026', 'November 1–8, 2026') })).data;
+  assert.equal(dup.already_published, true);
+  assert.equal((await c.get('/api/admin/issues')).data.issues.length, 31);
+});

@@ -8,6 +8,9 @@ import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, 
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
 import { runQA } from '../lib/qa.mjs';
+import { importIssueText } from '../lib/import-text.mjs';
+import { blocksText } from '../lib/issue-model.mjs';
+import { sha256 } from './core.mjs';
 import { renderIssueEmail, fillRecipient } from '../lib/render-email.mjs';
 import { esc } from '../lib/html.mjs';
 
@@ -303,6 +306,28 @@ async function adminApi(request, env, path, url) {
   if (path === 'issues') {
     const sends = await all(db, "SELECT id, issue_slug, kind, status, scheduled_at, finished_at FROM sends WHERE status != 'cancelled' ORDER BY id DESC");
     return json({ issues: (await listIssues(env)).reverse().map((i) => ({ ...i, sends: sends.filter((s) => s.issue_slug === i.slug) })), test_recipients: String(env.TEST_RECIPIENTS || '').split(',').map((s) => s.trim()).filter(Boolean) });
+  }
+  // Draft check: turn pasted approved text into an issue, run the same QA a real send must pass, and keep
+  // one draft so the exact email can be previewed. Nothing is published and nothing is sent.
+  if (path === 'issues/draft' && method === 'POST') {
+    const b = await body(request, 400_000);
+    let issue;
+    try { issue = importIssueText(String(b.text || ''), { number: (await listIssues(env)).length + 1 }); }
+    catch (e) { return fail(400, String(e.message || e)); }
+    issue.source.content_sha256 = await sha256(blocksText(issue.blocks));
+    const existing = (await listIssues(env)).find((i) => i.slug === issue.slug);
+    const site = await siteConfig(env);
+    const qa = runQA(issue, site, { strict: true });
+    await run(db, "INSERT INTO settings (key, value) VALUES ('draft_issue', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify(issue));
+    await audit(db, actor, 'issue.draft_check', 'issue', issue.slug, { ok: qa.ok, errors: qa.errors, warnings: qa.warnings });
+    return json({ issue, qa, filename: `${String(issue.number).padStart(3, '0')}-${issue.slug}.json`, already_published: !!existing,
+      subject: renderIssueEmail(issue, site).subject, preview_text: issue.subtitle });
+  }
+  if (path === 'issues/draft/email' && method === 'GET') {
+    const row = await first(db, "SELECT value FROM settings WHERE key = 'draft_issue'");
+    if (!row) return fail(404, 'No draft has been checked yet.');
+    const issue = JSON.parse(row.value), site = await siteConfig(env), email = renderIssueEmail(issue, site);
+    return new Response(fillRecipient(email.html, { unsubscribeUrl: site.url + '/unsubscribed/', webUrl: `${site.url}/issues/${issue.slug}/`, openPixelUrl: null }), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
   }
   if ((m = /^issues\/([a-z0-9-]+)\/qa$/.exec(path))) { const issue = await loadIssue(env, m[1]); return json(runQA(issue, await siteConfig(env), { strict: true })); }
   if ((m = /^issues\/([a-z0-9-]+)\/email$/.exec(path))) {

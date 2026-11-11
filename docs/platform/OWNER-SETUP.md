@@ -143,6 +143,31 @@ Claude's access token may not add domains, so this is an owner step.
 6. Submit. A page of green "OK" lines means the request is queued. Approval arrives by email and can take
    days or longer.
 
+### 6b-notes. What eu.org's software actually does on Submit (read from its published source)
+
+eu.org runs the open-source "autoreg" software (github.com/pbeyssac/autoreg, `autoreg/arf/webdns/views.py`).
+
+- **A submission that passes form validation never returns a web page.** It returns a plain-text page
+  that streams the name-server checks and ends with either `Saved as request <id>` or the errors.
+  On an iPhone, Safari saves a plain-text response as a file called `document.txt` instead of showing it.
+  So a downloaded `document.txt` is the result page of that submission, and reading it is the direct
+  way to learn whether the request was saved.
+- **Coming back to a form is the "not accepted" path** (a field error, a failed "I'm not a robot" check,
+  or a sign-in problem). In the published code that path re-shows what was typed with an error message;
+  a blank form with contacts shown as "None" matches neither path exactly, so the live site may differ
+  from the published code. Either way it is not a confirmation.
+- **The "I'm not a robot" check is only added when the account already has open requests or domains above
+  a threshold.** If it appears on the form now and did not before, that itself suggests an earlier
+  request is open. Privacy shields in a browser can hide or break it.
+- **Ordinary users have no page listing pending requests.** The Domains page lists approved domains only;
+  the request lists are for eu.org's administrators. An empty Domains list says nothing either way.
+- **Submitting again is harmless.** If a request for the name is already open, the result page says
+  `IGNORED: you already have a pending request <id> for that domain` and nothing is duplicated.
+- No email is sent when a request is created, only when it is accepted or refused.
+
+Order of diagnostics, least effort first: (1) read `document.txt` from the iPhone; (2) if it is gone or
+shows errors, submit once more from a browser with no content blocking and read the plain-text result.
+
 ### 6c. After approval (Claude, with two small owner steps)
 
 1. Cloudflare shows the domain as **Active**.

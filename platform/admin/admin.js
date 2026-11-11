@@ -209,7 +209,24 @@
   function publish() {
     guard(get('issues')).then(function (r) {
       view.innerHTML = '<div class="panel"><h2>Publish an issue</h2><ol class="steps"><li>Approved issue</li><li>Preview</li><li>QA</li><li>Test email</li><li>Owner approval</li><li>Schedule</li><li>Send</li><li>Verify</li></ol>' +
-        '<label for="pub-issue">Issue</label><select id="pub-issue">' + r.issues.map(function (i) { return '<option value="' + esc(i.slug) + '">No. ' + i.number + ' · Week of ' + esc(i.week.label) + (i.sends.some(function (s) { return s.kind === 'issue'; }) ? ' · ' + i.sends.filter(function (s) { return s.kind === 'issue'; })[0].status : '') + '</option>'; }).join('') + '</select></div><div id="pub-out"></div>';
+        '<label for="pub-issue">Issue</label><select id="pub-issue">' + r.issues.map(function (i) { return '<option value="' + esc(i.slug) + '">No. ' + i.number + ' · Week of ' + esc(i.week.label) + (i.sends.some(function (s) { return s.kind === 'issue'; }) ? ' · ' + i.sends.filter(function (s) { return s.kind === 'issue'; })[0].status : '') + '</option>'; }).join('') + '</select></div>' +
+        '<details class="panel" id="draft-box"><summary><b>Check a new issue before publishing</b> <span class="muted">(paste the approved text; nothing is published or sent)</span></summary>' +
+        '<p class="muted" style="margin-top:10px">First line: <code># Week of November 8–15, 2026</code>. Optional second line starting with <code>&gt;</code> is the one-sentence summary. Use <code>##</code> for the four section headings, <code>###</code> for story headlines, <code>**bold**</code>, <code>*italic*</code> and <code>[link text](https://…)</code>. Leave a blank line between paragraphs. Wording is used exactly as pasted.</p>' +
+        '<textarea id="draft-text" style="min-height:220px" placeholder="# Week of …"></textarea><p><button class="btn" id="draft-check">Check this issue</button></p><div id="draft-out"></div></details>' +
+        '<div id="pub-out"></div>';
+      $('#draft-check').addEventListener('click', function () {
+        guard(post('issues/draft', { text: $('#draft-text').value })).then(function (d) {
+          var qa = d.qa, blob = new Blob([JSON.stringify(d.issue, null, 1) + '\n'], { type: 'application/json' });
+          $('#draft-out').innerHTML = '<div class="grid g2"><div><h3>No. ' + d.issue.number + ' · Week of ' + esc(d.issue.week.label) + '</h3>' +
+            (d.already_published ? '<p class="err">An issue for this week is already published.</p>' : '') +
+            '<p>' + (qa.ok ? '<span class="ok">Ready: no blocking problems.</span>' : '<span class="err">' + qa.errors + ' blocking problem(s).</span>') + ' ' + qa.warnings + ' item(s) to review. ' + fmt(qa.stats.words) + ' words, ' + qa.stats.email_kb + ' KB email.</p>' +
+            '<ul class="qa">' + qa.findings.map(function (f) { return '<li class="' + f.level + '">' + (f.level === 'error' ? 'Blocking: ' : 'Review: ') + esc(f.message) + '</li>'; }).join('') + '</ul>' +
+            '<p class="muted">Subject: <b>' + esc(d.subject) + '</b><br>Preview line: ' + esc(d.preview_text || '(none: add a line starting with > under the title)') + '<br>Planned send: ' + esc(qa.stats.send.local.replace('T', ' ')) + ' Eastern.</p>' +
+            '<p><a class="btn ghost" id="draft-dl" download="' + esc(d.filename) + '">Download ' + esc(d.filename) + '</a></p><p class="muted">To publish, this file goes into <code>platform/content/issues/</code> on the working branch. Until then nothing on the site changes.</p></div>' +
+            '<div><h3>Email preview</h3><iframe class="preview" title="Draft email preview" src="/api/admin/issues/draft/email?t=' + Date.now() + '"></iframe></div></div>';
+          $('#draft-dl').href = URL.createObjectURL(blob);
+        });
+      });
       var sel = $('#pub-issue');
       sel.addEventListener('change', function () { showIssue(r, sel.value); });
       showIssue(r, sel.value);
