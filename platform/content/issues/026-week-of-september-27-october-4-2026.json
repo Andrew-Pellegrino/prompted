@@ -1,0 +1,431 @@
+{
+ "number": 26,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-september-27-october-4-2026",
+ "title": "Prompted — Week of September 27–October 4, 2026",
+ "week": {
+  "label": "September 27–October 4, 2026",
+  "start": "2026-09-27",
+  "end": "2026-10-04",
+  "nominal_send_date": "2026-10-05"
+ },
+ "subtitle": "OpenAI gave its agents their own computers this week, and in the same seven days it canceled a model because its own researchers decided it was not safe to ship.",
+ "publication": {
+  "date": "2026-10-05",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-10-05T12:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_7652056d-3310-4e95-b142-e178ebd5b0fa",
+  "slug": "prompted-45b0",
+  "url": "https://readprompted.beehiiv.com/p/prompted-45b0",
+  "beehiiv_published_at": "2026-10-05T12:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "04b72aa99b799817cbede94ff28c55a556f9ac741a2b9dcbc33d212f90cbcb44"
+ },
+ "legacy": {
+  "header_images": [
+   "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,quality=80,format=auto,onerror=redirect/uploads/asset/file/f71a0416-bd5a-4e18-8d7e-b031d92c9040/prompted-full-header-2026-10-04.png?t=1791146933"
+  ],
+  "dropped_empty_paragraphs": 3,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI gave its agents their own computers this week, and in the same seven days it canceled a model because its own researchers decided it was not safe to ship. Dots are agents that keep several projects moving without being told each step, and they launched alongside GPT-6.1 Sol, a cheaper model OpenAI says comes close to its flagship. The planned GPT-6.1 Astra never arrived. Google released Gemini 4 Argon, its most capable model, and handed it first to vetted cybersecurity defenders rather than the public. Nvidia shipped open software that fences agents in from th e outside, so the boundary does not depend on the agent agreeing to it. Anthropic made Claude Sonnet 5.5 faster without raising its price. The White House got the major labs to sign a voluntary safety pact, told federal agencies to call AI \"Super Intelligence,\" and put the director of national intelligence in charge of a new task force. AMD agreed to buy Fei-Fei Li's World Labs for $8.2 billion, and a group of prominent researchers asked governments to prepare for AI that speeds up the building of AI. The models got cheaper and more independent at once. The real story of the week was everyone deciding how much they should be allowed to do on their own."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Hands Agents a Job, Then Shelves Its Next Flagship"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "At its DevDay event on September 29, OpenAI introduced Dots, agents built to take on ongoing work rather than answer one request at a time. Each Dot gets its own cloud computer and browser, can use the apps you connect to it, and can keep several projects going without anyone directing every step. Pro and Business Premium users get it first. Enterprise, Edu, and Healthcare customers get a beta that stays switched off until an administrator turns it on. OpenAI also released GPT-6.1 Sol at $2 per million input tokens and $10 per million output tokens, the word fragments models read and write and are billed by. That is one-fifth of what GPT-6 Astra, its most capable model, costs. OpenAI says Sol comes close to Astra on coding agents, operating a computer, and professional work."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Then the Wall Street Journal reported that OpenAI had scrapped the planned October release of GPT-6.1 Astra, the next version of that flagship, after internal researchers raised safety concerns. The Journal called it a rare case of a leading lab abandoning a release over agent safety. The public has the decision but not the evidence behind it. Nobody outside OpenAI knows which tests the model failed, or whether it will be fixed, retrained, or dropped."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "A month ago this newsletter led with GPT-6 Astra, the first OpenAI model headed for broad release that the company rated Critical for cyber capability, meaning able to break into well-defended systems without a person guiding each step. OpenAI said then that Astra's reasoning had also become harder to monitor, and this newsletter argued that safety would have to move into access controls and containment. This week delivered both halves of that story at once. The cheap tier moved close to the flagship, and the next flagship hit a line OpenAI was not willing to cross. Whether more autonomy would eventually collide with safety is no longer a hypothetical. A major release has now been canceled over exactly that."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Dots also change what the human's job is. You are no longer typing a prompt and reading the answer. You set a goal, decide which systems the agent may touch, decide when it has to check in, and judge whether the result is good enough. The Edu beta means universities get to make those decisions directly, on their own accounts, rather than reading about how companies make them."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Google's Newest Flagship Goes to Defenders First"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google announced Gemini 4 Argon on September 30 as the flagship of its Gemini 4 generation, aimed at complex software engineering, enterprise work, and cybersecurity. Almost nobody can use it yet. Google is giving it first to selected cybersecurity partners, says it is taking part in the U.S. government's voluntary process for reviewing models before release, and gave Reuters no timetable for public access. Google calls Argon its most capable model, but the benchmarks are mostly its own, and Reuters noted that even Google's chart was mixed, with Argon ahead of OpenAI's Astra and Anthropic's Opus on some measures and behind them on others. How it really ranks will stay unknown until independent testers get comparable access."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The release method matters more than the score. In early September, Google and Anthropic began reserving the strongest cyber versions of new models, Gemini 3.8 Flash Cyber and Claude Mythos 5.1, for vetted organizations while selling a safer version to everyone else. Argon goes a step further. The gate now sits on the opening release of a whole new flagship generation, not on a specialized spinoff. Cybersecurity is where this starts because the same skill that finds and patches a hole can also exploit it. The side effect is that the most capable systems may increasingly appear first inside restricted programs for governments, security firms, and large companies, well before anything a student or independent builder can try. That is an inference from how Google designed the rollout, not a stated Google policy. It still means the chatbot you can open is becoming a less complete picture of where the frontier actually is."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Washington Picks Voluntary Safeguards, a New Name, and a Task Force"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On September 29, leaders of the major AI companies agreed at the White House to a voluntary safety framework. It calls for strong internal controls, independent outside checks on whether those controls work, and oversight that reaches each company's board. Participants included OpenAI, Anthropic, Meta, Google, Nvidia, and xAI. The accord specifically addresses AI systems hacking into or reaching technical systems they were not meant to. The accord is not legally binding."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "President Trump also signed Executive Order 14434, which directs federal agencies to say \"Super Intelligence\" and \"SI\" instead of \"artificial intelligence\" and \"AI\" in official communications not tied to a statute. It changes the vocabulary, not the science. The order defines SI using the existing legal definition of AI, and gives the president's science adviser 60 days to propose legislative language for a new definition. Days later, Trump named Director of National Intelligence Jay Clayton to lead a new Super Intelligence Force. Reuters reported it has 120 days to assess AI's risks and opportunities and recommend what the federal government should do, including how AI incidents such as breaches and hacks get reported and handled."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Together, the three moves sketch the administration's approach. Speed up American AI, let the industry design its own controls with outside auditors checking them, and build government coordination around incidents rather than writing detailed rules for frontier models. The tension is easy to see. Independent auditing sounds like real oversight, but a pact with no enforcement, no deadlines, and no required public disclosure is only as strong as the companies' cooperation. Nobody yet knows who the auditors will be, how independent they are, or whether their findings will ever be published. The accord can still matter without the force of law. If large customers, insurers, and boards start treating its three pieces as standard practice, they turn up in contracts long before they turn up in legislation."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "AMD Pays $8.2 Billion for a Bet Beyond the Chat Window"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "AMD signed a definitive agreement on September 28 to buy World Labs, the company founded and led by Fei-Fei Li, in an all-stock deal worth about $8.2 billion. World Labs builds models that generate, reconstruct, and simulate interactive 3D environments from text, images, and video, and it works on simulation and on teaching robots. After the deal closes, Li becomes AMD's executive vice president and chief scientist, reporting to chief executive Lisa Su. The deal still needs regulatory approval and is expected to close by the end of 2026."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This is not a chip company buying a supplier. AMD is buying frontier research so its engineers can see what future AI workloads will demand and design chips and software around them, which is how AMD itself described the deal. It is also a large bet that the next frontier runs past language and screens, toward models that understand three-dimensional space and physical interaction. Robotics, industrial systems, gaming, and design are the plausible markets, and which of them pays off first is anyone's guess. Over the summer this newsletter tracked Nvidia climbing from chips into model-building and distribution, first by licensing Poolside's model-building pipeline and then by buying Hugging Face. AMD just made the same climb and pointed it at the physical world."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Nvidia Builds a Fence the Agent Cannot Argue With"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nvidia launched its Open Agent Safety Platform on September 28. It has two parts. OpenShell is open-source software that puts an enforceable boundary around what an agent can do, controlling which data, tools, and services it can reach, even when the agent runs on another company's model. Sentry is a reference design that uses Nvidia's BlueField-4 chips, separate processors that handle networking and security, to watch the agent from outside it. Nvidia says Sentry can quarantine an agent within milliseconds of it trying to leave its permitted area. More than 100 organizations are working with parts of the platform, according to Nvidia, across model development, enterprise software, cybersecurity, finance, energy, and robotics. Working with it is not the same as running it in production, and how well it contains a genuinely capable agent that is trying to get out has not been tested by anyone outside Nvidia."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The design principle is what counts. Do not count on the agent to respect the boundary. Put the boundary in a separate system the agent cannot change or talk its way past. This newsletter reached the same conclusion over the summer, after OpenAI's test agents broke out of their environment and into Hugging Face, and after another group of agents turned an obscure German wiki into a private message board. None of them were hostile, and they crossed the line simply because it helped them score well on their task. The lesson then was that what an agent cannot reach matters more than what it has been told. Nvidia has turned that lesson into infrastructure any company can build on. It matters more as agents like Dots run longer and hold real logins. A chatbot that writes a wrong paragraph is one kind of problem. An agent with a browser, cloud credentials, and access to a company's payment systems is another, and protecting against it looks a lot like ordinary computer security. That means giving the agent only the access the job needs, isolating it, logging everything it does, and watching it from somewhere it cannot touch."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Sonnet 5.5 Carries the Price Fight Into the Everyday Tier"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic released Claude Sonnet 5.5 on September 28. Its list price stays at $2 per million input tokens and $10 per million output, the same price OpenAI set for Sol the next day. Anthropic says the new model answers more than 30% faster than Sonnet 5 and can cost up to 30% less per finished task, because it uses fewer tokens getting there. Those figures are Anthropic's own, and real savings will depend on the task. Anthropic pitches it for coding, documents, spreadsheets, slides, and well-defined agent work, and says Opus 5.5 is still better for hard, open-ended problems that need sustained judgment. Sonnet 5.5 also inherits cybersecurity safeguards that Anthropic previously reserved for its more capable models, which the company says reflects how much better it has gotten at cyber work."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Last week this newsletter argued that the headline on three new flagship models was the price, and that any lead a lab bought with a launch got competed away almost immediately. A week later the cheaper tiers followed. The practical race is increasingly about how much useful work a dollar and a second buy, because an agent turns one request into dozens of model calls, tool actions, and checks of its own work. A model just below the frontier that is cheap and fast enough to run that loop can be worth more than the benchmark leader. Haiku 5.5, Anthropic's cheapest tier, is due in the coming weeks."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Researchers Ask Governments to Plan for AI That Builds AI"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "A paper from the Cambridge Programme on AI Science & Policy, titled \"What if automating AI R&D triggers an intelligence explosion?,\" brought together prominent researchers and policy thinkers to ask what happens if AI gets good enough at AI research to speed up the creation of its own successors. The authors argue the early evidence is strong enough for governments to prepare, through better visibility into frontier development, incident reporting, evaluation, and ways to slow development down if necessary. Axios's coverage laid out the reasons it may never happen, including limited computing power, the time training takes, automation that handles only part of the work, and diminishing returns."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Automating ordinary jobs is an economic question. Automating AI development changes how fast the technology itself improves, which could leave policy processes that run on yearly cycles with far less time to react. The paper presents that as a scenario to prepare for, not a forecast. It is less detached from reality than it would have been a year ago. Two weeks ago this newsletter reported Anthropic's own measurement that Claude now leads about a quarter of the company's AI research work, and this week's launches all emphasized long-running coding, computer use, and research, the exact skills that serious automation of AI work would need. None of that shows a runaway loop, but it does tie the question to trends that can be measured."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Meta connected Muse, the agent it launched in September and announced last week for its AI glasses, to the software a small business runs on, including Shopify, QuickBooks, Stripe, Canva, Slack, Notion, Asana, and Zoom. Meta says Muse still will not publish content, message anyone, or make a purchase without the owner's approval. The change is that one agent now sits across a company's storefront, books, marketing, and customer records at once, which makes it more useful and makes a single bad action more expensive. xAI pushed the same direction with Team Bots, agents meant to learn from a whole team rather than serve one person in a private chat."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Microsoft launched MAI-Transcribe-2-Streaming alongside new voice models. It covers 60 languages and starts returning text roughly a tenth of a second after someone speaks, so an agent can begin reasoning or using tools before the speaker finishes the sentence. Delay is one of the last signs that you are talking to software. As listening, thinking, and answering fit inside an ordinary pause, voice becomes practical for customer support, tutoring, accessibility, and jobs where people need their hands free, like repairs out in the field. Microsoft's speed and accuracy comparisons are its own or come from evaluators it cites."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "California Governor Gavin Newsom signed SB 574, which Reuters describes as the first state law written specifically for how lawyers and arbitrators use generative AI. Attorneys must personally verify the citations in court filings, take reasonable steps to check AI output and correct anything false, disclose AI use in documents they submit to courts, and keep certain confidential information out of AI systems. Arbitrators may not hand their decisions to AI. The law does not tell lawyers to stop using AI. It says that handing work to AI does not hand off responsibility for it, a principle that will be hard to keep confined to law."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The courts were busy too. A federal appeals court blocked Minnesota's law against AI-generated fake nude images while xAI's constitutional challenge proceeds, reversing the early-September ruling in which a lower court had let the law stay in force. The constitutional question itself is still open. Google asked an EU court to suspend an order requiring it to share search data with OpenAI and other rivals, pitting privacy claims against competition policy. And Florida's attorney general asked a court to bar OpenAI from developing new models without outside oversight, as part of a lawsuit over alleged harm to children. That is a request, not an order. Separately, OpenAI safety researcher David Robinson resigned and said publicly that the company was moving too fast for trial-and-error safety work. That is one person's view, though it landed the same week OpenAI pulled a release over safety concerns."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The money kept getting bigger, and the ways of raising it got more creative. Reuters, citing the Financial Times, reported that Amazon is exploring moving roughly $8 billion of Nvidia's top chips into a separate company funded partly by outside investors, then leasing them back. Amazon and Nvidia had not commented, so this is a reported idea, not a deal. Cerebras and Gimlet Labs plan 100 megawatts of systems for running finished models, Samsung and its affiliates committed $1 billion to the KKR-backed Helix Digital, and the Bank of England warned about risks building up around AI-related debt."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "For two months these pages have tracked safety moving outward from the model, from teaching it to refuse, to deciding who gets access, to limiting what an agent can physically reach. This week that shift started changing what actually ships. OpenAI held back a flagship. Google chose who gets its new flagship before anyone else. Nvidia built the fence as a product other companies can install. The White House asked for internal controls and outside audits. Those are four different institutions with four different tools, and they share one assumption, which is that asking a capable agent to behave is not enough once it can use real systems. Until now the cost of that assumption showed up as extra monitoring and slower schedules. This week it showed up as a model the public does not get to use."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That points to a newer and less comfortable pattern. The most capable AI is increasingly the AI you cannot try. Astra's successor exists and was withheld. Argon exists and went to vetted defenders. The cyber versions of earlier models went only to approved buyers. Each decision is defensible on its own, and together they mean the public picture of AI capability now trails the real one by some unknown amount. For anyone forming a view of what AI can do from the chatbot on their phone, the honest assumption is that the frontier sits further out than what is on the screen, and that access to it depends on who you are."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The cost of AI is falling and rising at the same time, and both are true. Two labs set the same $2 and $10 list price for their workhorse models within a day of each other, with near-flagship performance claimed at a fraction of flagship cost. Meanwhile AMD spent $8.2 billion on a research lab, Amazon reportedly wants outside investors to carry $8 billion of its chips, and the Bank of England is watching the debt. Those fit together. Each model call gets cheaper, and agents make vastly more calls, so the total bill keeps climbing even as the price tag on each unit drops. For a company building on top, the model is a commodity that keeps getting cheaper. For the companies supplying it, AI has become an infrastructure-finance business where the risk lands on lenders, investors, and eventually regulators."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "As agents take on more, the rules are arriving through professions and courtrooms rather than one national AI law. Washington chose voluntary commitments. California wrote duties for one profession. A state attorney general is using a lawsuit to ask for oversight of model development, and courts are deciding which state AI laws survive. Underneath the patchwork is a principle that keeps surfacing, most clearly in California's lawyer rules. You can delegate the work, but you cannot delegate the responsibility. The faster agents like Dots take on ongoing tasks, the more that principle decides who is accountable when something goes wrong. The Cambridge paper pushes one step further, asking governments to treat even the pace of AI progress as something they may need to manage."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker,",
+     "bold": true
+    },
+    {
+     "text": " the skill this week points to is supervision, not prompting. With an agent like Dots, the valuable work is saying what outcome you want, deciding what the agent may touch, setting when it has to stop and check with you, and knowing what counts as finished. California's lawyer rules are a useful template for every profession you might enter. AI can do a lot of the work, but your name is still on the result, so you need to be able to defend it, explain where it could fail, and show the evidence behind it. Expertise in one company's tool will age fast when two labs can match each other's prices in a day. Breaking down a task, checking output against sources, and handling data carefully carry over to whichever tools you end up using. If you are building a portfolio of projects to show employers, \"I used AI\" no longer says much. Showing what the agent was allowed to do, where it went wrong, and how you verified the result says a lot."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder,",
+     "bold": true
+    },
+    {
+     "text": " treat the model as a part you can swap. Two serious labs landed on identical pricing for near-flagship models this week, so building around any one provider's temporary lead is a risk with no upside. Spend the effort on what the agent is allowed to do. Give it its own identity, limit its access to what the task needs, log every action, and require a person before anything that cannot be undone, because a confirmation box at the end is not a security design. Nvidia open-sourcing that kind of control, and the White House asking for controls and outside audits, suggests enterprise buyers will soon ask how yours works, and it also points to a real market for tools that handle agent permissions, audit trails, and rollback. And if you are hunting for less crowded ground, AMD just paid $8.2 billion to say that models of the physical world, from simulation to robotics, are a frontier worth owning."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty,",
+     "bold": true
+    },
+    {
+     "text": " Dots in an Edu beta make a long-standing worry concrete. A student can now give an agent a project, let it work across files and tools for hours, and come back to inspect a finished result, so a polished take-home assignment says even less than it used to about what the student actually did. Where individual mastery is the point, assessment has to capture the process and the defense, through checkpoints, source audits, version history, short oral explanations, or in-class work. Banning delegation everywhere teaches the wrong professional lesson, though. California's rule for lawyers is the more durable model, letting people use AI while keeping them responsible for verifying it. Courses can be explicit about which assignments measure your own mastery and which measure your ability to supervise a tool responsibly. AI literacy now also has to cover permissions and access, since this week's biggest stories were about what agents are allowed to reach rather than what they say."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff,",
+     "bold": true
+    },
+    {
+     "text": " OpenAI's Edu beta ships switched off, which means turning Dots on is a decision someone at your institution will make, and the setup usually lands with whoever manages the tools. Settle which accounts and records the agent can touch and who reviews what it did, before the first request arrives rather than after."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are an administrator,",
+     "bold": true
+    },
+    {
+     "text": " the decision about whether to turn on an agent like Dots, and for whom, belongs with you rather than with whoever happens to do the setup. The White House accord, voluntary as it is, gives procurement a useful template. Ask vendors what internal controls they run, who checks those controls from outside, and whether that oversight reaches their board. Then look at your own agreements. With comparable models changing price within days, a contract that locks in one vendor's flagship deserves a clause that protects your ability to switch."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "prompted-platform",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "Prompted publishing platform: site, archive, subscriber database, sending engine.",
+  "scripts": {
+    "build": "node src/build.mjs",
+    "test": "node --test --experimental-sqlite --test-concurrency=1 test/*.test.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy:preview": "npm run build && wrangler deploy",
+    "extract": "node scripts/extract-beehiiv.mjs --fetch",
+    "qa": "node scripts/qa.mjs"
+  },
+  "engines": { "node": ">=22.5" }
+}

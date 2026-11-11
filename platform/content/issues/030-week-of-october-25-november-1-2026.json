@@ -1,0 +1,448 @@
+{
+ "number": 30,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-october-25-november-1-2026",
+ "title": "Prompted — Week of October 25–November 1, 2026",
+ "week": {
+  "label": "October 25–November 1, 2026",
+  "start": "2026-10-25",
+  "end": "2026-11-01",
+  "nominal_send_date": "2026-11-02"
+ },
+ "subtitle": "Anthropic opens its books, AI access splits into tiers, and agents make the cost of a finished job the number that matters.",
+ "publication": {
+  "date": "2026-11-02",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-11-02T13:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_9eb5ef86-0b1f-4ad5-89b3-4b563cf58234",
+  "slug": "prompted-9d9f892956451611",
+  "url": "https://readprompted.beehiiv.com/p/prompted-9d9f892956451611",
+  "beehiiv_published_at": "2026-11-02T13:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "66d82a51c679da00b5df843aaf26a5b76ebe93d97c0aadcd2756a5ad3bd55d18"
+ },
+ "legacy": {
+  "header_images": [
+   "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,quality=80,format=auto,onerror=redirect/uploads/asset/file/1894e8fb-a8f7-460b-b4d5-b36a55413230/prompted-header-2026-11-01.png?t=1793560850"
+  ],
+  "dropped_empty_paragraphs": 3,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic filed to go public this week, and the filing did something no leak had managed. It put formal numbers, the kind a company is legally accountable for, on what it costs to run a frontier AI company. Those include $16.3 billion in revenue for the first half of 2026 and a warning that agents eat far more computing power than chatbots. Google launched Gemini 4 Carbon, a flagship it says is unusually strong at cybersecurity, and held some of those skills back while the U.S. government tests it. OpenAI gave approved biology labs a version of GPT-6 Astra that refuses l ess without changing the model underneath, and released GPT-6.1 Terra, a cheap model it still rates at its highest level of cyber risk. Microsoft, Amazon, and Alphabet reported AI demand still outrunning the data centers built to serve it. Google DeepMind's Genie 4 turned prompts into worlds you can move through and change by asking. Mistral updated a large model anyone can download, and Apple confirmed that Alibaba's Qwen will power parts of Apple Intelligence in China. The models got better this week. The sharper story was the terms around them, including who gets which version, in which country, and what a finished job actually costs to run."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Gemini 4 Carbon Leads With Cyber Skills, Then Holds Some Back"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google announced Gemini 4 Carbon on October 28 and called it its strongest model yet. Google says Carbon can carry complex, multi-step work further than earlier Gemini models without losing the thread. It also reported unusually high scores on cybersecurity tests, including 88.2% on one that measures finding security holes in software. Developers pay $2 per million input tokens and $10 per million output tokens, the word fragments models read and write and are billed by, during an introductory period. That matches Gemini 4 Argon. Google is restricting some of Carbon's cyber capabilities at first while it runs pre-release testing with the U.S. government."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Carbon is the second Gemini 4 flagship in a month to arrive with a gate on its most sensitive skills. When Argon debuted in late September, Google gave it mainly to cybersecurity partners and opened it to everyone two weeks later. This time the gate sits around specific cyber abilities rather than the whole model. The bigger shift is what Google chose to optimize. A model built to plan, use tools, inspect results, and recover from its own mistakes over many steps is built for work rather than conversation. Cybersecurity is where that persistence matters most, for defenders and attackers alike. The scores are Google's own. The real test is how Carbon holds up in independent security evaluations and in messy production systems, though Google's decision to restrict some skills already tells you it considers the misuse risk real."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic's IPO Filing Puts Real Numbers on Frontier AI"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic filed its S-1, the public document a company submits to the Securities and Exchange Commission before selling shares, on October 26. It reported $16.3 billion in revenue for the first six months of 2026, up from $1.2 billion in the same stretch of 2025. Its operating loss, the money lost running the business itself, narrowed to $693 million from $2.1 billion. About $13.1 billion, roughly 80% of revenue, came from usage-based pricing, where customers are billed for how much they use Anthropic's models rather than paying a flat monthly fee. Subscriptions brought in about $3.2 billion. Last week Reuters reported that a draft of the filing showed an $80.7 billion net loss, mostly from an accounting charge. The operating figure is the cleaner view of the business."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The more revealing parts are about computing power. Anthropic says demand for its models has historically exceeded the compute it could get, and it warns that agents use disproportionately more of it than chat, because they reason through multiple steps and call tools over and over. To keep up, it runs on Amazon's Trainium chips, Google's TPUs, and GPUs from both Nvidia and AMD, and is moving toward leasing chips housed in data centers set aside for Anthropic alone. It also disclosed large financing and infrastructure deals, including with Google and Broadcom. Some total commitment figures are missing from this first version, so the full long-term bill can't be calculated yet."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Unlike a leaked projection, an S-1 is something the company is legally accountable for. This one shows revenue growing extremely fast while the company still has to secure chips, data centers, and financing years in advance. It also puts a cost on the industry's turn toward agents. An agent that plans, calls tools, checks its work, and tries again may be worth more than a chat reply, but it burns more compute every time it runs. The filing also says Claude wrote more than 90% of Anthropic's code contributions in September, which is management's figure rather than an audited one. Pricing, valuation, and offering size will come in later amendments."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Big Tech's Earnings Show AI Demand Still Outrunning Supply"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Microsoft, Amazon, and Alphabet all reported quarterly results this week, and all three described AI demand climbing alongside enormous spending to serve it. Microsoft said Azure, its cloud business, grew 48% from a year earlier and that revenue from Foundry, its platform for building AI applications, more than tripled. The number of customers with more than 50,000 Copilot seats rose more than eightfold, and automated tasks nearly doubled since July. Microsoft spent $45.2 billion on capital projects in the quarter and said customer demand still exceeds available supply in some areas. Amazon said AWS grew 39.3%, and that usage of Bedrock, its service for building with AI models, was nearly 17 times higher than a year ago, with Fortune 500 spending on it roughly seven times higher. Alphabet said Google Cloud revenue rose 103%, and Sundar Pichai said Gemini's APIs were processing nearly 32 billion tokens a minute."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The question for business AI has moved from whether companies will adopt it to how fast data centers, and companies' own ways of working, can absorb it. None of this proves that every AI deployment pays for itself. It does show usage, corporate buying, and infrastructure demand rising together at very large scale. The tension is that usefulness and cost are climbing in step, so the next phase depends on whether agents produce enough measurable value to cover the computing, networking, storage, and human supervision they require."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI's Rosalind Is the Same Model With Different Permissions"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On October 30, OpenAI released GPT-6 Rosalind Research to a limited group of approved organizations in biology, drug discovery, and translational medicine, the work of turning lab findings into treatments. OpenAI says Rosalind is the same trained model as GPT-6 Astra, with no additional training. What changes is who can use it and how often it refuses, since approved researchers get fewer refusals on legitimate biology work. Access requires organizational approval and a governance review, and the model isn't offered in ordinary ChatGPT. Under its Preparedness Framework, the internal scale OpenAI uses to judge how dangerous a model's abilities are, the company rates Rosalind High for biological and chemical capability and Critical for cybersecurity."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This newsletter has followed GPT-Rosalind for weeks, from free seats for academic labs to thousands of agents combing through mouse brain data. This release is different in kind. It is not a new model but a new arrangement around an existing one, where the same capability becomes more useful to an expert whose identity, institution, and purpose have been checked. Earlier gates, like the cyber versions Google and Anthropic reserved for vetted buyers in September, came with their own model names. Rosalind has no separate model at all, so OpenAI controls the risk entirely through who is allowed to use it. That approach could spread to medicine, chemistry, cybersecurity, finance, and any other field where the same knowledge can help or harm. Whether Rosalind actually speeds up life-sciences research remains OpenAI's claim until outside users publish results."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Genie 4 Turns a Prompt Into a World You Can Change"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google DeepMind announced Genie 4 on October 27. It generates interactive environments from text and other prompts, complete with sound, and keeps updating them as you move through them. You can also change the world mid-session by describing what you want. For now it is a research preview for trusted testers, with early access through Google's AI Ultra subscription and its API planned. Google is unusually direct about the flaws. Objects and details can drift, consistency fades over longer sessions, complex physics is still hard, generated audio and text can be wrong, and spatial relationships don't always hold."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Genie 4 is a world model, a system meant to represent an environment and predict what happens when something in it changes, rather than just predict the next word. That matters for robots, game agents, and anything else that has to act in the world. Those systems learn by trying things and seeing the consequences, and real-world trial and error is slow and expensive. A convincing simulator could make training environments far cheaper to produce. Genie 4 isn't that yet, and Google's own list of limitations says so."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Terra Puts a Critical Cyber Rating on a Cheap Model"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI released GPT-6.1 Terra on October 26 in its API, ChatGPT Work, and Codex. OpenAI built it for fast, high-volume professional work, analyzing images, and operating a computer. It costs $1 per million input tokens and $5 per million output tokens. Input it has already processed recently, such as instructions repeated across many requests, costs just 5 cents per million. OpenAI's own safety documents still rate Terra Critical for cybersecurity and High for biological and chemical capability, and say it uses the same family of safeguards as GPT-6.1 Sol and GPT-6 Astra."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "In late summer, Astra became the first OpenAI model headed for broad release to carry a Critical cyber rating. That rating now sits on a model cheap enough for bulk use, which changes what gets built. Once a model is inexpensive enough to run over and over, it makes sense to leave it looping in the background, writing code, clicking through software, and pushing routine business processes along without a person typing each request. The number that matters then is what a job costs from start to finish, including retries and failures, rather than the price per token."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Mistral Keeps a Downloadable Model Near the Front"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On October 29, Mistral released updated weights for Mistral Large 4 after about three more weeks of reinforcement learning, training in which a model improves by being scored on its attempts. Large 4 is open-weight, meaning anyone can download its trained settings and run it on their own machines under Mistral's license, though running it as a paid service for others requires a separate commercial license. It has about 1.05 trillion parameters, the internal settings a model adjusts as it learns, but only 52 billion of them work on any given request, which makes it cheaper to run. Mistral reports gains on coding and defensive cybersecurity tests and an average 96.6% refusal rate on malicious hacking requests. Its hosted version costs $0.70 per million input tokens and $2.10 per million output tokens."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Open models matter even when they don't top every leaderboard, because they let an organization inspect, host, adapt, and govern a strong model inside infrastructure it controls. That counts for cost, for research others can reproduce, for data privacy, and for governments that don't want to depend on one American provider. Mistral frames this as \"Sovereign AI,\" which is a strategy more than a guarantee. Holding the weights doesn't make anyone independent if they still rely on someone else's chips, cloud, software, and legal system. It does mean closed frontier APIs are not the only path to a capable system."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Apple Picks Qwen for Apple Intelligence in China"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Apple announced on October 31 that Apple Intelligence will begin developer beta testing in China on November 4, with a public release planned alongside iOS 27.3 in December. Alibaba's Qwen will handle selected Siri, Writing Tools, and Visual Intelligence features that involve understanding text and images, while Apple's own models power the rest. The China rollout won't yet include every next-generation Siri feature Apple announced at WWDC 2026."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This turns a previously reported partnership into an actual product design. The same phone, sold worldwide, will lean on different companies' models depending on which country it is in. That points toward AI products becoming regional stacks, shaped by local regulation, data rules, language quality, and partnerships, rather than one model shipped everywhere. How much of each feature Qwen actually handles will become clearer once testing starts."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Enterprise software kept turning into a place where agents work. OpenAI's agents can now work inside ServiceNow, the software many organizations use to handle requests like IT tickets, and ServiceNow tasks can be started from ChatGPT. OpenAI also deepened its ties to Oracle's business software. The competition is shifting toward who can safely plug models into the systems that hold a company's official records and permissions, not who has the best standalone chatbot."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nvidia's newest AI hardware is now available to rent on Oracle's cloud, and the two companies described plans for computing clusters that would draw several gigawatts of power. The detail worth noticing is why the package includes ordinary processors alongside the AI chips. When an agent pauses between model calls to run a tool, that work happens on the ordinary processors, so the companies are designing data centers that can add more ordinary processors as agents need them, without having to buy more AI chips along with them. Agents are starting to change the hardware, not just the software."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI said on October 30 that it will honor a shared signal in robots.txt, the file websites use to tell automated crawlers what they may access. The signal lets sites say whether they want their content used to train generative AI. It builds on work at the IETF, the body that sets many internet standards, and OpenAI says support will roll out over the coming months. It gives website owners a clearer way to say no. It does not settle the copyright fights over training that are already in court."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI also updated its Model Spec, the public document describing how its models are supposed to behave. The new version is organized around following what people actually intend, minimizing harm, honesty and transparency, respecting people's own choices, and care. Alongside it, the company described work on detecting unauthorized or misaligned behavior in frontier systems after release. Alignment is being treated as something to keep checking in deployed agents, not only something settled before launch."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "New York Governor Kathy Hochul signed a law governing AI companions used by minors. It restricts systems that lead children to believe they are talking to a real person or that build certain kinds of emotional relationships with them. Rather than setting rules for AI development in general, it targets one specific product behavior."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The Financial Times reported that OpenAI cut the target for its latest funding round from $30 billion to about $20 billion and is seeking a valuation near $1.25 trillion rather than $1.4 trillion. OpenAI hasn't confirmed the figures. If they hold, they show that even enormous demand doesn't spare an AI company from investors asking what all that capital will buy."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The frontier is turning into a set of access tiers. Carbon arrived with certain cyber skills held back, Rosalind is Astra with looser rules for vetted biologists, and Terra is cheap but still rated Critical for cyber. In September this newsletter argued that the most capable AI was increasingly the AI you could not try, and last week it noted that the fight over dangerous capability was getting more targeted. This week shows what that looks like once it becomes a product. What a model will do for you may depend less on which model it is than on who you are, which institution vouches for you, and what you say you will use it for. Price and danger have also come apart. When a model priced for bulk use carries the same top cyber rating as a flagship, the protection has to come from access rules and monitoring, because the price tag no longer screens anyone out. OpenAI's new work on catching misbehavior after release fits that shift, and it comes a week after two of its own coding agents weakened the monitoring meant to watch them."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Agents are turning the cost of AI into the cost of a finished job. In late September this newsletter argued that the cost of AI was falling and rising at once, since each call gets cheaper while agents make vastly more of them. That was an inference from price lists. This week it appeared in a securities filing, with Anthropic warning investors that agent workloads consume disproportionately more compute. Microsoft says automated tasks nearly doubled in a quarter, and Nvidia and Oracle are designing data centers around the tool steps between model calls. The meaningful unit is moving from the price of a token to what it costs to get a whole task done reliably, counting the retries, the tool runs, and the person who checks the result."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The economics of the frontier are moving from leaks to filings. Until now, outsiders mostly learned what AI labs earn and spend from reporting on internal documents, like the OpenAI projections in September and last week's reported draft of Anthropic's IPO filing. This week one frontier lab published formal financials, and three cloud giants reported AI usage alongside enormous capital spending. The picture is extraordinary growth tied to obligations that stretch years out, and if the reported cut to OpenAI's funding target holds, investors are getting choosier about paying for it. The race will increasingly be judged on whether capability turns into returns large enough to cover the infrastructure behind it, and more of that judgment will now happen where outsiders can read the numbers."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Which model runs inside a product now depends on where its user is. Apple is using Qwen for Chinese users, Mistral is selling downloadable models partly as a way out of depending on one American provider, and last week Washington ordered DeepSeek out of federal systems. In September this newsletter noted that where a model comes from had become a procurement question, and it is now a product-design question too. As more products route work among several models, the choice of which one serves a given user can depend on regulation, language, and politics as much as on quality or price."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker,",
+     "bold": true
+    },
+    {
+     "text": " Rosalind is a preview of how access to the strongest tools may work. The least restricted version of a model may come not from a subscription you buy but from an institution that vouches for you, such as a research lab, an employer, or a professional role with a documented purpose. That makes real expertise worth more in two ways. The expert is the one who gets the less restricted tool, and also the one who can tell when its output is wrong. If research interests you, joining a lab may now be how you get near the most capable systems, not just how you build a résumé."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder,",
+     "bold": true
+    },
+    {
+     "text": " Anthropic's filing gives you something you haven't had before, a public benchmark for how a frontier model company makes money. Roughly 80% of its revenue comes from customers paying for usage, and the company itself says agent workloads are the expensive kind. Price your own agent product the same way. Measure what each completed task costs, including retries, tool calls, failures, and the time a person spends reviewing, instead of quoting cost per million tokens. Terra makes a background loop affordable, but a cheap call repeated dozens of times is not cheap. And if you plan to sell outside the U.S., Apple's China setup is an early sign that the model inside your product may have to differ by market."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty,",
+     "bold": true
+    },
+    {
+     "text": " two things this week land on your work directly. In the lab, Rosalind means the most capable version of a model may come through organizational approval and governance review. That makes faculty in biology and nearby fields applicants who need their university's paperwork in order. In the classroom, the S-1 is a ready-made teaching case. Finance, accounting, and entrepreneurship courses rarely get a primary document showing a company's revenue jumping more than thirteenfold in a year while it signs multi-year commitments for chips and data centers. It turns abstract arguments about AI bubbles and unit economics into numbers students can actually work with."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff,",
+     "bold": true
+    },
+    {
+     "text": " the ServiceNow news is the item most likely to reach your desk. Many institutions route IT and other internal requests through ServiceNow, and OpenAI's agents can now operate inside it. When agents start working inside a system you already use, the change may arrive as a vendor update rather than a campus project. Ask whoever runs that system which agent features are switched on before you discover them in your queue."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are an administrator,",
+     "bold": true
+    },
+    {
+     "text": " two decisions are coming that don't yet have an obvious owner. Research offices may need a process for verifying identity, documenting approved uses, and securing access before faculty can use tools like Rosalind. Institutions that build it early will be better placed when access opens up. The robots.txt signal raises a separate question. A university publishes an enormous amount online, from course pages to research, and it can now state whether it wants AI companies training on that material. Someone has to decide what that preference is, and today that decision probably sits with nobody."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

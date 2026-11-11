@@ -1,0 +1,464 @@
+{
+ "number": 31,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-november-1-8-2026",
+ "title": "Prompted — Week of November 1–8, 2026",
+ "week": {
+  "label": "November 1–8, 2026",
+  "start": "2026-11-01",
+  "end": "2026-11-08",
+  "nominal_send_date": "2026-11-09"
+ },
+ "subtitle": "AI’s next bottleneck is consent: voters reject data centers as capabilities and spending commitments keep climbing.",
+ "publication": {
+  "date": "2026-11-09",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-11-09T13:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_86e6a01e-6fdd-4983-b1aa-b8497484ce89",
+  "slug": "prompted-week-of-november-1-8-2026",
+  "url": "https://readprompted.beehiiv.com/p/prompted-week-of-november-1-8-2026",
+  "beehiiv_published_at": "2026-11-09T13:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "0f7553f08cc2f302f4ed71ff9f1f1305b61f64684c475c3543c9b15aa7046afd"
+ },
+ "legacy": {
+  "header_images": [
+   "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,quality=80,format=auto,onerror=redirect/uploads/asset/file/6c15b261-8110-4dd6-9a64-b0255e8c16f3/prompted-header-november-1-8-2026.png?t=1794165263"
+  ],
+  "dropped_empty_paragraphs": 3,
+  "forward_cta": "Forwarded this by a friend? Prompted is free and arrives every Monday morning. Subscribe here."
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "AI ran into limits this week that a better model can't fix. On election day, voters in 10 states sided against data centers in all but one of 41 local ballot measures, and two days later AI and chip stocks had their worst day since April 2025. OpenAI answered with a pledge to pay the full power costs of its own data centers and stop signing secrecy agreements with local officials. The capability news was just as large. OpenAI released GPT-6 Cyber, a hacking-focused model it rates at its highest danger level, to vetted security teams, and says it built working attacks for 948 Linux fla ws in a single automated run. METR, an independent evaluator, estimated that AI has roughly doubled the pace of Anthropic's research, though Anthropic redacted most of the evidence METR found most informative. Anthropic's amended IPO filing put a figure of about $895 billion on its long-term spending commitments. An EU court adviser said chatbot answers can infringe news publishers' rights, and Anthropic extended its invisible text watermark to more Claude models. The models kept getting stronger. The open question was whether the world around them will let the industry build at the pace it has already promised to pay for."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Voters Turn Against Data Centers, and AI Stocks Have Their Worst Day in 19 Months"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "In the November 3 midterms, voters in 10 states decided 41 local ballot measures on data centers, according to counts by Ballotpedia and CNBC. They sided against data centers in every contest with results except one, in Harwood, North Dakota. The measures ranged from moratoriums and outright bans to rezonings and advisory votes, and in Wells, Maine, more than 80% of voters approved a 180-day moratorium that applies retroactively. Democratic governors-elect in Texas, Georgia, and Ohio also campaigned on data center limits. The results are still unofficial."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Markets rose on Wednesday, then reversed hard on Thursday, November 5. The Nasdaq Composite fell 5.5%, its worst day since April 2025, and closed more than 10% below its October record. CNN put the loss at about $2.5 trillion in market value. The Philadelphia Semiconductor Index fell more than 12%, and Nvidia and Qualcomm each dropped more than 9%. Reuters reported that data center operators CoreWeave and Nebius fell more than 12% and nearly 17% in midday trading. The election wasn't the only cause, since Qualcomm's weak earnings forecast also dragged on chip stocks."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Until now, resistance to data centers mostly played out one project at a time in zoning boards and county commissions. This week it showed up on a single election day, almost entirely in one direction, and investors treated it as a real limit on how fast the industry can build. UBS analysts estimate that local pauses put about 30% of expected 2028 data center additions at risk, and Goldman Sachs estimates that states that might restrict data centers hold roughly 45% of planned U.S. capacity. Both are forecasts. How much construction actually slows will depend on legislatures and on governors who take office in January. Last week Microsoft, Amazon, and Alphabet all said AI demand was still outrunning the data centers built to serve it. That may still be true, but adding supply now runs into a political obstacle those earnings calls didn't account for."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Releases a Critical-Rated Hacking Model to Vetted Defenders"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI introduced GPT-6 Cyber on November 5, a version of GPT-6 Astra specialized for cybersecurity. OpenAI rates it Critical for cybersecurity under its Preparedness Framework, the internal scale it uses to judge how dangerous a model's abilities are, one step above the High rating of the previous GPT-5.6 Cyber. Access is limited to approved customers in Daybreak Red, the part of OpenAI's security program for authorized attempts to break into systems and find weaknesses before attackers do. OpenAI plans to widen access to all Daybreak Red customers in the coming weeks, and announced a $1 billion grant program to subsidize access for government and essential-service security teams."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI's own reported results are striking. Its researchers used the model to find 81 previously unknown high-severity flaws in Firefox, which Mozilla has begun fixing. In one automated run against the Linux kernel, the core of the operating system most of the internet runs on, it reproduced 1,724 known vulnerabilities. It then built working attacks for 948 of them, each a way for a low-level user to seize administrator control. SecurityWeek reported that the run cost about $1.21 million in usage fees. With the same setup in late July, GPT-5.6 Sol managed 166."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Turning a software flaw into a working attack used to take scarce experts a long time. This result suggests it is becoming an industrial process at roughly $1,300 per working attack, which is good news for defenders who get the tool first and bad news if comparable ability reaches attackers. It also creates a new bottleneck. Many open-source projects are run by small volunteer teams, and they may now receive AI-found bugs faster than they can review and patch them. OpenAI also says that without its usual safety instructions, the model left systems outside its assigned targets alone in 99.93% of tests. That figure matters because the line between authorized testing and a real attack is often just which systems you touch."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "METR Estimates AI Has Roughly Doubled the Pace of Anthropic's Research"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 5, METR, a nonprofit that evaluates risks from frontier AI, published an independent assessment of how much AI is speeding up AI research at Anthropic. Over 11 weeks, METR staff reviewed internal Anthropic data, including scores for unreleased models, and interviewed employees. Its central estimate is that Anthropic's benchmark scores have been improving about 1.9 times faster since October 2025 than before, with a 95% confidence range of 1.5 to 2.8 times. Put simply, Anthropic made roughly two years of its earlier progress in one. METR's judgment is that perhaps 80% of that speedup comes from Anthropic using AI to do its own research, and it is confident the gain didn't come from faster growth in computing power."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The report is unusually candid about its limits. Anthropic had the right to redact non-public information, and METR says Anthropic redacted a majority of the evidence METR found most informative for its conclusions. Anthropic says the redactions protect information that could help competitors. The result, in METR's words, is that the public has to rely on its judgment much more than would be ideal. The 80% figure is a judgment rather than a measurement, and METR says it could be overestimating or underestimating the speedup."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "\"AI building AI\" has been a talking point for years. In September Anthropic put its own number on it, saying Claude led about a quarter of the company's AI research work. This is the first outside estimate, made with inside access, of what that is doing to the pace of progress. If AI is doing much of the work of improving AI, each model can help build the next one faster. That is the dynamic many safety researchers worry could produce sudden jumps in capability that are hard to oversee."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic's Amended IPO Filing Fills In an $895 Billion Bill"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic filed an amended S-1, the registration document a company files with the SEC before going public, on November 2. It reports $17.0 billion in revenue for the three months ending September 30 alone, more than the $16.3 billion it reported for the entire first half of the year. Yahoo Finance reported that the quarter swung to a $567 million operating loss, which the filing attributes mainly to $5.0 billion spent on computing under short-term contracts. Anthropic plans to list on the Nasdaq under the ticker ANT."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Last week this newsletter noted that the first filing left out some total commitment figures, so the full long-term bill couldn't be calculated. The amendment answers that. Anthropic discloses purchase commitments and leases worth about $895.4 billion, nearly all of it for computing and infrastructure, with about $447.5 billion expected before the end of 2030 and about $69.8 billion due within a year. The revenue growth is extraordinary, but the commitment figure is the number that defines the company's risk."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "After the selloff, Reuters reported that potential investors were questioning whether Anthropic could hold its roadshow, the meetings where bankers pitch a stock to large investors, in time for a November listing. The Wall Street Journal reported that three major investors said the valuation would need to come down from $1.5 trillion, and Bloomberg reported that valuation talk had drifted to roughly $1.2 trillion to $1.3 trillion. The Information reported on November 6 that Anthropic still plans to start formal marketing next week, which SEC timing rules put no earlier than November 10. Those reports rely on anonymous sources and don't fully agree, and Anthropic hasn't announced a date or a price range."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Offers Towns a Deal on Power Bills and Secrecy"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 5, two days after the ballot results, OpenAI published a National Community Compact. OpenAI says it will pay the full cost of electricity and required grid upgrades at future data centers it owns and operates, so other utility customers aren't left with the bill. It will stop using nondisclosure agreements with public officials, publish its water and energy use along with construction, noise, and traffic plans, and cut its power use when demand on the grid peaks. OpenAI also published a policy proposal asking lawmakers to make similar terms mandatory, including electricity rates that make very large users pay the extra costs they create."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The compact targets the complaints behind this week's votes almost point for point. Nondisclosure agreements with local officials have been a particular flashpoint, because residents often learn about a project only after it is approved. If these terms become the public baseline, rival builders may have to match them in local hearings or explain why they won't. Nothing in the compact enforces these promises. It names no penalties, no way to settle disputes, and no independent check on the electricity and water figures. It also covers only sites OpenAI owns and operates, and OpenAI hasn't said whether it extends to facilities partners such as Oracle build for it."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic's Watermark Reaches More of Claude's Writing"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic's November 3 release notes say text generated by Claude Mythos 5, Claude Opus 4.7, and Claude Sonnet 4.6 now carries its text watermark. The watermark is an invisible statistical pattern in the model's word choices, and every Claude model released since August 2 already includes it. Anthropic says it doesn't change how the text reads, users can't turn it off, and it is meant to comply with the EU AI Act's rule on labeling AI-generated content. Several older models are reportedly due to follow on November 16."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The catch is who can read it. Detection runs through Anthropic's own tool, which is in private preview for eligible organizations, so general plagiarism checkers like Turnitin can't see the mark. Anthropic also warns that a detected watermark doesn't prove Claude wrote something, since people use Claude to edit, translate, and summarize their own writing. Heavy rewriting or very short passages can also make the mark undetectable. So more of Claude's writing now carries a signature of where it came from, but most people who would want to check for it can't, and a positive result can't settle authorship on its own."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "An EU Court Adviser Says Chatbot Answers Can Infringe Publishers' Rights"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 3, Maciej Szpunar, an advocate general at the Court of Justice of the European Union, delivered his opinion in the first generative AI case to reach the EU's top court. A Hungarian publisher, Like Company, argues that Google's Bard and later Gemini reproduced its articles. Szpunar concluded that when a chatbot fetches and reuses news articles in real time to answer users, it may in certain circumstances infringe publishers' rights. He advised the court to set aside the questions about training, because nothing in the record showed Like Company's articles were used to train Gemini. He also noted that the publishers' right doesn't cover bare facts, so restating information isn't automatically infringement."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Most AI copyright fights have been about training. This opinion moves attention to the moment a chatbot looks up a live article and repeats it to a user, which is how AI search and answer engines work. An advocate general's opinion isn't binding, but the court follows its advisers in most cases. If the court agrees, AI companies serving Europe may need licenses or tighter limits on how much of an article an answer can reproduce. The opinion didn't find that Google infringed anything."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Thinking Machines Ships a Strong Model and Holds the Download"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Mira Murati's Thinking Machines Lab released Inkling 2 Small on November 5. It is a mixture-of-experts model, a design that uses only a few specialist parts of the model for each request, with 594 billion parameters in total and 17 billion active at a time. Unlike earlier Inkling releases, the weights, the trained settings that let anyone download and run a model themselves, are held back at launch. For now the model runs only on Tinker, the company's platform for running and customizing models. Thinking Machines says it will release the full weights under the permissive Apache 2.0 license after outside safety testing. Artificial Analysis scored it 31 on its Intelligence Index, which would make it the highest-scoring downloadable model developed outside China once the weights are public. Separately, Business Insider reported that the company is closing a $5 billion round at a $40 billion valuation."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Releasing a model as a service first and as a download only after outsiders have tested it is a middle path between closed and open AI. The reason is that once weights are public, the company can no longer watch or restrict how the model gets used. Inkling 2 Small matches the best downloadable models on tests of finding software vulnerabilities, so the caution fits a week dominated by AI hacking results. If the weights do arrive under Apache 2.0, they would also give companies and researchers a strong Western alternative to the Chinese open models that have led that category."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The Justice Department announced a Super Intelligence Task Force on November 5. It absorbs the department's earlier AI task force and is meant to protect American AI leadership from misuse by foreign governments, criminal groups, and fraudsters. ExecutiveGov reported that prosecutors must notify the task force before bringing AI-related charges when asked, which gives one central unit a view of AI cases nationwide. Co-chair Stephen Weiss said companies should use rigorous internal controls so the technology works as intended, a hint that firms deploying advanced AI could face scrutiny of their own safeguards."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "China blocked SoftBank's $5.4 billion purchase of ABB's robotics business. ABB said on November 5 that Beijing's foreign-investment security review had prohibited the acquisition of the ABB Robotics business in China. The South China Morning Post reports that China makes up about 30% of ABB's robot-related business. The deal was central to Masayoshi Son's push into physical AI, meaning AI that runs robots and machines. Beijing hasn't published its reasons, though The Robot Report wrote that regulators were concerned about robotics data leaving the country to train AI models. It is the second major deal China has blocked this year, after ordering Meta in April to unwind its purchase of the AI startup Manus."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google announced a $17 billion data center in Laramie County, Wyoming, its first in the state, powered by a 702-megawatt fuel-cell plant that Bloom Energy will build on site, with carbon capture. Bringing its own power plant is one way a builder can sidestep the fights over grid costs that drove this week's votes."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Philippe Jaenada, who won France's top literary prize, the Prix Goncourt, on Tuesday, told France Inter that he used ChatGPT three times while writing his novel, including one AI-written sentence meant to play with the reader. The jury had just removed another book from contention over AI allegations, which made the line between AI help and AI authorship a live question for the judges."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The limit on AI moved from chips to consent. For two years the binding constraint was how many chips a company could buy. In September this newsletter added electricity, and permission to use it, to the layers countries compete over in AI, after Texas paused data center permits to check its grid. In October Microsoft started judging its chips by how much work they get from each megawatt. This week the people who grant that permission voted, nearly everywhere in the same direction, and the industry responded on three fronts within days. Investors priced in a slower buildout, OpenAI offered towns terms built around their exact complaints, and Google paired a new data center with its own power plant. The next phase of the race may be decided as much in county meetings and utility commissions as in research labs."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The money is locked in, and the permission isn't. Last week this newsletter noted that the economics of the frontier were moving from leaks to filings. This week those filings met a market that can change its mind. Anthropic's commitments sit in contracts that run for years, while the votes that could slow construction happen locally and on their own schedule. The question is shifting from whether AI companies can sell what they build to whether the physical and political world will let them build what they have already agreed to pay for."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Measurement of AI's progress is getting more serious, but it still stops short of proof. In September Anthropic measured how much of its own research Claude leads and asked other labs to publish comparable numbers. This week an outside evaluator estimated what that is doing to Anthropic's pace, and OpenAI put hard counts on its cyber model, 948 working Linux attacks against 166 three months earlier. Both still rest on evidence outsiders can't check, because OpenAI's counts are self-reported and METR's most important evidence was redacted. The field has moved from asking the public to trust the company to asking it to trust the evaluator. That is real progress, but it isn't yet proof anyone can check, and the gap matters most for a lab whose progress compounds, since its next jump could arrive before the evidence is public."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Access gates now come with a head start. Last week this newsletter described the frontier turning into access tiers, where what a model will do depends on who you are. This week added time to the equation. OpenAI is giving its Critical-rated cyber model only to vetted defenders and paying for some of them to use it. That also means a grant program now helps decide which defenders can afford the strongest tool. Thinking Machines is holding its download until outsiders have tested it. In October Moonshot handled the same problem for a downloadable model by cutting hacking skills before release, because once anyone can download a model there is no door left to guard. Delay is a third answer. None of these is permanent, so the real test of each is how much defenders manage to fix before comparable capability is available to everyone."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The fight over AI and writing is moving from what models learn to what they say. Until now the big fights centered on training data, from newspaper lawsuits to the robots.txt signal OpenAI adopted last week, which lets websites say whether they want their content used for training. This week's stories were about output. Anthropic's watermark covers more of what Claude writes, an EU court adviser said real-time chatbot answers can infringe publishers' rights, and a prize-winning novelist had to explain one AI-written sentence. Each is a different attempt to answer the same pair of questions. When AI is involved in a piece of writing, how can anyone tell, and who gets credit or payment? The tools for answering are arriving faster than any agreement on what the answers should be."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker, ",
+     "bold": true
+    },
+    {
+     "text": "assume that text Claude writes for you can now be traced back to Claude, even if your school can't read the mark yet. The mark can also turn up on text Claude only edited or translated, so it can't show how much of the thinking was yours. Use AI openly under whatever policy applies, and keep the drafts and notes that show your own process. The election holds a second lesson for anyone planning a career. AI's hardest problems this week weren't technical. They were power contracts, permits, water, community trust, and policy, and those jobs need people who understand both the technology and the town meeting."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder, ",
+     "bold": true
+    },
+    {
+     "text": "don't assume this year's falling AI prices are permanent. If data center construction slows, computing capacity tightens and prices could follow. Find out now which parts of your product could run on a smaller or self-hosted model if they had to. Inkling 2 Small's open weights, if they arrive as promised, would give you one more strong model to run yourself. If your product summarizes news or other web content for European users, the EU court opinion is a reason to limit how much of an article your answers reproduce before a binding ruling arrives. And this week's selloff suggests investors are pricing political and infrastructure risk more sharply than they were a month ago, which is worth knowing before your next raise."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty, ",
+     "bold": true
+    },
+    {
+     "text": "the watermark creates a new kind of evidence about student work that most campuses can't read. Detection runs through Anthropic's private-preview tool rather than Turnitin, and a positive result doesn't prove authorship, so a course policy that promises detection is promising something the institution doesn't control. The week also handed you two teaching cases. The Goncourt controversy is a ready discussion about what counts as authorship when AI writes a single sentence. METR's report is an unusually good primary source on reading evidence, with a wide range, an attribution that is openly a judgment, and most of its key evidence redacted."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff, ",
+     "bold": true
+    },
+    {
+     "text": "especially in IT, expect a surge of Linux and browser security updates as OpenAI's disclosures work their way through maintainers. Make sure your patching routine can absorb more updates arriving faster. If your office drafts official communications with Claude through Amazon Bedrock or Anthropic's API, that text is gaining the watermark too. That's worth knowing before anyone writes a policy about AI-assisted writing."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are an administrator, ",
+     "bold": true
+    },
+    {
+     "text": "this week's election previews conversations your institution may end up in. Any campus that hosts, partners on, or sits near a large computing project should expect the same questions about power bills, water, and secrecy that sank those ballot measures. OpenAI's compact gives local officials, and anyone negotiating with a developer, a concrete list of terms to ask for, including no nondisclosure agreements, full coverage of power costs, and published water use."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

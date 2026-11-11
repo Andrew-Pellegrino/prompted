@@ -1,0 +1,224 @@
+{
+ "_note": "Snapshot of published beehiiv posts (read via the beehiiv connector, 2026-11-10). email_sent_at is set only where beehiiv shows a Monday 8:45 a.m. ET scheduled send; other posts were back-filled to the beehiiv archive after the fact.",
+ "publication_id": "pub_bdc13836-4740-4bea-827d-e076f2059ca4",
+ "captured_at": "2026-11-10",
+ "posts": [
+  {
+   "id": "post_a68b58b7-2e8e-49b6-b9c0-3a36cdf50b30",
+   "slug": "prompted-week-of-april-6-12-2026",
+   "title": "Prompted — Week of April 6–12, 2026",
+   "published_at": "2026-11-09T20:39:01Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_e5b6d351-3a5e-459e-a289-229637ad2ecd",
+   "slug": "prompted-week-of-april-13-19-2026",
+   "title": "Prompted — Week of April 13–19, 2026",
+   "published_at": "2026-11-09T20:43:06Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_e0df7125-37b3-498a-9d41-528dde3c93da",
+   "slug": "prompted-week-of-april-20-26-2026",
+   "title": "Prompted — Week of April 20–26, 2026",
+   "published_at": "2026-11-09T20:44:05Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_179d4dbd-a107-4a39-a4d4-6ab7f9d7844c",
+   "slug": "prompted-week-of-april-27-may-3-2026",
+   "title": "Prompted — Week of April 27–May 3, 2026",
+   "published_at": "2026-11-09T20:44:48Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_dfdc8259-3331-4efc-9dcf-31fc4b56c553",
+   "slug": "prompted-week-of-may-4-10-2026",
+   "title": "Prompted — Week of May 4–10, 2026",
+   "published_at": "2026-11-09T20:45:44Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_8c59e34e-4f13-49bb-a83b-e341b4e42b4f",
+   "slug": "prompted-week-of-may-11-17-2026",
+   "title": "Prompted — Week of May 11–17, 2026",
+   "published_at": "2026-11-09T20:46:31Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_b9f3c15e-26d7-48a8-9cf0-d5bd574bf94f",
+   "slug": "prompted-week-of-may-18-24-2026",
+   "title": "Prompted — Week of May 18–24, 2026",
+   "published_at": "2026-11-09T20:47:19Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_d1f78f17-3713-4309-a232-e62d3eb4ed9c",
+   "slug": "prompted-week-of-may-25-31-2026",
+   "title": "Prompted — Week of May 25–31, 2026",
+   "published_at": "2026-11-09T20:48:05Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_ebad017b-a46d-4a59-8018-766cc59d96d1",
+   "slug": "prompted-week-of-june-1-7-2026",
+   "title": "Prompted — Week of June 1–7, 2026",
+   "published_at": "2026-11-09T20:48:52Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_9a8bc047-2d33-433c-9ff3-e226f3dd0466",
+   "slug": "prompted-week-of-june-8-14-2026",
+   "title": "Prompted — Week of June 8–14, 2026",
+   "published_at": "2026-11-09T20:49:40Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_60373c78-da89-4685-91d4-b89a8fb6c099",
+   "slug": "prompted-week-of-june-15-21-2026",
+   "title": "Prompted — Week of June 15–21, 2026",
+   "published_at": "2026-11-09T20:50:27Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_66cebcb2-3c01-40b7-8374-4b11cc09e854",
+   "slug": "prompted-week-of-june-22-28-2026",
+   "title": "Prompted — Week of June 22–28, 2026",
+   "published_at": "2026-11-09T20:52:03Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_61e13b46-9276-4939-afff-326c8832acac",
+   "slug": "prompted-week-of-june-29-july-5-2026",
+   "title": "Prompted — Week of June 29–July 5, 2026",
+   "published_at": "2026-11-09T20:52:50Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_c4491022-aa12-4ca4-9a99-a4fbf6dd9457",
+   "slug": "prompted-week-of-july-6-12-2026",
+   "title": "Prompted — Week of July 6–12, 2026",
+   "published_at": "2026-11-09T20:53:36Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_d73da050-db9d-4ceb-85d2-943d6e9b62ef",
+   "slug": "prompted-week-of-july-13-19-2026",
+   "title": "Prompted — Week of July 13–19, 2026",
+   "published_at": "2026-11-09T20:54:22Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_cb95f5e6-d4b4-4570-82f5-e9dbcfd7ddfa",
+   "slug": "prompted-week-of-july-19-26-2026",
+   "title": "Prompted — Week of July 19–26, 2026",
+   "published_at": "2026-11-09T20:55:09Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_66383206-b4d0-4ceb-a958-2be0c2bede86",
+   "slug": "prompted-week-of-july-26-august-2-2026",
+   "title": "Prompted — Week of July 26–August 2, 2026",
+   "published_at": "2026-11-09T20:55:54Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_20650978-4758-4999-b4d4-55e62f297abf",
+   "slug": "prompted-week-of-august-2-9-2026",
+   "title": "Prompted — Week of August 2–9, 2026",
+   "published_at": "2026-08-27T00:51:28Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_40e84002-08f8-45d0-9e8d-b62e53406195",
+   "slug": "prompted-week-of-august-9-16-2026",
+   "title": "Prompted — Week of August 9–16, 2026",
+   "published_at": "2026-08-27T00:49:48Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_8b889581-7405-49f9-9ffd-cd2c6d18f601",
+   "slug": "prompted-week-of-august-16-23-2026",
+   "title": "Prompted — Week of August 16–23, 2026",
+   "published_at": "2026-08-27T00:47:00Z",
+   "email_sent_at": null
+  },
+  {
+   "id": "post_fc84c3a3-e90e-4896-b507-45beb2896bc6",
+   "slug": "prompted-0a33",
+   "title": "Prompted — Week of August 23–30, 2026",
+   "published_at": "2026-08-31T12:45:00Z",
+   "email_sent_at": "2026-08-31T12:45:00Z"
+  },
+  {
+   "id": "post_452f12b2-32f0-489f-a07c-9623a1ffe900",
+   "slug": "prompted-a159b4cd6b4d42d8",
+   "title": "Prompted — Week of August 30–September 6, 2026",
+   "published_at": "2026-09-07T12:45:00Z",
+   "email_sent_at": "2026-09-07T12:45:00Z"
+  },
+  {
+   "id": "post_92accdea-4a03-4846-95d2-8db175256d7f",
+   "slug": "prompted-351d2781f31cfab4",
+   "title": "Prompted — Week of September 6–13, 2026",
+   "published_at": "2026-09-14T12:45:00Z",
+   "email_sent_at": "2026-09-14T12:45:00Z"
+  },
+  {
+   "id": "post_ff4748d7-78da-4ff9-97de-97d18cd02d29",
+   "slug": "prompted-89e4e734d07cb5c0",
+   "title": "Prompted — Week of September 13–20, 2026",
+   "published_at": "2026-09-21T12:45:00Z",
+   "email_sent_at": "2026-09-21T12:45:00Z"
+  },
+  {
+   "id": "post_3a44dbf5-4230-4ba4-a965-8f4af4a1546f",
+   "slug": "prompted-eda4dc1f907f8c1b",
+   "title": "Prompted — Week of September 20–27, 2026",
+   "published_at": "2026-09-28T12:45:00Z",
+   "email_sent_at": "2026-09-28T12:45:00Z"
+  },
+  {
+   "id": "post_7652056d-3310-4e95-b142-e178ebd5b0fa",
+   "slug": "prompted-45b0",
+   "title": "Prompted — Week of September 27–October 4, 2026",
+   "published_at": "2026-10-05T12:45:00Z",
+   "email_sent_at": "2026-10-05T12:45:00Z"
+  },
+  {
+   "id": "post_14a58717-aa87-4ce1-b255-ee6468c5066e",
+   "slug": "prompted-5f472d001a1c2e53",
+   "title": "Prompted — Week of October 4–11, 2026",
+   "published_at": "2026-10-12T12:45:00Z",
+   "email_sent_at": "2026-10-12T12:45:00Z"
+  },
+  {
+   "id": "post_a250f79a-8949-4a91-b3c6-b7a53e31f091",
+   "slug": "prompted-29a61cd1b7f861ae",
+   "title": "Prompted — Week of October 11–18, 2026",
+   "published_at": "2026-10-19T12:45:00Z",
+   "email_sent_at": "2026-10-19T12:45:00Z"
+  },
+  {
+   "id": "post_c5e3264b-e1ba-4fc1-9890-40207327c0ea",
+   "slug": "prompted-4f414a14cb0e83e8",
+   "title": "Prompted — Week of October 18–25, 2026",
+   "published_at": "2026-10-26T12:45:00Z",
+   "email_sent_at": "2026-10-26T12:45:00Z"
+  },
+  {
+   "id": "post_9eb5ef86-0b1f-4ad5-89b3-4b563cf58234",
+   "slug": "prompted-9d9f892956451611",
+   "title": "Prompted — Week of October 25–November 1, 2026",
+   "published_at": "2026-11-02T13:45:00Z",
+   "email_sent_at": "2026-11-02T13:45:00Z"
+  },
+  {
+   "id": "post_86e6a01e-6fdd-4983-b1aa-b8497484ce89",
+   "slug": "prompted-week-of-november-1-8-2026",
+   "title": "Prompted — Week of November 1–8, 2026",
+   "published_at": "2026-11-09T13:45:00Z",
+   "email_sent_at": "2026-11-09T13:45:00Z"
+  }
+ ]
+}

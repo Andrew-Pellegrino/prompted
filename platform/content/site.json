@@ -1,0 +1,22 @@
+{
+  "name": "Prompted",
+  "tagline": "Your Weekly AI Brief",
+  "attribution": "Prepared for the John W. Altman Institute for Entrepreneurship",
+  "promise": "One clear, careful read on what changed in AI this week, why it matters, and what to watch next.",
+  "description": "Prompted is a free weekly AI brief for students, founders, faculty and business-minded readers. It arrives every Monday morning.",
+  "author": "Andrew Pellegrino",
+  "send_slot_label": "Mondays at 8:45 a.m. Eastern",
+  "gate": "soft",
+  "gate_after_blocks": 4,
+  "postal_address": "TODO: owner mailing address (required before any real send)",
+  "campaigns": [
+    { "code": "linkedin", "label": "LinkedIn", "utm_source": "linkedin", "utm_medium": "social", "utm_campaign": "prompted_linkedin" },
+    { "code": "founders", "label": "Founders", "utm_source": "founders", "utm_medium": "partner", "utm_campaign": "founders_2026" },
+    { "code": "awe", "label": "AWE", "utm_source": "awe", "utm_medium": "partner", "utm_campaign": "awe_2026" },
+    { "code": "sepi", "label": "SEPi", "utm_source": "sepi", "utm_medium": "partner", "utm_campaign": "sepi_2026" },
+    { "code": "rv", "label": "RedHawk Ventures", "utm_source": "redhawk_ventures", "utm_medium": "partner", "utm_campaign": "redhawk_ventures_2026" },
+    { "code": "faculty", "label": "Faculty and staff", "utm_source": "faculty_staff", "utm_medium": "partner", "utm_campaign": "faculty_staff_2026" },
+    { "code": "index", "label": "Prompted Index", "utm_source": "index", "utm_medium": "web", "utm_campaign": "prompted_index" },
+    { "code": "forward", "label": "Forwarded email", "utm_source": "forward", "utm_medium": "email", "utm_campaign": "prompted_forward" }
+  ]
+}

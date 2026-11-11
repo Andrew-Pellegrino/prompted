@@ -1,0 +1,11 @@
+# build output and local state
+dist/
+.cache/
+.wrangler/
+node_modules/
+# never commit private data, exports or secrets
+private/
+*.local
+.dev.vars
+*.csv
+!test/fixtures/*.csv

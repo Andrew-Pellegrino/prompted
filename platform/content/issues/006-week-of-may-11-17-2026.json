@@ -1,0 +1,295 @@
+{
+ "number": 6,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-may-11-17-2026",
+ "title": "Prompted — Week of May 11–17, 2026",
+ "week": {
+  "label": "May 11–17, 2026",
+  "start": "2026-05-11",
+  "end": "2026-05-17",
+  "nominal_send_date": "2026-05-18"
+ },
+ "subtitle": "This week had no shiny new flagship model, and that’s exactly the point.",
+ "publication": {
+  "date": "2026-05-18",
+  "basis": "derived_monday_after_week",
+  "note": "Published before Prompted moved to beehiiv; exact original send time is not recorded in beehiiv."
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_8c59e34e-4f13-49bb-a83b-e341b4e42b4f",
+  "slug": "prompted-week-of-may-11-17-2026",
+  "url": "https://readprompted.beehiiv.com/p/prompted-week-of-may-11-17-2026",
+  "beehiiv_published_at": "2026-11-09T20:46:31Z",
+  "backfilled_to_beehiiv": true,
+  "content_sha256": "13f35433b99830c6e375a0e1056536209d5d218971d47f62313b80024c4bf02e"
+ },
+ "legacy": {
+  "header_images": [],
+  "dropped_empty_paragraphs": 0,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This week had no shiny new flagship model, and that’s exactly the point. The biggest moves came from companies trying to figure out how to get AI inside real workflows, real devices, and real institutions, not how to top a benchmark. OpenAI spun up a multibillion-dollar deployment arm. Anthropic struck a public-interest partnership with the Gates Foundation and pushed deeper into PwC and legal work. Google began nudging Gemini from “assistant” toward something closer to the Android operating system itself. Coding agents got more mobile and more supervised. And the governance perimeter around AI quietly widened, copyright settlements, EU pressure, academic enforcement, and supply-chain security. The race is shifting from who has the smartest model to who can actually plug AI into the way people work."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI launched a deployment company.",
+     "bold": true
+    },
+    {
+     "text": " On May 11, OpenAI rolled out a majority-owned business unit with more than $4 billion in initial investment, designed to help organizations build AI into their core workflows. It’s also acquiring applied-AI consulting firm Tomoro, bringing in roughly 150 forward-deployed engineers, and working with a partner network of consultancies, private equity firms, and systems integrators. Put simply: OpenAI is no longer just selling models and APIs, it’s building the services arm to redesign how companies operate around them. The implication is that implementation itself is becoming a moat. The open question is whether one vendor can credibly span model, tooling, and deployment without choking on its own complexity."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic + Gates Foundation:",
+     "bold": true
+    },
+    {
+     "text": " $200M for AI in health, education, and global development. On May 14, Anthropic and the Gates Foundation announced a four-year, $200 million commitment in grants, Claude usage credits, and technical support spanning global health, life sciences, education, and economic mobility. The targets include healthcare connectors, K-12 tutoring in the U.S., career-guidance tools, and literacy and numeracy apps in sub-Saharan Africa and India. The scale and duration are confirmed; execution is the open question. Either way, it’s a clear signal that frontier labs are now competing on public-interest positioning, not just enterprise revenue."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google pushed Gemini from “assistant” toward “operating system.” At the Android Show on May 12, Google unveiled “Gemini Intelligence,” a more proactive Android layer for the OS.",
+     "bold": true
+    },
+    {
+     "text": " It can run multi-step tasks across apps, summarize content and help with form-filling in Chrome, and generate custom widgets from natural-language prompts. A feature called Rambler turns rambling spoken thoughts into cleaner messages. Rollout starts this summer on the latest Samsung Galaxy and Pixel phones, with watches, cars, glasses, and laptops coming later. The product direction matters more than any single feature: AI is being woven into the default consumer computing environment instead of sitting in a separate chatbot tab."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic doubled down on enterprise and professional work.",
+     "bold": true
+    },
+    {
+     "text": " Two announcements landed within days. PwC committed to rolling out Claude Code and Cowork starting with U.S. teams, training and certifying 30,000 PwC professionals, and building a joint Center of Excellence, eventually scaling toward a workforce of hundreds of thousands. Separately, Thomson Reuters said it’s integrating Claude with CoCounsel Legal via Model Context Protocol, letting Claude reach directly into Westlaw and Practical Law as it works. The pitch is a bridge between general-purpose AI and “fiduciary-grade” legal work grounded in trusted sources. The takeaway: in high-stakes domains, the winner may not be the best standalone model but the best system built around it."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Coding agents got more mobile, more parallel, and more supervised.",
+     "bold": true
+    },
+    {
+     "text": " On May 14, OpenAI brought Codex to the ChatGPT mobile app in preview, claiming more than 4 million weekly users. The update lets you monitor long-running work, approve commands, and steer remote dev environments from your phone, with Remote SSH and Hooks now generally available. The same day, xAI launched an early beta of Grok Build, a terminal-based coding agent for SuperGrok Heavy subscribers emphasizing plan-and-approve workflows and parallel subagents. xAI then retired several older Grok models on May 15, redirecting users to Grok 4.3. The direction is clear: “AI coding” is becoming “AI-managed software work,” longer-running, cross-device, with humans stepping in at decision points."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Governance pressure broadened, quietly but importantly.",
+     "bold": true
+    },
+    {
+     "text": " A U.S. judge is weighing the proposed $1.5 billion settlement in the authors’ copyright case against Anthropic. Meta offered rival AI chatbots a month of free access to WhatsApp’s business API in an attempt to defuse European Commission antitrust pressure. The Verge reported that arXiv is sharpening enforcement against submissions packed with unverified LLM-generated errors. And OpenAI disclosed its response to the May 11 TanStack npm supply-chain attack, a reminder that AI companies face the same software-security exposure as everyone else. No single bombshell, but together they show the governance perimeter widening from “is the model safe?” to “can it be integrated, cited, distributed, and shipped responsibly?”"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "ChatGPT got a personal finance preview.",
+     "bold": true
+    },
+    {
+     "text": " U.S. Pro users on web and iOS can now connect financial accounts, view dashboards, and ask grounded questions, starting with 12,000+ institutions via Plaid (Intuit support coming). Not the macro story of the week, but a clean example of AI moving into a vertical, permissioned, action-adjacent domain built around sensitive data."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google opened an AI Educator Series.",
+     "bold": true
+    },
+    {
+     "text": " Free training for all 6 million U.S. K-12 and higher-ed teachers, in partnership with ISTE+ASCD. Paired with a separate post on AI Policy & Guidance Labs across six countries, the pitch is that institutions need governance roadmaps, not just principles."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Reported but not officially confirmed:",
+     "bold": true
+    },
+    {
+     "text": " Reuters (citing The Information) said OpenAI and Microsoft agreed to cap OpenAI’s revenue-sharing payments to Microsoft at $38 billion, and that Microsoft is exploring startup deals to reduce its dependence on OpenAI. If directionally right, the “one big lab, one big cloud partner” era may be loosening."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Gemini’s handwritten-notes feature.",
+     "bold": true
+    },
+    {
+     "text": " Snap a photo of your notes, get a structured study guide or flashcards back. Small product, real signal: mass-market AI is being optimized around specific learning workflows rather than general chat."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "AI is becoming an implementation business.",
+     "bold": true
+    },
+    {
+     "text": " The OpenAI deployment arm, the PwC expansion, and the CoCounsel integration all point the same direction. Model quality still matters, but enterprise value is increasingly created in workflow redesign, integration, governance, and change management."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Chatbots are giving way to persistent agents.",
+     "bold": true
+    },
+    {
+     "text": " Google’s proactive Android push, OpenAI’s mobile Codex, xAI’s plan-and-approve Grok Build, and ChatGPT’s connected finance preview all share a thread: in each case, AI is staying active over time, running across devices, and pausing for human approval at key moments."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Trust layers are becoming a real product category.",
+     "bold": true
+    },
+    {
+     "text": " Thomson Reuters isn’t selling Claude, it’s selling Claude attached to authoritative legal content and traceable citations. Google’s education messaging keeps stressing teacher leadership and policy scaffolding. Anthropic’s Gates partnership ships with evaluation frameworks. The next competitive frontier isn’t just capability, it’s whether output can be verified, governed, and institutionalized."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Governance is going operational.",
+     "bold": true
+    },
+    {
+     "text": " This week’s policy stories were about copyright settlement mechanics, EU access remedies, academic submission quality, and supply-chain security, not abstract AI ethics debates. The questions shaping AI’s near-term reality are increasingly specific: who can integrate where, what counts as acceptable evidence, who bears liability, what institutions will tolerate."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re a student or future knowledge worker:",
+     "bold": true
+    },
+    {
+     "text": " The skill shift is from “prompting” to supervising agentic systems. With AI showing up inside phones, study tools, finance apps, and coding environments, the valuable human work is defining the task, reviewing the result, spotting missing context, and knowing when not to trust the output. Verification, source-checking, and using AI to structure your work rather than outsource your judgment are the habits that pay this year."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re a founder or builder:",
+     "bold": true
+    },
+    {
+     "text": " The opportunity is migrating into the layers around base models. Workflow-specific agents, trust and compliance layers, implementation services, vertical data integrations, and tools for monitoring and approving agent behavior, these are where the strongest openings appeared this week. The Codex/Grok Build battle also signals that the developer-tool space is getting crowded fast; you’ll need either differentiated distribution or sharply better task-specific performance."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re an educator:",
+     "bold": true
+    },
+    {
+     "text": " Two real hooks this week. Google’s policy labs and AI Educator Series make clear that big platforms now expect institutions to operationalize AI policy and AI literacy, not just debate them. And arXiv’s tougher stance on unverified LLM-generated submissions is a sign that academic communities are hardening quality norms. That probably raises the value of assessments built around process, drafts, oral defenses, source use, and reflection, rather than only polished final writing."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re an operator or aspiring manager:",
+     "bold": true
+    },
+    {
+     "text": " General-purpose AI is being pulled into specialized systems with traceability, workflow logic, and permissions. That’s likely to become normal in law, consulting, finance, health, and education. Understanding how those systems actually work, what data they can access, what actions they can take, what approvals gate them, and where the evidence trail lives, will matter more than knowing how to chat with a model."
+    }
+   ]
+  }
+ ]
+}

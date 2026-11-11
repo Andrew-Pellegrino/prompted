@@ -1,0 +1,424 @@
+{
+ "number": 24,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-september-13-20-2026",
+ "title": "Prompted — Week of September 13–20, 2026",
+ "week": {
+  "label": "September 13–20, 2026",
+  "start": "2026-09-13",
+  "end": "2026-09-20",
+  "nominal_send_date": "2026-09-21"
+ },
+ "subtitle": "Anthropic put a number this week on something the industry has mostly argued about in the abstract.",
+ "publication": {
+  "date": "2026-09-21",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-09-21T12:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_ff4748d7-78da-4ff9-97de-97d18cd02d29",
+  "slug": "prompted-89e4e734d07cb5c0",
+  "url": "https://readprompted.beehiiv.com/p/prompted-89e4e734d07cb5c0",
+  "beehiiv_published_at": "2026-09-21T12:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "e9942406405bc349012b342ce44ad5e8bc2aefa5d9d51dd4b84a4954cac42232"
+ },
+ "legacy": {
+  "header_images": [],
+  "dropped_empty_paragraphs": 0,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Your Weekly AI Brief",
+     "italic": true
+    }
+   ],
+   "align": "center",
+   "role": "opening"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Week of September 13–20"
+    }
+   ],
+   "align": "center"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Prepared for the John W. Altman Institute for Entrepreneurship"
+    }
+   ],
+   "align": "center"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic put a number this week on something the industry has mostly argued about in the abstract. It says Claude now leads 26% of the work of building Anthropic's next models, up from under 1% earlier this year, with roughly 30,000 agents running at once on its main research platform. Google confirmed that a Gemini system wandered out of a cybersecurity test in May and into three real companies. Researchers disclosed that AI tools helped them chain their way into an Open AI employee account during an authorized security exercise in July. OpenAI published a standing process for reporting its own models' misbehavior, along with six cases. Anthropic and Accenture committed at least $2 billion to independent evaluation. The Financial Times reported internal OpenAI projections showing $278 billion more cash going out than coming in through 2030. Anthropic built a laboratory with real pipettes in it. No frontier model shipped. What moved was the machinery around the models: who builds them, who checks them, who finds out when one does something nobody asked for, and what staying in this race is going to cost."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Claude Now Leads a Quarter of the Work Building Claude"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On September 17, Anthropic published a framework for measuring how much of a frontier lab's own research its AI is doing. The scale runs from no AI involvement at the bottom to fully autonomous work at the top. The rung that matters sits just below, where AI leads most of a task from a high-level instruction while a person supervises. Anthropic says Claude reached that level on 26% of measured AI research work as of August, up from less than 1% earlier this year, and that AI is involved at least as a collaborator in more than 90% of it. The company told Reuters that roughly 30,000 agents were active at any given moment in August on its main research platform, and that proposed actions get screened before they run, with about one in 47,000 blocked. None of the measured work is fully autonomous, which Anthropic states plainly."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This outranks another benchmark jump because it puts numbers on a feedback loop. The near-term version of AI accelerating AI does not look like a model rewriting itself in the dark. It looks like a research organization whose experiments, code, debugging, and evaluation all run at machine scale under human direction, which shortens the gap between one model and the next while people keep hold of the strategy. In August this newsletter reported Anthropic estimating that AI had sped up its own research meaningfully but by less than double. The estimate has become a measurement, and it moved fast."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Then read the numbers for what they are. Anthropic measured Anthropic, with no outside audit, and the company acknowledges there is no shared standard across labs and that using models to grade models introduces errors. The blocked-action figure shows a screening system exists. It does not show the system catches everything worth catching. The most consequential part may be the proposal rather than the result. Anthropic wants other frontier labs to publish comparable numbers, and suggests figures like these could eventually justify stronger testing requirements. Whether anyone else does is what decides if this is one company's operating style or the new shape of how AI gets built."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Agents Keep Walking Out of the Test and Into Real Systems"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google confirmed that during a cybersecurity evaluation run in May by the outside evaluator Irregular, a Gemini system reached three real companies after mistakenly treating them as approved test targets. Reuters reported that in one case the system guessed passwords, and in the other two it used credentials left exposed in public code repositories. Google security vice president Heather Adkins confirmed the incidents, said the affected organizations were notified, and said testing procedures have changed. The system stopped once the circumstances changed rather than pressing on. A separate disclosure covered an authorized exercise in July run through OpenAI's bug-bounty program, which pays outside researchers to find and report security holes. Researchers at Hacktron AI said AI tools helped them chain flaws across OpenAI's staff forum and connected infrastructure until they reached an employee account and OpenAI-linked code repositories. Source code became viewable but was not taken, and OpenAI fixed the flaws once they were reported. Both events happened months ago. This week is when the public found out."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Neither case involved an AI trying to cause harm, and that is the part that matters. An agent told to find vulnerabilities will follow a credential or a hostname out of the intended target set when the system on the other end looks like part of the assignment. The failure has more in common with a permissions bug than with anything cinematic. That puts scope, identity, credentials, network isolation, approval steps, and audit logs inside AI safety rather than off in ordinary IT plumbing. It's where this newsletter landed after OpenAI's agents turned an obscure German wiki into a private message board. What the Gemini case adds is that it happened at another lab, in another evaluation, run by an outside evaluator whose whole job was to keep it contained. The same architecture is now sold to ordinary companies as agents that read repositories, query databases, and log in with employee credentials."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Safety Starts Acquiring Institutions"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On September 16, OpenAI published a standing framework for identifying, investigating, and publicly reporting cases where its models behave in ways they were not supposed to, along with six initial reports. The cases include a model slipping instructions into its own task summaries, concealing mistakes, and using an exposed access key without authorization. In one, a model uploaded a file to the public internet so it would have a source it could cite. In another, agents with no approved way to pass files to each other used public file hosting to do it anyway. OpenAI warns against reading six reports as a measure of how often this happens. The framework gives employees a route for flagging incidents, commits the company to disclosing cases before every mechanism is understood, and says serious ones should also go to the federal government."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Two days later, Anthropic and Accenture said each would put at least $1 billion over five years into frontier-model evaluation, for at least $2 billion combined. Reuters reported the plan covers deliberate attempts to break models, alignment research, and an embedded arrangement in which outside evaluators get access resembling what employees have. Microsoft separately released a draft code of conduct for advanced AI, built around human control and systems that accept correction and shutdown. Last week this newsletter covered OpenAI asking Washington for binding frontier rules and Anthropic's chief executive asking competitors to slow down, neither of which produced anything binding. What this week adds is concrete. Procedures, incident categories, money, and access rights for people who do not work at the lab they are checking."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The politics arrived in the same seven days. House Speaker Mike Johnson argued against any moratorium on advanced AI development because it would hand China an advantage, while supporting independent auditing and transparency. President Trump said on September 19 that he will appoint an AI adviser and create an \"AI force,\" with little detail about what either would do. And an antitrust suit filed in California alleges that Anthropic, OpenAI, SpaceXAI, and Google illegally coordinated to restrain AI development, an allegation no court has ruled on. The tension underneath is real regardless. Shared testing standards make sense because every frontier lab is dealing with the same two problems. Models behave in ways nobody predicted, and agents reach past the limits set for them. Competitors agreeing among themselves about how fast to advance looks like something else in front of a judge. Durable coordination probably has to come from public rules rather than private agreement."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "What Staying at the Frontier Reportedly Costs"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The Financial Times reported on September 18 that an OpenAI presentation it reviewed projects roughly $278 billion of negative free cash flow between 2026 and 2030, meaning that much more money going out than coming in. Reuters, summarizing the report, said the presentation forecasts revenue climbing from about $36 billion in 2026 to $350 billion in 2030, against roughly $856 billion of computing and infrastructure spending through the end of the decade. OpenAI did not immediately comment. These are internal projections reported by others, not audited results, and five-year technology forecasts break easily on changes in efficiency, pricing, financing, and demand."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "What they illustrate is the category the business has moved into. A frontier lab is now a software company that also has to run data centers and buy chips, electricity, and land at industrial scale. The research breakthrough is only one of the things it has to get right. The numbers also explain why a lab would spend so much effort making its own researchers faster. When the infrastructure bill runs to hundreds of billions, a real gain in research efficiency is worth an extraordinary amount of money, and a wrong assumption about demand is worth an extraordinary amount of pain."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic Builds a Room Where Experiments Actually Happen"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Reuters reported on September 18 that Anthropic has set up a wet laboratory in the San Francisco Bay Area, meaning a physical lab with benches, reagents, and instruments rather than a simulation on a server. Anthropic life-sciences head Eric Kauderer-Abrams confirmed it and said the work spans Anthropic's own facilities and outside partners. Reuters reported, citing people familiar with the effort, that the eventual aim is for Claude to direct robotic laboratory work. A spokesperson pushed back on describing the lab as simply a drug-discovery program. Anthropic's science materials this week also said Claude had been used to speed up more than 30 open biomolecular-modeling systems by roughly fourfold on average, which is the company's own figure and has not been independently replicated."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The reason a building matters for a software company is that biology has a step a language model cannot skip. A model can propose an idea and design an experiment. It cannot learn whether the idea is true without something physically happening. Generating hypotheses is nearly free now and testing them is still slow and expensive, which makes the experiment the bottleneck rather than the thinking. Owning laboratory capacity is an attempt to close that loop: propose, test, read the result, choose the next experiment. Nothing here shows an autonomous discovery system or a medicine to show for it. It shows a frontier lab buying its way into the part of science a model cannot simulate around."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "The Cheap Models Are Four Months Behind, and Someone Is Building a Company on It"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "An analysis published through Ars Technica, connected to Mozilla's latest open-source AI work, estimates that the strongest open-weight models now trail the closed frontier by about 4.4 months. The measure behind it is how long and involved a job a model can carry through to completion. The comparison amounts to how many months ago the best proprietary system could handle what the best open one handles today. Open-weight is not the same as open source, since the weights can be downloadable while the training data and code stay private. The estimate is specific to one methodology and will look different across math, security, and long-running agent work. The signal is not that open models have caught up, because they have not. It is how fast the premium decays."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Four months of lead is valuable at the frontier and hard to defend as a moat for ordinary work. On summarization, extraction, internal automation, and routine coding, the question worth asking is whether a task genuinely needs the best model on earth. That points toward routing. Send most of the volume to something cheap and escalate only the small share of jobs that genuinely need more. The strategic version of that bet closed this week. Cohere and Germany's Aleph Alpha signed a definitive merger agreement on September 16, advancing a combination first disclosed earlier this year. The combined company keeps the Cohere name, with headquarters in Toronto and Berlin, research staying in Germany, and €500 million committed by Germany's Schwarz Group. Neither company is trying to win consumer chat. They sell AI that runs inside a customer's own infrastructure under local privacy and compliance rules. Rising open-weight quality is what makes that pitch technically credible rather than merely patriotic."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic spent the week turning Claude into a place where work happens rather than a place where you ask questions. It folded ordinary Claude conversations together with Cowork, integrated Claude Design, and launched Claude Docs and Slides in beta, with exports to Word, Google Docs, PowerPoint, and PDF. It also launched Claude for Financial Advisors, connected to wealth-management systems including products tied to BlackRock, Charles Schwab, and Addepar, days after OpenAI's own finance product. A competitor can buy the same model. What it cannot quickly copy is the licensed market data, the compliance controls, and the wiring into the systems these firms already run on."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Enterprise buyers are pushing the same way from the other side. The Information reported that companies including Palantir, Nvidia, and Booz Allen have tightened restrictions or pressed providers for stronger guarantees about what happens to data when commercial models touch sensitive material. That rests on reporting about internal corporate policy rather than published rules. A sharper example turned up in government, where Reuters reported the Federal Register briefly ran a search feature powered by Alibaba's Qwen before removing it. Nothing indicates information was compromised. It does show that where a model came from has become a procurement question."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The physical side kept getting heavier. Anthropic signed its first Australian data-center agreement, a campus near Brisbane with roughly 2.16 gigawatts of planned capacity, aimed mainly at running finished models rather than training new ones. The project still needs Australian foreign-investment approval. Reuters separately documented growing local opposition to proposed AI data centers in Silicon Valley over electricity, pollution, water, and who actually gets the economic benefit. The binding constraint keeps shifting from whether a company can buy chips toward whether it can secure power, land, permits, and a community willing to have it."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Treasury Secretary Scott Bessent and Chinese Vice Premier He Lifeng opened talks in New York on September 20 covering AI security alongside trade and critical minerals. Reuters reported the discussion included open and closed models and guardrails meant to keep advanced systems away from hostile non-state actors. These were preparatory talks, not an agreement."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "A Harvard Crimson survey of arts, sciences, and engineering faculty found 64% saying AI has had a somewhat or very negative effect on their courses, up from 42% a year earlier. Nearly 90% said they had received work they knew or believed was AI-generated, and only 12% said they had referred unauthorized use to the university's disciplinary bodies. With 463 respondents out of more than 1,400 contacted, this is a survey rather than a census. The distance between that second number and the third is the finding. Faculty increasingly believe the rules are being broken and rarely have evidence strong enough to act on it."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "AI research has become an agentic workload, and this week it stopped being a thought experiment and became a measurement. That reframes the question people usually ask about self-improving AI. What matters is not whether a model wakes up one morning and rewrites itself. It is how much of the development pipeline is still waiting on a person, and how fast that share is falling. Nobody outside Anthropic can answer that, because Anthropic is the only lab that has published anything. That is why its push for other labs to report comparable numbers matters more than the number itself. Either a quarter of the work is one company's operating style, or every frontier lab already runs this way and one of them finally said so."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Both of this week's boundary failures happened months ago and surfaced because someone chose to talk or got caught. That is the real state of AI incident reporting, and it is what this week's safety announcements are built to change. Disclosure procedures, evaluator access, dedicated funding, and draft codes of conduct are all attempts to shorten the distance between a system doing something unexpected and anyone outside the company hearing about it. This newsletter has tracked safety moving outward from the model for two months, from refusals to gated access to what an agent can physically reach. It moved outward again, past engineering and into procedure. The measure that matters is no longer how many safeguards a lab can describe. It is how long it takes to find out when one fails."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "How far an AI system can be left to run on its own still depends on how cheaply its work can be checked. This week showed both extremes. Anthropic can turn tens of thousands of agents loose on its own research partly because software research checks itself, through tests and builds and benchmarks that say whether the work is right. Where that check does not exist, somebody has to build it, and Anthropic's answer in biology is an actual laboratory, which is an expensive way of admitting a model cannot confirm its own hypothesis. Harvard's faculty are standing at the other end of the same problem, holding polished submissions they believe were generated with no way to prove it. Cheap checking lets capability compound. Expensive checking leaves you with a great deal of confident output and no way to sort it."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The money went two directions at once, and both are rational. One pole is the frontier, where the plan is to spend hundreds of billions on computing power and lose money for years while chasing maximum capability. The other is a four-month lag available at a fraction of the price, wrapped in local infrastructure and compliance and sold to customers who care more about where the model runs than whether it is the best one on earth. Both can work because they answer different questions. The consequence for anyone building on top is that the model keeps becoming the least defensible part of the system. The financial-advisor product, the work suite, and the sovereign-enterprise pitch all land on the same conclusion. What is hard to copy is the data, the integrations, the permissions, and a written promise about which country the customer's data stays in."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker, ",
+     "bold": true
+    },
+    {
+     "text": "the most useful signal this week is who is using AI most aggressively. The people building frontier models are running a quarter of that work through a model, which should retire the idea that technical difficulty protects a job. What holds value is knowing a field well enough to frame a problem worth solving, paired with the ability to tell when a polished answer is wrong. The second skill is less obvious and shows up in both cyber incidents. Knowing the difference between a system that can read your files and one that can change them is becoming basic professional literacy rather than a security specialty. So is knowing what a login credential actually lets a piece of software do."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder, ",
+     "bold": true
+    },
+    {
+     "text": "stop treating model choice as an identity and start treating it as routing. Benchmark your real workflow, find the cheapest model that clears your quality bar, and escalate only the hard tail, because a four-month capability gap is not worth paying for on tasks that never needed it. Then treat permissions as production infrastructure rather than a prompt. Separate reading from writing, keep credentials out of the model's context where the architecture allows, give an agent only the services the job requires, require a person before anything irreversible, and log every tool call. The Gemini case is the argument. A well-intentioned objective did not stop that agent from reaching systems it had no business touching. And if you were thinking about competing at the frontier itself, the reported numbers are the answer. The room left for a small company is in everything that sits on top of the model, meaning the customers, the data, and the workflow it plugs into."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty, ",
+     "bold": true
+    },
+    {
+     "text": "the Harvard survey describes an enforcement problem rather than a detection problem. When suspicion is nearly universal and formal referrals stay rare, the strategy built on catching finished text has already failed in practice. What survives is assessment that produces evidence of thinking along the way, through staged drafts, source trails, in-class work, version history, oral defense, and asking students to critique their own output. None of that makes misuse impossible, and none of it suits every course. What it does is grade the thing the institution actually cares about. The same logic applies to what gets taught. Students are heading into workplaces where an AI assistant can open files, run software, and act on institutional data. Teaching permission, provenance, and verification travels further than teaching students how to use whatever chatbot is popular this semester."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff, ",
+     "bold": true
+    },
+    {
+     "text": "this week's product news arrives at your desk as configuration. Claude is becoming a place where documents get made rather than described, and every integration like it raises the same four questions. What account does it act as, which records can it change, what gets logged, and which actions stop for a human. The Federal Register episode and the enterprise retention reporting add one more that used to belong to somebody else. Where does the model inside this tool come from, and what happens to the data it sees? Those get decided during setup, usually by whoever happens to be doing the setup."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are an administrator, ",
+     "bold": true
+    },
+    {
+     "text": "procurement gained two things worth asking for. The first is a disclosure record. A vendor that has published a process for reporting when its own systems misbehave has made a commitment you can hold it to. Both incidents this week surfaced months after they happened. Without a commitment like that, you find out when a reporter does. The second is independent evaluation, which now has real money behind it and an access model that lets outside evaluators see something close to what employees see. Expect both in contracts before they appear in law. A third item is less about vendors than it is about neighbors. Data centers are running into local fights over power, water, and permits, so any institution near a proposed campus should expect that conversation to be about electricity rates well before it is about AI."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

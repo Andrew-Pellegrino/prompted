@@ -1,0 +1,429 @@
+{
+ "number": 25,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-september-20-27-2026",
+ "title": "Prompted — Week of September 20–27, 2026",
+ "week": {
+  "label": "September 20–27, 2026",
+  "start": "2026-09-20",
+  "end": "2026-09-27",
+  "nominal_send_date": "2026-09-28"
+ },
+ "subtitle": "Three of the biggest AI labs shipped new flagship models within two days this week, and the most important number attached to any of them was the price.",
+ "publication": {
+  "date": "2026-09-28",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-09-28T12:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_3a44dbf5-4230-4ba4-a965-8f4af4a1546f",
+  "slug": "prompted-eda4dc1f907f8c1b",
+  "url": "https://readprompted.beehiiv.com/p/prompted-eda4dc1f907f8c1b",
+  "beehiiv_published_at": "2026-09-28T12:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "bd4c7b79f763aa0e955f0707c39a6e355432aaf73bf1ab7d51e42188b3d85fab"
+ },
+ "legacy": {
+  "header_images": [],
+  "dropped_empty_paragraphs": 0,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Your Weekly AI Brief",
+     "italic": true
+    }
+   ],
+   "align": "center",
+   "role": "opening"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Week of September 20–27"
+    }
+   ],
+   "align": "center"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Prepared for the John W. Altman Institute for Entrepreneurship"
+    }
+   ],
+   "align": "center"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Three of the biggest AI labs shipped new flagship models within two days this week, and the most important number attached to any of them was the price. SpaceXAI's Grok 4.7, OpenAI's GPT-6 Sol and Luna, and Anthropic's Claude Opus 5.5 all cost less than the models they replaced, and some cost half as much. Alibaba answered with a homegrown AI chip, plans for models several times larger than anything it has built, and a goal of 20 gigawatts of data centers. Meta said its Muse agent is headed for glasses. Stanford's annual AI Index found the top labs bunched closer together  than ever, and employment for the youngest software developers down nearly a fifth since 2024. Texas stopped issuing state permits for new data centers until it knows whether its grid can take them. Washington proposed a channel for warning Beijing about AI incidents, and mathematicians started asking whether OpenAI's Navier–Stokes proof answered the question anyone actually cared about. The models got cheaper and harder to tell apart. What moved was everything around them, from chips and power grids to the device an agent lives on and the question of whether a verified answer is the right one."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Three New Frontier Models, and the Headline Is the Price"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "SpaceXAI released Grok 4.7 on September 21, aimed at long coding and knowledge-work jobs, with a larger base model than Grok 4.6 and extra training on tasks that run for hours. OpenAI followed on September 22 with GPT-6 Sol and GPT-6 Luna, cheaper tiers built with techniques from GPT-6 Astra. Anthropic released Claude Opus 5.5 the same day and says it comes close to its pricier Fable 5.1 tier. The prices are the confirmed part. Models are billed per million tokens, the word fragments they read and write, with one rate for input and a higher one for output. Grok 4.7 starts at $2 in and $6 out. Sol costs $2 and $10, which OpenAI says is half what its GPT-5.6 predecessor charged at promotional rates. Opus 5.5 runs $4 and $20, 20% below Opus 5. Luna costs 10 cents and 50 cents, a twentieth of Sol's price."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Three weeks ago this newsletter led with Astra as a capability and safety story. Astra is still OpenAI's most capable model, so Sol and Luna do not push the frontier forward. What they do instead is bring some of Astra's capability to a far lower price, less than three weeks after Astra launched. Halving the cost of a task changes which products are worth building. An AI step that was too expensive to run on every customer ticket, or dozens of times inside an agent that double-checks its own work, becomes affordable. And as the Stanford data below shows, the leading labs were already close together on quality. When models are that close, whatever lead a company buys with a launch gets competed away on price almost immediately."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Do not try to crown a winner from the launch posts. Each company tested on its own benchmarks, with its own settings and its own choice of rivals, and SpaceXAI compared Grok 4.7 against a GPT-5.6 model OpenAI replaced the next day. Until outside testers run all three on the same jobs, the scores tell you what each company chose to measure, not which model is best. The one outside check came on safety. Reuters reported that the independent evaluators Frontier Design and METR tested Opus 5.5 before launch. Anthropic says its own test found Opus 5.5 about 85% less likely than Opus 5 or Mythos 5.1 to try to slip the restrictions placed around it. That strengthens confidence in the safety process, not in the performance claims. Sonnet 5.5 and Haiku 5.5 are due in the coming weeks, which should carry the price fight into the cheaper tiers."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Alibaba Builds the Whole Stack, Chip Included"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "At its Apsara conference, which opened September 22, Alibaba unveiled the Zhenwu V900, an AI chip from its chip-design unit T-Head. Alibaba says the V900 is roughly three times as powerful as its predecessor and the most powerful AI chip in China. Both are company claims, with no independent benchmarks yet. Alibaba also said Qwen 4 is in training and described later models with 5 to 10 trillion parameters, the internal settings a model adjusts as it learns. Size alone does not make a model good, so that range is a statement of ambition rather than of capability. The third piece was physical. Alibaba wants more than 20 gigawatts of cloud data-center capacity by 2032. Chief executive Eddie Wu presented all three as one strategy, controlling the models, the chips, and the data centers rather than depending on anyone else for any of them."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That makes this more significant than another Qwen release would be. American policy toward Chinese AI has leaned heavily on cutting off access to the best chips, and two weeks ago Washington accused Alibaba and five other Chinese firms of copying American models at scale. Alibaba's answer is to own every layer that can be cut off. Nobody outside the company knows whether the V900 comes close to Nvidia's best hardware, and it does not have to. A domestic chip that is good enough, paired with enough data centers to run it, weakens the leverage export controls were meant to create even if it never wins a head-to-head comparison. The 20-gigawatt target also shows what kind of business frontier AI has become. Alibaba needs chip designers, power contracts, cooling systems, construction crews, and financing as much as it needs researchers."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Meta Moves Its Agent From the App to Your Face"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Meta used its Connect event on September 23 to push Muse, the personal agent it launched September 8, beyond the phone. Meta announced new abilities for Muse and connections to more outside services. It also said Muse is coming to Meta's AI glasses and showed a pocket-sized voice device built around AI. At launch, Muse ran on its own isolated computer in the cloud, and you reached it through an app or WhatsApp. It could browse, fill out forms, send email, and buy things once you approved. Connect puts that same agent into hardware that can see and hear what is happening around you."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "When Muse launched two weeks ago, the big change was that you could hand it a whole task instead of asking it a question. This week takes that a step further. A chat window makes every use deliberate. You open it, ask, and wait. Glasses and a voice device turn the agent into something you carry, available mid-conversation or mid-errand without reaching for a phone. That could change consumer behavior more than any benchmark gain this week, because it changes how often people hand off tasks and in what situations. It also puts more weight on the approval step Meta's design relies on. A tap to confirm a purchase is a real checkpoint on a phone. On a pair of glasses, while you are busy doing something else, it is fair to wonder whether it stays one."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The institutions that absorb the losses have noticed. Bank of America, NatWest, ING, Capital One, and Commonwealth Bank of Australia warned this week that AI shopping agents are outrunning the protections around fraud, privacy, and payment security. The most basic open question is who pays when an agent makes a bad purchase. The banks want it made clear whenever an agent rather than a person is making a purchase, and stronger rules on data access and on how consumers get their money back. How reliably Muse handles long real-world tasks, and how many services will let agents in at all, are still unknown."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Stanford Finds Top Labs Neck and Neck, Young Developers Slipping"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Stanford's Institute for Human-Centered AI released its 2026 AI Index on September 25. Unlike nearly every other number this week, it is not a lab grading its own product. It gathers research, economic, policy, and technical data from across the field, and its central message is that capability and adoption are moving faster than anyone's ability to measure or govern them. Two findings connect directly to the rest of this week. The first is convergence. In the report's March 2026 snapshot of Arena, a leaderboard built from people voting on which of two anonymous answers they prefer, Anthropic, xAI, Google, and OpenAI all sat within 25 points of one another. On that chess-style rating scale, a 25-point gap means the higher-rated model wins only slightly more than half the time. The takeaway is that no lab holds a commanding lead in general-purpose quality, which is why price, reliability, and fit now decide so much."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The second is jobs. Employment among software developers aged 22 to 25 has fallen nearly 20% since 2024, and Stanford says younger workers in the occupations most exposed to AI are being hit hardest. Employer surveys in the report point toward further cuts. That is a measured decline, not proof of its cause. The wider economy, company hiring cycles, and other factors all play a part, and the report does not isolate AI's share. Stanford also highlighted new research this week showing that some prominent AI benchmarks do not measure what their names suggest, a useful warning against letting any single number settle an argument."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "The AI Buildout Runs Into the Power Grid"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Texas Governor Greg Abbott halted new state-issued permits for data centers until the state audits their effect on the electrical grid. Reuters reported that proposed data-center projects seeking grid connections in Texas add up to more than 470 gigawatts, over five times the state's peak electricity demand. The audit covers power use, water use, and tax incentives, and Abbott said developers should pay for the infrastructure they require. Asking to connect a data center to the grid is not the same as building one, so the 470 gigawatts shows how much power developers want, not how many data centers will actually get built. The pause still matters. Texas spent years recruiting exactly this kind of investment and is now stopping to check whether its physical system can absorb it."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The money and the rules moved in the same direction. SoftBank launched roughly $11 billion in bonds, partly to fund its next investment in OpenAI. Anthropic signed an $11.6 billion infrastructure agreement with Akamai. The European Commission proposed requiring data centers of 500 kilowatts or more to disclose how efficiently they use energy and water. And Nvidia launched DSX Ready, a program that certifies power and cooling equipment for giant AI data centers, which is less exciting than a model launch and may say more about where the next shortage is. Scaling AI used to sound like a research problem. It now runs through bond markets, transmission lines, water systems, and permit offices, and the binding question for a frontier lab is increasingly whether local power companies and officials will let it connect to the grid."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Washington Proposes an AI Incident Channel With Beijing, but Nothing Is Agreed"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Last week this newsletter reported that Treasury Secretary Scott Bessent and Chinese Vice Premier He Lifeng had opened preparatory talks on AI security, with no agreement. This week the American side put something concrete on the table. Reuters reported that the U.S. proposed a mechanism for each country to notify the other of AI incidents with national-security implications, offered as an idea for Presidents Trump and Xi to consider. China's state news agency acknowledged that AI came up without endorsing the proposal. Bessent cited uncontrollable agents and malicious cyber activity as reasons for a formal channel, and said the two sides expect to meet again on AI safety, possibly in Shenzhen."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This is not a hotline agreement and should not be read as one. It matters anyway, because the conversation has moved from broad principles about responsible AI to operational questions. What counts as an incident, who tells whom, how fast, and what can be shared without revealing sensitive capabilities. Those are the questions of crisis management between rivals that both have nuclear weapons and large cyber capabilities. The idea did not come out of nowhere. An unofficial dialogue between American and Chinese security experts, run by the Brookings Institution and China's Tsinghua University, had already proposed a hotline for incidents involving autonomous AI. The same group called for firm limits on AI around nuclear weapons and for keeping humans in control of serious cyber operations. The real test will be matching statements from both governments that name an actual forum and actual procedures."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Navier–Stokes Shows That Checked Is Not the Same as Settled"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Two weeks ago this newsletter covered OpenAI's claimed solution to the Navier–Stokes problem, one of the million-dollar Millennium Prize Problems. At the time, the open question seemed to be whether experts would confirm the proof. This week a bigger question took over. Did the proof solve the problem mathematicians actually meant? The Navier–Stokes equations describe how fluids move, and the official problem statement allows for forcing, an outside push built into the equations, something like stirring the fluid. Scientific American reported a substantive objection. OpenAI's construction may meet a version of the problem the rules technically permit by relying on that outside push, without answering what most mathematicians consider the real target. That target is whether a fluid left alone, with nothing stirring it, can break down on its own."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nobody is claiming the proof contains a logical error. Lean, the proof-checking software, confirmed that the conclusion follows from the stated assumptions. The dispute is whether those assumptions describe the problem the field cared about. The earlier issue flagged exactly this limit, that formal verification checks the statement you encoded rather than whether it was the right statement. That caveat may now decide the whole story. Outside experts, and the Clay Institute's deliberately slow credit process, will decide whether OpenAI settled the intended problem, satisfied a technically permitted version of it, or landed somewhere in between. Until then, calling the question resolved is too strong. A proof checker can rule out one kind of error completely. It cannot tell you whether you asked the right question, and that remains a human judgment."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Palo Alto Networks launched a cybersecurity service on September 22 that combines Anthropic's Claude Mythos 5, OpenAI's GPT-5.6-Cyber, and open-weight models, meaning models whose trained settings can be downloaded and run anywhere. The service automatically tests a company's websites, apps, and cloud systems for security holes attackers could use, then suggests fixes. What is new is that it never stops. Security teams have mostly used AI as a helper they call on when they need it, and this turns frontier models into a system that runs around the clock. Belgian startup Aikido went the other way, releasing an open-weight security model that runs on a company's own machines so its source code never goes to an outside AI provider. Together the two launches show the market splitting between buyers who want the strongest hosted models managed for them and buyers who will not let their code leave their own machines."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Snorkel AI raised $350 million at a $3.5 billion valuation. Reuters reported annualized revenue above $350 million, up sharply from a year earlier. The growth comes from selling frontier labs finished datasets, simulated tasks where models learn by trial and error, and expert judgment in fields like coding, law, and medicine. The revenue figures come from the company. The signal is that the most valuable training material is increasingly built by specialists rather than scraped from the internet, and building it has become a large business."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The Gates Foundation announced a coalition of about 60 partners, including Anthropic, Google, and the OpenAI Foundation, to improve AI tools in languages that are thinly represented in training data. AP reports the foundation has committed $1 billion to AI work across health, education, and agriculture. A model can be available worldwide and still work far worse in languages with little written text online, and that gap does not close on its own."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nvidia released Isaac ROS 5.0, the latest version of its open-source software for building robots, extended toward robots that plan and act on their own. Dassault Aviation and Thales separately disclosed flight tests of AI algorithms on the Rafale fighter jet. In machines where a mistake can hurt someone, what matters is not how well the system talks. It is what it may decide on its own and how easily a person can take over."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The price of a capable model fell by half in a week, and the head start each lab bought with its launch lasted about a day. That is what convergence looks like in practice. When the top labs are close enough that users barely prefer one over another, and three of them ship within two days, the useful question stops being which model is smartest. It becomes what quality you get on your own task for a dollar and a few seconds of waiting. This newsletter has argued for weeks that the model is becoming the least defensible part of an AI product. This week showed how that happens. A capability lead does not have to be copied to disappear. A competitor can simply sell something close enough for less. What holds its value is what a price cut cannot touch, such as proprietary data, trusted integrations, customer relationships, and the permissions and records that let a customer trust an agent to act."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Agents are leaving the chat window, and the institutions that pay for their mistakes have started asking questions. Two weeks ago, Meta and Google shipped agents that stop for a person's approval before doing anything important, and India's national payments network began building a registry of which agent acts for which person. Those safeguards came from the companies building agents and the network that would move the money. This week the banks spoke up, and they are the ones that absorb fraud losses. When a shopping agent buys the wrong thing, their question is simply who pays. Meanwhile Muse is heading for glasses, where approving a purchase happens mid-errand with half your attention. As agents move into devices people wear, that approval becomes a reflex rather than a real decision. Safety will depend less on the confirmation prompt and more on what the agent is allowed to reach before anyone is asked."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The map of what countries compete over in AI gained a bottom layer. Two weeks ago it had four layers. Computing power, the models themselves, the answers those models give (which Washington now says rivals are copying), and whose rules you answer to. This week added electricity and permission to use it. Alibaba's 20-gigawatt goal alone is more than a fifth of Texas's entire peak demand, and Texas just paused permits because proposed projects there already want five times that peak. Europe wants efficiency disclosures, and Nvidia is certifying cooling equipment. The notable part is who controls this layer. A national government can restrict chips with one rule. Power has to be granted locally, project by project, by utilities and state and local officials. For American labs, the next hard limit may come from a state deciding that its grid, its water, and its ratepayers come first."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Verification has done a lot of work in these pages, and this week it needed a correction. In August it was the bottleneck. Then it was a multiplier, the reason Claude agents could work unsupervised for eleven days on Fermat's Last Theorem. Two weeks ago it was the engine behind a claimed discovery, and this newsletter concluded that autonomy travels as far as checking is cheap. Navier–Stokes shows the limit of that sentence. Cheap checking confirms that an answer follows from a question. It does not confirm that it was the right question. Stanford's benchmark finding is the same problem in a different setting, where a precise score can measure something other than what its name promises. The sharper version is that a verified answer is only as trustworthy as someone's judgment that the question was the right one, and that part is still done by people."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker,",
+     "bold": true
+    },
+    {
+     "text": " access to capable AI got cheap enough this week that it no longer separates anyone. What separates people is judgment about using it. That means picking the right model for the job instead of the most famous one, giving it the context it needs, checking its work, and owning the decision that follows. Stanford's numbers on young software developers deserve attention without panic. They are a serious signal, not proof that a career is closing, and the practical response is to move toward the parts of the work that are hardest to hand off. Writing code still matters. Deciding what should be built, whether it works, and whether it is safe to ship is what makes a junior person worth hiring. Navier–Stokes adds one more habit worth building. Before trusting a result, even a checked one, ask what exactly was checked."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder,",
+     "bold": true
+    },
+    {
+     "text": " three labs shipping serious models at different prices within two days is the argument against building your product around any one of them. Keep prompts, tools, test suites, and business logic portable enough that switching models is a settings change rather than a rewrite. Build a set of tests from your own real tasks, run every new model through it, and send each job to the cheapest model that clears the bar. That test set gets more valuable every time a lab cuts prices. The defensible part of your company lives around the model, in data rights, integrations, customer trust, and domain knowledge, because a competitor can now rent something comparably strong. If your agent can spend money, the banks just previewed what payment providers will ask. Who authorized the purchase, did everyone involved know an agent rather than a person was buying, and how does a bad transaction get reversed? Build the answers into the product. And if your product burns a lot of computing power, treat energy and location as real business risks rather than someone else's problem."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty,",
+     "bold": true
+    },
+    {
+     "text": " an AI policy written around a product name is already out of date. Capable AI now arrives through many models at falling prices, and soon through glasses that look like ordinary eyewear. Rules hold up better when they describe permitted actions, such as brainstorming, drafting, coding, translating, or letting a tool act on its own, rather than banning brands. For exams, it is worth deciding now how you would handle eyewear that can see the page. Navier–Stokes is also the best teaching case this semester for a distinction students need. A result can be formally verified and still answer the wrong question. Pair it with Stanford's point about benchmarks and you have a lesson in asking what was actually measured, which will outlast any chatbot's interface."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff or an administrator,",
+     "bold": true
+    },
+    {
+     "text": " the price drop is leverage. A multi-year contract built around one vendor's flagship model deserves a second look when comparable capability costs half as much a week later, and new agreements should protect the ability to switch models. Whoever configures these tools can send routine volume to cheaper tiers and save the expensive models for work that needs them. The Stanford jobs data belongs in conversations with career services and hiring managers, since it points at the entry-level roles many graduates are aiming for. And the bank warnings translate directly to campus. Before anyone connects an agent to a university purchasing card, decide who approves what it buys and who answers when it buys the wrong thing."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

@@ -1,0 +1,280 @@
+{
+ "number": 5,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-may-4-10-2026",
+ "title": "Prompted — Week of May 4–10, 2026",
+ "week": {
+  "label": "May 4–10, 2026",
+  "start": "2026-05-04",
+  "end": "2026-05-10",
+  "nominal_send_date": "2026-05-11"
+ },
+ "subtitle": "This week wasn’t about one lab winning. It was about the whole AI stack moving at once.",
+ "publication": {
+  "date": "2026-05-11",
+  "basis": "derived_monday_after_week",
+  "note": "Published before Prompted moved to beehiiv; exact original send time is not recorded in beehiiv."
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_dfdc8259-3331-4efc-9dcf-31fc4b56c553",
+  "slug": "prompted-week-of-may-4-10-2026",
+  "url": "https://readprompted.beehiiv.com/p/prompted-week-of-may-4-10-2026",
+  "beehiiv_published_at": "2026-11-09T20:45:44Z",
+  "backfilled_to_beehiiv": true,
+  "content_sha256": "3c671328d40bb24f410e763b42cd4d7962b9e10c79cf5a83d3acefc4f9a0120b"
+ },
+ "legacy": {
+  "header_images": [],
+  "dropped_empty_paragraphs": 0,
+  "forward_cta": null
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This week wasn’t about one lab winning. It was about the whole AI stack moving at once. OpenAI swapped ChatGPT’s default model and pushed deeper into realtime voice. Anthropic locked in a giant compute deal and shipped agent features that reach across Word, Excel, PowerPoint, and Outlook. Governments leaned further into capability-specific oversight, the EU softened its AI Act timetable, and Meta got sued over how Llama was trained. Pull back from the noise and the message is clear: the competition is no longer “whose chatbot is smartest.” It’s whose deployed system actually gets work done across the full stack: model, voice, memory, office integration, capacity, compliance posture."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Made GPT-5.5 Instant the Default, and Went Full-Stack"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On May 5, OpenAI switched ChatGPT’s default to GPT-5.5 Instant and made it available to everyone. Its own system card flags it as the first Instant model in the “High capability” tier for cyber and biological/chemical risk, with extra safeguards. Two days later, it dropped three new audio models for developers, GPT-Realtime-2, GPT-Realtime-Translate, and GPT-Realtime-Whisper, built for live voice agents that can listen, translate, transcribe, and act mid-conversation. It also published an open networking protocol called MRC (Multipath Reliable Connection), built with AMD, Broadcom, Intel, Microsoft, and NVIDIA, that helps massive GPU training clusters keep running smoothly even when individual network links fail or get congested. It’s already deployed across OpenAI’s largest training supercomputers. OpenAI says GPT-5.5 Instant hallucinates noticeably less than GPT-5.3 Instant; its own evals back that, independent testing hasn’t yet. The point isn’t any single piece. It’s that consumer quality, developer voice, and infrastructure all moved together."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic Bet Big on Compute, and on Agents Inside Office Software"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On May 6, Anthropic announced an agreement to use all of SpaceX’s Colossus 1 capacity: more than 300 megawatts and over 220,000 NVIDIA GPUs coming online within the month. It simultaneously doubled Claude Code’s five-hour rate limits on paid tiers, scrapped peak-hour throttling for Pro and Max users, and raised API limits for Opus. Claude Managed Agents added “dreaming” in research preview alongside outcomes, multiagent orchestration, and webhooks. Dreaming is a scheduled process that reviews an agent’s past sessions and cleans up memory between jobs so agents improve over time. Claude for Excel, PowerPoint, and Word went generally available; Claude for Outlook entered public beta. The signal: agent products are now constrained as much by raw compute and integration as by model IQ. Anthropic claims internal task success lifted by up to 10 points, vendor-reported, not yet independently verified, but the product direction is clear regardless."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Governments Got More Specific. The EU Got More Flexible."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On May 5, the U.S. confirmed broader voluntary frontier-model testing arrangements through the Center for AI Standards and Innovation. Microsoft, Google, and xAI joined earlier work with OpenAI and Anthropic; Microsoft’s note emphasized national-security and large-scale public-safety evaluations. Reuters reported the White House is also weighing an executive order that would formalize pre-release review of frontier models, under discussion, not policy yet. On May 7, EU institutions reached a provisional deal to simplify parts of the AI Act: stand-alone high-risk systems would now apply from December 2, 2027, and high-risk systems embedded in products from August 2, 2028. Read it together and the “AI regulation” debate has clearly split into three: security review, deployment burden, and data rights."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "The Labs Are Buying Their Way into Deployment"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic announced a new AI services company backed by Blackstone, Hellman & Friedman, and Goldman Sachs to help mid-sized companies put Claude into operations. It also launched finance-specific agent templates and said financial services is now its second-largest enterprise revenue source. Reuters separately reported that joint ventures tied to both OpenAI and Anthropic are in talks to acquire services firms, potentially adding hundreds of engineers and consultants. The labs are no longer content selling API access and letting systems integrators capture the rest of the value chain. For founders, this is the most important story of the week even if it isn’t the flashiest: many thin “AI wrapper” startups will get squeezed unless they own distribution, proprietary data, or a deeply embedded workflow."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "AlphaEvolve Quietly Shipped into Real Infrastructure"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google DeepMind’s May 7 update reframed AlphaEvolve as operational tooling, not a research demo. It’s now in use across genomics, grid optimization, earth science, quantum experiments, TPU design, Google Spanner, and external customer applications via Google Cloud. The headline numbers from the company: a 30% drop in variant-detection errors on DeepConsensus, feasible-solution rates on a power-flow task jumping from 14% to over 88%, 10x lower error on certain Willow quantum-circuit suggestions, and a 20% reduction in Spanner write amplification. All vendor-reported case studies. Still, the message lands: AI-assisted algorithm discovery is moving from benchmark theater toward live optimization inside infrastructure and science."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Meta Got Sued Over Llama’s Training Data"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On May 5, major publishers and author Scott Turow filed a class-action complaint in federal court in Manhattan alleging Meta and Mark Zuckerberg illegally used millions of copyrighted books and journal articles to train Llama, including unauthorized downloading from pirate sources, repeated copying, and removal of copyright management information. Meta says it will fight on fair use grounds. The outcome is uncertain, but the broader pattern isn’t: while the industry talks about deployment, the legal foundations of model training remain unsettled, and the answer will shape data costs, licensing markets, and open-model economics for years."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "ChatGPT ads expand. OpenAI updated its ChatGPT ads pilot and plans to roll it out to five more countries in the coming weeks. Monetization mechanics are evolving alongside model capability."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Two new Anthropic research posts. Natural Language Autoencoders, which Anthropic says translate model activations into human-readable text, and an alignment update claiming Claude models since Haiku 4.5 score perfectly on its own agentic-misalignment evaluation. Real claims, but based on Anthropic’s own methods and benchmarks."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Microsoft’s diffusion numbers. The Global AI Diffusion Report estimates generative AI usage rose from 16.3% to 17.8% of the world’s working-age population in Q1 2026, that 26 economies are now above 30% usage, and that global git pushes climbed 78% year over year. Microsoft telemetry, not official national statistics, but a real directional read, especially on coding."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Embodied AI keeps moving. Genesis AI unveiled GENE-26.5 and a new dexterous robotic hand for precision industrial tasks. Still demo stage, not deployment, but a reminder that the frontier isn’t just text and office tools."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Compute is now a product feature. Anthropic’s biggest news this week was a data-center lease, not a benchmark. OpenAI publishing a networking protocol fits the same shift. The narrative around AI is increasingly about training clusters, networking, and capacity procurement, and it’s being said out loud now, not buried in 10-Ks."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Agents are becoming workflow systems, not chatbots with extra buttons. Memory, graders, multiagent orchestration, cross-app office integration, and real-time voice all push in the same direction: more tools, longer sessions, more persistence, more hidden infrastructure under what still looks like “chat.”"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Public evidence still comes mostly from the vendors. OpenAI’s hallucination claims, Anthropic’s misalignment and agent-task numbers, AlphaEvolve’s case studies, Microsoft’s diffusion stats, all self-reported. That doesn’t make them wrong. It does mean third-party validation is lagging the field, and that’s a useful discipline point for anyone reading the headlines."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re a student or future knowledge worker:",
+     "bold": true
+    },
+    {
+     "text": " the frontier just shifted from “type a good prompt” to tools that carry context across voice, documents, spreadsheets, and presentations in real time. The skills that hold value in that environment are problem framing, source checking, quantitative judgment, talking through your reasoning out loud, and editing AI output across formats. None of those are technical. All of them are practiced, not memorized."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re a founder or builder:",
+     "bold": true
+    },
+    {
+     "text": " defensibility is moving away from “we use model X” and toward where your system gets trusted data, approvals, memory, and implementation support. The labs themselves are now chasing those layers, through connectors, office integrations, vertical agent templates, and services-company acquisitions. If you’re building a thin wrapper, ask hard questions about distribution, proprietary data, or workflow lock-in. If you don’t have at least one, the next twelve months will be uncomfortable."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you’re an educator:",
+     "bold": true
+    },
+    {
+     "text": " when the same tools can draft across Word, Excel, and PowerPoint, write code, and translate live speech, denial as a policy is over. The strongest responses are process-based: draft histories, oral defenses, in-class problem solving, tool disclosure, citation checks, and clear written rules for what counts as acceptable assistance. None of this requires banning anything. It requires assessing the thinking, not the artifact."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "A counterintuitive read worth holding: none of this week’s evidence cleanly supports “AI is replacing knowledge workers.” Microsoft’s own report says git pushes rose sharply and software-developer employment was still up in recent data. That isn’t a guarantee. It’s a more nuanced working assumption: near-term AI is changing job shape and increasing output faster than it’s eliminating categories of work."
+    }
+   ]
+  }
+ ]
+}
