@@ -35,6 +35,7 @@ Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, a
 | Worker | `src/worker/` | Cloudflare Worker: public signup, confirm/unsubscribe, tracking, webhooks, admin API, cron sender. |
 | Database | `migrations/0001_init.sql` | Cloudflare D1. Private; reachable only through the authenticated admin API. |
 | Delivery | `src/worker/providers.mjs` | Replaceable adapters: Brevo, Resend, Gmail API, dry run. |
+| Static serving | `src/worker/assets.mjs`, `entry.embedded.mjs` | The built site is packaged inside the Worker script (see "Deploying"). |
 | Admin UI | `admin/` | Plain JS; contains no data. |
 | Migration | `scripts/extract-beehiiv.mjs` | Public beehiiv pages -> issue JSON, with a verbatim-text check. |
 
@@ -45,14 +46,42 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 25 tests, in-memory SQLite behind the D1 interface
-npm run build          # SITE_URL=... SITE_ENV=preview|production
+npm test               # 26 tests, in-memory SQLite behind the D1 interface
+npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
 npm run extract        # re-download public beehiiv posts and re-extract (idempotent)
 npm run admin-secret   # generate the dashboard password and Worker secrets
 npm run dev            # local Worker + local D1 (needs a .dev.vars file; see docs/platform/OWNER-SETUP.md)
 ```
+
+## Deploying the preview from a Claude Code cloud session
+
+Preview: https://prompted-platform-dev.readprompted.workers.dev (Worker `prompted-platform-dev`, D1 database
+`prompted-dev`, cron every minute). It is marked noindex and sends in dry-run mode.
+
+The owner's Cloudflare API token is a network secret for `api.cloudflare.com` in the cloud environment.
+The session never sees it: the proxy swaps it in. So run wrangler with any placeholder value:
+
+```bash
+export CLOUDFLARE_API_TOKEN=placeholder
+```
+
+```bash
+SITE_URL=https://prompted-platform-dev.readprompted.workers.dev SITE_ENV=preview npm run build && npx wrangler deploy
+```
+
+- Cloudflare's static-assets upload does **not** work through that proxy (it needs a short-lived upload
+  ticket in the same header the proxy overwrites). That is why the site is packaged inside the Worker
+  script. Do not try to route around the proxy with a relay; that was blocked once and should stay blocked.
+- The packaged script is about 0.8 MB gzipped against a 3 MB free limit. `npm run build` fails loudly near
+  the limit. At that point deploy with real static assets from a machine with a direct `wrangler login`.
+- Personal details and credentials are Worker secrets, never in `wrangler.toml`: `ADMIN_PASSWORD_HASH`,
+  `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS`, `TEST_RECIPIENTS`, `GMAIL_CLIENT_ID`,
+  `GMAIL_CLIENT_SECRET`, later `BREVO_API_KEY`, `RESEND_API_KEY`, `FROM_EMAIL`, `REPLY_TO`.
+- The Gmail refresh token is stored in the private database by the dashboard's "Connect Gmail" button.
+- Remote database access: `npx wrangler d1 execute DB --remote --command "..."`.
+- A new cron schedule takes a few minutes to start firing after the first deploy.
 
 ## Where current project sources live (not in this repo)
 

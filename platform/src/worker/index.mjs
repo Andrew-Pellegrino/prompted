@@ -2,7 +2,7 @@
 import { json, fail, HttpError, all, first, run, now, hmac, safeEqual, verifyPassword, rateLimited, pruneRateLimits, audit, clientIp, siteConfig, listIssues, loadIssue } from './core.mjs';
 import { subscribe, confirm, unsubscribe, setStatus, createPerson, updatePerson, getPerson, listPeople, peopleQuery, PEOPLE_COLUMNS, STATUSES, normalizeEmail, suppress } from './people.mjs';
 import { planImport, commitImport } from './imports.mjs';
-import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, sendConfirmation, quotas } from './sending.mjs';
+import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, sendConfirmation, quotas, withMailSettings } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
 import { runQA } from '../lib/qa.mjs';
@@ -133,6 +133,39 @@ async function webhookRoute(request, env, provider) {
   return json({ ok: true, handled });
 }
 
+// ---------- Gmail connection (OAuth) ----------
+// The owner clicks "Connect Gmail" in the dashboard, signs in to the dedicated sending account at
+// Google, and Google sends a one-time code back here. The Worker exchanges it for a refresh token and
+// stores it in the private database. Only the "send email" permission is requested.
+const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.send openid email';
+const gmailRedirect = async (env) => (await siteConfig(env)).url + '/api/admin/gmail/callback';
+async function gmailConnect(env) {
+  if (!env.GMAIL_CLIENT_ID || !env.GMAIL_CLIENT_SECRET) return page('Gmail is not set up yet', '<p>Add GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET as Worker secrets first.</p>', 503);
+  const exp = Date.now() + 10 * 60 * 1000, state = `${exp}.${await hmac(env.SESSION_SECRET, 'gmail-connect.' + exp)}`;
+  const q = new URLSearchParams({ client_id: env.GMAIL_CLIENT_ID, redirect_uri: await gmailRedirect(env), response_type: 'code', scope: GMAIL_SCOPES, access_type: 'offline', prompt: 'consent', state });
+  return Response.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + q, 302);
+}
+async function gmailCallback(env, url) {
+  // The session cookie is SameSite=Strict, so it is not sent on the way back from Google.
+  // The signed, short-lived state value proves this flow was started from the signed-in dashboard.
+  const [exp, sig] = String(url.searchParams.get('state') || '').split('.');
+  if (!exp || Number(exp) < Date.now() || !safeEqual(sig || '', await hmac(env.SESSION_SECRET, 'gmail-connect.' + exp))) return page('Connection expired', '<p>Start again from the dashboard: Tools, Connect Gmail.</p>', 400);
+  if (url.searchParams.get('error')) return page('Gmail was not connected', `<p>Google reported: ${esc(url.searchParams.get('error'))}. <a href="/admin/#tools">Back to the dashboard</a></p>`, 400);
+  const res = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({ code: url.searchParams.get('code') || '', client_id: env.GMAIL_CLIENT_ID, client_secret: env.GMAIL_CLIENT_SECRET, redirect_uri: await gmailRedirect(env), grant_type: 'authorization_code' }) });
+  const tok = await res.json().catch(() => ({}));
+  if (!res.ok || !tok.refresh_token) return page('Gmail was not connected', `<p>Google did not return a long-lived sign-in (${esc(tok.error || res.status)}). <a href="/admin/#tools">Try again</a>.</p>`, 400);
+  if (!String(tok.scope || '').includes('gmail.send')) return page('Permission missing', '<p>The "send email" box was not ticked on Google\'s screen. <a href="/admin/#tools">Try again</a> and leave it ticked.</p>', 400);
+  let email = null;
+  try { email = JSON.parse(atob(tok.id_token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).email || null; } catch { /* address is optional */ }
+  await env.DB.batch([
+    env.DB.prepare("INSERT INTO settings (key, value) VALUES ('gmail_refresh_token', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(tok.refresh_token),
+    env.DB.prepare("INSERT INTO settings (key, value) VALUES ('gmail_from_email', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(email || ''),
+  ]);
+  await audit(env.DB, 'owner', 'gmail.connect', null, null, { account: email });
+  return Response.redirect((await siteConfig(env)).url + '/admin/#tools', 303);
+}
+
 // ---------- admin API ----------
 async function adminApi(request, env, path, url) {
   const db = env.DB, method = request.method;
@@ -144,8 +177,11 @@ async function adminApi(request, env, path, url) {
     await audit(db, 'owner', 'login.ok');
     return json({ ok: true }, 200, { 'set-cookie': await sessionCookie(env, 'owner') });
   }
+  if (path === 'gmail/callback' && method === 'GET') return gmailCallback(env, url);
   const actor = await sessionActor(env, request);
   if (!actor) return fail(401, 'Sign in required.');
+  if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env);
+  if (path === 'gmail/disconnect' && method === 'POST') { await run(db, "DELETE FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email')"); await audit(db, actor, 'gmail.disconnect'); return json({ ok: true }); }
   if (method !== 'GET' && !sameOrigin(request)) return fail(403, 'Cross-site request blocked.');
   if (path === 'logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': 'prompted_admin=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0' });
   if (path === 'me') return json({ ok: true, actor, env: env.SITE_ENV || 'preview', send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun' });
@@ -253,7 +289,12 @@ async function adminApi(request, env, path, url) {
     if (m[2] === 'cancel') return json(await cancelSend(env, id, actor));
     return json(await retryFailed(env, id, actor));
   }
-  if (path === 'providers') return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length });
+  if (path === 'providers') {
+    const m = await withMailSettings(env);
+    return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
+      gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: await gmailRedirect(env) },
+      configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO/.test((await siteConfig(env)).postal_address) } });
+  }
   if (path === 'metrics/beehiiv' && method === 'POST') return json(await importBeehiivMetrics(env, await body(request), actor));
   if (path === 'metrics/growth' && method === 'POST') return json(await importGrowth(env, await body(request), actor));
   if (path === 'audit') return json({ rows: await all(db, 'SELECT * FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?', Math.min(200, Number(q.limit) || 100), Number(q.offset) || 0) });

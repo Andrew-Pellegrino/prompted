@@ -1,6 +1,6 @@
 # Prompted platform: handoff
 
-Last updated November 11, 2026. Branch `platform-dev` (created from `main` at `d5c7ce5`). `main` is untouched.
+Last updated November 11, 2026 (preview deployed). Branch `platform-dev` (created from `main` at `d5c7ce5`). `main` is untouched.
 
 ## Goal
 
@@ -22,19 +22,29 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 | Publishing pipeline (prepare, test, approve, schedule, send, verify) | **Built, tested** in dry-run mode |
 | Delivery adapters: Brevo, Resend, Gmail API | **Written against documented APIs, tested with mocked HTTP.** Never run against a real account |
 | Analytics dashboard, beehiiv-era metrics import | **Built, tested** with synthetic figures |
-| Preview deployment | **Blocked:** needs the owner's free Cloudflare account |
-| Real sending | **Blocked:** needs a sending identity and a postal address (owner steps) |
+| Preview deployment | **Deployed and verified:** https://prompted-platform-dev.readprompted.workers.dev (dry-run sending, noindex, synthetic data only) |
+| Gmail sending connection | **Built and tested with mocked Google responses.** Waiting for the owner's Google account and OAuth client |
+| Real sending | **Blocked:** needs the Gmail connection, authorised test inboxes and an approved postal address |
 | Real data migration | **Not started:** needs the deployed private database and owner approval |
 | Production cutover | **Not started.** NO-GO until the tests in `CUTOVER-MANIFEST.md` pass |
 
 ## Verified in this session
 
-- `npm test`: 25 of 25 pass.
+- `npm test`: 26 of 26 pass.
+- **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
+  text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
+  links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
+  and cross-site requests; noindex and security headers; no address or secret in public files; tracked
+  signup through `/s/founders/` stored with full attribution; confirmation requires a click;
+  unsubscribe suppresses; dashboard login; CSV import; QA within the free CPU limit; approve and schedule
+  for Monday 13:45 UTC.
+- **Cloudflare's own cron** started and completed a dry-run send to 30 synthetic subscribers in two
+  chunks, with no duplicates.
 - Real local Workers runtime (wrangler dev with a local D1 database) driven by a browser: campaign link,
   signup, confirmation, reading gate, archive search, Index link, dashboard login, CSV import (40 synthetic
   rows), QA, test send, approval, scheduling (resolved to Monday 13:45 UTC, which is 8:45 a.m. Eastern in
   winter), cron-driven dry-run send to 41 synthetic subscribers, no duplicates.
-- Not verified: anything on Cloudflare's hosted service, any real email, rendering in real mail clients.
+- Not verified: any real email, rendering in real mail clients, real provider APIs.
 
 ## Read these next
 
@@ -45,7 +55,9 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Decisions made (and why)
 
-- **Cloudflare Workers + static assets + D1 + cron**, all on the free plan with no card. One deployable unit.
+- **Cloudflare Workers + D1 + cron**, all on the free plan with no card. One deployable unit. The built site
+  is packaged inside the Worker script, because the static-assets upload cannot pass through the cloud
+  session's credential proxy (details in `CLAUDE.md`).
 - **Issue files in git** (`platform/content/issues/`). Versioned, reviewable, and a scheduled Claude task can
   add one the same way the Index task edits `index/data.json`.
 - **Own admin login** (generated high-entropy password, signed session cookie, rate-limited) instead of
@@ -57,23 +69,35 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Open blockers and owner actions
 
-1. Create a free Cloudflare account and an API token (`OWNER-SETUP.md` step 1). Unlocks the preview URL.
-2. Create a dedicated Google account for sending and apply for a free `eu.org` name (step 3).
-3. Choose the postal address for the email footer (step 4).
-4. List the inboxes that may receive tests (step 5).
+1. Create the dedicated Google sending account and OAuth client, add two secrets in Cloudflare, click
+   "Connect Gmail" (`OWNER-SETUP.md` step 3).
+2. Name the inboxes that may receive test emails (step 5).
+3. Approve or change the postal address shown in the footer preview (step 4). The preview currently uses
+   a clearly fake placeholder address; QA flags it.
+4. Apply for a free `eu.org` name (optional now, better From address later).
 5. Decide whether issue 31's "fla ws" should be corrected (see `MIGRATION-REPORT.md`).
+
+## State of the preview database
+
+It holds **synthetic data only**: 30 `@example.org` subscribers, one `@example.com` signup test, one
+completed dry-run send of issue 31. Empty it before any real import:
+
+```bash
+npx wrangler d1 execute DB --remote --command "DELETE FROM send_recipients; DELETE FROM send_links; DELETE FROM sends; DELETE FROM delivery_events; DELETE FROM import_rows; DELETE FROM import_batches; DELETE FROM people; DELETE FROM organizations; DELETE FROM suppressions; DELETE FROM provider_usage; DELETE FROM rate_limits;"
+```
 
 ## Next steps for the next session, in order
 
-1. With the Cloudflare token: `wrangler d1 create`, put the id in `wrangler.toml`, apply the migration,
-   set secrets, `npm run deploy:preview`, and repeat the browser smoke test against the preview URL.
-2. Connect the Gmail adapter; send test issues to the owner's inboxes; compare with the beehiiv email in
-   Gmail, Outlook and Apple Mail; adjust the template if needed.
-3. After owner approval: import the full beehiiv export and the CRM into the deployed database; reconcile
-   counts by status against beehiiv; load per-issue statistics and the growth series.
-4. Add the weekly workflow: approved issue text -> `npm run new-issue` -> build -> QA -> test -> approve.
+1. When the owner has connected Gmail and named test inboxes: store `TEST_RECIPIENTS` as a secret, set
+   `SEND_MODE = "live"` in `wrangler.toml` for the preview (it can still only reach test inboxes), deploy,
+   send a test issue from the dashboard, and compare with the beehiiv email in Gmail, Outlook and Apple
+   Mail. Fix the template where it differs.
+2. Set the approved `POSTAL_ADDRESS` secret.
+3. After owner approval: empty the preview database, import the full beehiiv export and the CRM, reconcile
+   counts by status against beehiiv, load per-issue statistics and the growth series.
+4. Weekly workflow: approved issue text -> `npm run new-issue` -> build -> QA -> test -> approve.
    Run one shadow week next to beehiiv without sending to subscribers.
-5. When the domain is approved: Brevo and Resend with DKIM, provider webhooks, then the cutover checklist.
+5. When a domain is approved: Brevo and Resend with DKIM, provider webhooks, then the cutover checklist.
 
 ## Known gaps (honest list)
 

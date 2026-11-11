@@ -16,6 +16,17 @@ const isProduction = (env) => env.SITE_ENV === 'production';
 const MAX_ATTEMPTS = 3;
 const STALE_CLAIM_MS = 15 * 60 * 1000;
 
+/**
+ * Add mail settings kept in the private database to env. The Gmail refresh token is stored there by the
+ * "Connect Gmail" flow, so it never passes through chat, the repository or the owner's clipboard.
+ */
+export async function withMailSettings(env) {
+  if (env._mailSettings || !env.GMAIL_CLIENT_ID || env.GMAIL_REFRESH_TOKEN) return env;
+  const rows = await all(env.DB, "SELECT key, value FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email')");
+  const m = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  return { ...env, _mailSettings: true, GMAIL_REFRESH_TOKEN: m.gmail_refresh_token, GMAIL_FROM_EMAIL: env.GMAIL_FROM_EMAIL || m.gmail_from_email };
+}
+
 const contentHash = (issue) => sha256(issue.title + '\n' + issue.subtitle + '\n' + blocksText(issue.blocks));
 
 export async function prepareSend(env, slug, actor) {
@@ -101,6 +112,7 @@ export async function testSend(env, slug, emails, actor) {
 
 /** Remaining quota per provider today, after the reserve kept for confirmations and tests. */
 export async function quotas(env) {
+  env = await withMailSettings(env);
   const usage = Object.fromEntries((await all(env.DB, 'SELECT provider, count FROM provider_usage WHERE day = ?', today())).map((u) => [u.provider, u.count]));
   return providerChain(env).map((p) => ({ name: p.name, limit: p.dailyLimit(env), used: usage[p.name] || 0, remaining: Math.max(0, p.dailyLimit(env) - (usage[p.name] || 0)) }));
 }
@@ -114,6 +126,7 @@ const listHeaders = (unsub) => ({ 'List-Unsubscribe': `<${unsub}>`, 'List-Unsubs
 
 /** Send one chunk of a send. Called from cron; safe to call repeatedly. */
 export async function processSend(env, send) {
+  env = await withMailSettings(env);
   const db = env.DB, chunkSize = Number(env.SEND_CHUNK || 20);
   // 1. A claim that never got a result is NOT retried automatically: it may have been delivered.
   await run(db, "UPDATE send_recipients SET status = 'failed', last_error = 'unconfirmed: handed to provider but no result recorded; check the provider log before retrying' WHERE send_id = ? AND status = 'sending' AND claimed_at < ?",
@@ -208,6 +221,7 @@ export async function retryFailed(env, id, actor) {
 
 /** One-off transactional message (subscription confirmation). Uses the same providers and quota. */
 export async function sendTransactional(env, to, subject, html, text) {
+  env = await withMailSettings(env);
   const pick = await pickProvider(env, 0);
   if (!pick) return { ok: false, error: 'no sending quota left today' };
   const { provider } = pick;

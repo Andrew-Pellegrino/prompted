@@ -116,6 +116,6 @@ footer.site nav{display:flex;gap:16px;flex-wrap:wrap}
 .preview-banner{background:#121212;color:#fff;text-align:center;font-size:13px;padding:6px 12px}
 .prose{max-width:var(--read);margin:0 auto;padding:44px 0}
 .prose h1{font-size:36px;line-height:1.15;margin:0 0 14px}
-@media(max-width:600px){.nav nav a.opt{display:none}.pager{grid-template-columns:1fr}}
+@media(max-width:600px){.pager{grid-template-columns:1fr}.wrap{padding:0 16px}.nav .wrap{gap:10px}.brand{font-size:19px;gap:8px}.brand img{width:22px;height:22px}.nav nav{gap:12px;font-size:14px}.nav nav .btn{padding:8px 11px;font-size:14px}}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 @media print{.nav,.gate,.after,footer.site,.preview-banner,.toc{display:none}.gate-fade{max-height:none}.gate-fade::after{display:none}}

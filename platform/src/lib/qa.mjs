@@ -73,6 +73,7 @@ export function runQA(issue, site, ctx = {}) {
   if (!email.html.includes(mastheadWeek(issue.week))) add('error', 'email-week', 'Email masthead is missing the week line.');
   if (!email.html.includes('{{UNSUBSCRIBE_URL}}') || !email.text.includes('{{UNSUBSCRIBE_URL}}')) add('error', 'email-unsub', 'Unsubscribe link missing from the email.');
   if (!site.postal_address || /TODO|TBD/i.test(site.postal_address)) add('error', 'email-address', 'A postal address is required in the footer before any real send (CAN-SPAM).');
+  if (/example|not a real address|preview only/i.test(site.postal_address || '')) add('warn', 'email-address-placeholder', 'The footer address is a placeholder. Replace it with the approved address before sending to real inboxes.');
   if (!email.html.includes(`max-width:${EMAIL_WIDTH}px`)) add('error', 'email-width', 'Email content width changed.');
   for (const m of email.html.matchAll(/<img[^>]+>/g)) {
     if (!/alt="/.test(m[0])) add('error', 'email-img-alt', 'Email image without alt attribute.');

@@ -1,91 +1,119 @@
 # Owner setup steps
 
-Everything here is free and none of it involves Miami University. Do the steps in order; each one says what
-it unlocks. Never paste a password, key or token into a chat or a file in this repository.
+Everything here is free and none of it involves Miami University or beehiiv. Never paste a password, key or
+token into a chat or into a file in this repository. Where a step needs a secret, you type it straight into
+Cloudflare's own settings page.
 
-## 1. Cloudflare account (unlocks the preview site and the private database)
+Preview site: https://prompted-platform-dev.readprompted.workers.dev
+Dashboard: https://prompted-platform-dev.readprompted.workers.dev/admin/
 
-1. Go to https://dash.cloudflare.com/sign-up and create an account with a personal email address.
-   Choose the Free plan. Do not add a payment method. If a screen asks for one, stop and tell Claude.
-2. In the dashboard open **Workers & Pages**. If asked, pick a `workers.dev` subdomain (for example
-   `prompted`). The preview will live at `https://prompted-platform-dev.<that-subdomain>.workers.dev`.
-3. Create an API token: profile icon, **My Profile**, **API Tokens**, **Create Token**, template
-   **Edit Cloudflare Workers**, then add the permission **Account / D1 / Edit**. Keep the token private.
-4. Tell Claude in a Claude Code session that the account exists. Claude will ask for the token through a
-   secure form (it never sees the value) and then run:
+## 1. Cloudflare — DONE
 
-```bash
-npx wrangler d1 create prompted-dev
-```
+- Free account created by the owner. API token stored as a network secret for `api.cloudflare.com` in the
+  Claude Code cloud environment. Claude deploys with it without ever seeing it.
+- The Claude desktop "Cloudflare" connector is **not needed**. Leave it disconnected.
+- `workers.dev` subdomain: `readprompted` (change it any time under Workers & Pages, Subdomain).
+- Database `prompted-dev` created; schema applied.
+- Nothing was billed and no payment method was added.
 
-```bash
-npx wrangler d1 migrations apply DB --remote
-```
+## 2. Dashboard password — DONE
 
-```bash
-npm run deploy:preview
-```
+Generated and stored as a Worker secret. The password itself was handed to the owner in a temporary file,
+not in chat and not in this repository. To replace it, ask Claude to run `npm run admin-secret` and store
+the new values.
 
-Free limits that apply (official Cloudflare pages): Workers 100,000 requests a day; D1 5 GB, 5 million rows
-read and 100,000 rows written a day; static files are not counted. Prompted uses a tiny fraction of this.
+## 3. Sending account (Gmail API)
 
-## 2. Dashboard password and secrets (unlocks the owner dashboard)
+This gives Prompted its own sender, with no domain needed. About 500 recipients per rolling day
+(third-party figure for personal Google accounts), which covers the current list in one morning.
 
-Run this on your own computer or let Claude run it and show you the password once:
+### 3a. Create the Google account
 
-```bash
-npm run admin-secret
-```
+1. Open https://accounts.google.com/signup in a private browser window.
+2. Create a **personal** account just for Prompted. The address becomes the newsletter's From address,
+   so pick something like `readprompted@gmail.com` or `promptedbrief@gmail.com`.
+   Use your own phone number for verification. Do not use your university account anywhere in this step.
+3. After it is created, open https://myaccount.google.com/security and turn on **2-Step Verification**.
+4. In Gmail settings for this account, set the display name to `Prompted`
+   (gear icon, See all settings, Accounts, "Send mail as", edit info).
 
-Save the password in a password manager. The three values it prints are stored as Worker secrets with
-`npx wrangler secret put <NAME>`; they are never committed.
+### 3b. Create the Google Cloud project (signed in as the new account)
 
-## 3. A sending identity (unlocks real email)
+1. Open https://console.cloud.google.com and accept the terms. No billing account is needed; if a page
+   asks you to start a free trial or add a card, close it and continue.
+2. Top bar, project picker, **New project**. Name: `Prompted`. Create, then select it.
+3. Open https://console.cloud.google.com/apis/library/gmail.googleapis.com and click **Enable**.
 
-Do both. B works immediately; A is the better long-term address and can take time to be approved.
+### 3c. Consent screen
 
-**A. Free domain from eu.org**
+1. Open https://console.cloud.google.com/auth/overview and click **Get started**.
+2. App name: `Prompted`. User support email: the new address. Next.
+3. Audience: **External**. Next.
+4. Contact email: the new address. Next. Agree to the policy. **Create**.
+5. Left menu, **Audience**. Under "Publishing status" click **Publish app** and confirm.
+   This matters: while an app is in "Testing", Google expires the sign-in every 7 days.
+   If Google refuses to publish without a verification review, leave it in Testing, add the new address
+   under "Test users", and tell Claude. The only cost is clicking "Connect Gmail" again once a week.
 
-1. Create a contact at https://nic.eu.org/arf/en/contact/create/ with your personal details.
-2. Request a name such as `prompted.eu.org`. When it asks for name servers, use the two Cloudflare name
-   servers shown after you add the domain to Cloudflare (**Add a site**, enter the name, Free plan).
-   If Cloudflare refuses the name until it exists, tell Claude; there is a documented workaround.
-3. Wait for the approval email. This can take days or longer. Nothing else is blocked meanwhile.
+### 3d. OAuth client
 
-**B. Dedicated Google account for sending (Gmail API)**
+1. Left menu, **Clients**, **Create client**.
+2. Application type: **Web application**. Name: `Prompted platform`.
+3. Under **Authorized redirect URIs** click **Add URI** and paste exactly:
 
-1. Create a new Google account for Prompted (not your university account), for example a
-   `readprompted`-style address. Turn on 2-Step Verification.
-2. At https://console.cloud.google.com create a project named `Prompted`, enable the **Gmail API**, and
-   under **OAuth consent screen** choose **External**, add yourself as a user, then publish the app
-   (an unpublished app's sign-in expires after 7 days).
-3. Under **Credentials** create an **OAuth client ID** of type **Web application** with the redirect
-   address `https://developers.google.com/oauthplayground`.
-4. Tell Claude. Claude will walk you through producing a refresh token for the single permission
-   `gmail.send` and storing it, with the client ID and secret, as Worker secrets.
+   `https://prompted-platform-dev.readprompted.workers.dev/api/admin/gmail/callback`
 
-**C. Later, when the domain is approved:** create free accounts at https://www.brevo.com and
-https://resend.com, add the domain in each, and give Claude the DNS records they show. Claude adds them in
-Cloudflare DNS and stores the two API keys as secrets.
+4. **Create**. A box shows a **Client ID** and a **Client secret**. Keep that box open for the next step.
 
-## 4. A mailing address for the email footer
+### 3e. Give the two values to Cloudflare (not to Claude)
 
-US law (CAN-SPAM) requires a physical postal address in every issue. beehiiv has been supplying one.
-Decide which address to use (a PO box or a registered-agent address works) and give it to Claude to set as
-`POSTAL_ADDRESS`. QA blocks every real send until this is set.
+1. Open https://dash.cloudflare.com, then **Workers & Pages**, then `prompted-platform-dev`,
+   then **Settings**, then **Variables and Secrets**.
+2. Click **Add**. Type: **Secret**. Name: `GMAIL_CLIENT_ID`. Value: paste the Client ID. Save.
+3. Click **Add**. Type: **Secret**. Name: `GMAIL_CLIENT_SECRET`. Value: paste the Client secret. Save
+   (choose **Deploy** if it asks).
+
+   Use type Secret, not Text. Text values are replaced on the next deploy.
+
+### 3f. Connect
+
+1. Open the dashboard, sign in, go to **Tools**. Under "Gmail sending account" click **Connect Gmail**.
+2. Choose the new Prompted account. Google shows "Google hasn't verified this app" because the app is
+   yours and unreviewed: click **Advanced**, then **Go to Prompted (unsafe)**.
+3. Leave the box "Send email on your behalf" ticked. Continue.
+4. You land back on the dashboard. It should read "Connected as" followed by the new address.
+
+Then tell Claude it is connected. Nothing is emailed yet: sending stays in dry-run mode until Claude
+switches the preview to live, and even then the preview can only reach your authorised test inboxes.
+
+## 4. Postal address for the footer
+
+US law (CAN-SPAM) requires a physical postal address in every issue. The preview currently uses an
+obviously fake placeholder. The owner has proposed an address and been shown exactly how the footer will
+look. It is stored only as the Worker secret `POSTAL_ADDRESS` once approved, never in this repository.
+Whatever is chosen is visible to every subscriber and to anyone an issue is forwarded to.
 
 ## 5. Authorised test inboxes
 
-Give Claude the addresses that may receive test sends (your own inboxes in Gmail, Outlook and Apple Mail are
-ideal). They go in `TEST_RECIPIENTS`. In the preview environment nothing can be sent to anyone else.
+Tell Claude which of your own addresses may receive test emails. One Gmail, one Outlook or Hotmail, and
+one Apple iCloud address give the best rendering coverage; one address is enough to start.
+Claude stores them as the Worker secret `TEST_RECIPIENTS`.
 
-## 6. Private data migration (only after 1 and 2 are done and you approve)
+## 6. Optional now: a free domain for a nicer From address
+
+1. Create a contact at https://nic.eu.org/arf/en/contact/create/ with your personal details.
+2. Request a name such as `prompted.eu.org`. When it asks for name servers, tell Claude; they come from
+   Cloudflare once the name is added there.
+3. Approval can take days or longer. When it arrives, Claude sets up Brevo and Resend on that domain.
+
+## 7. Private data migration (only after tests pass and you approve)
 
 1. In beehiiv: **Subscribers**, **Export**, full export including inactive subscribers. Save it to your
    owner-only Drive folder, not to this repository.
-2. Open the preview dashboard, **Import**, choose the file, set "Kind of file" to **Full ledger from another
-   system**, review the preview, then import. Statuses, dates, sources and suppressions are kept.
-3. Export the Contacts tab of the Distribution CRM as CSV and import it as **New contacts** with
-   "Add new people as: Prospective". Existing people are enriched, never duplicated or re-activated.
-4. Per-issue statistics: Claude reads them through the beehiiv connector and loads them under
+2. Claude empties the synthetic data from the preview database.
+3. Dashboard, **Import**, choose the file, "Kind of file": **Full ledger from another system**, review the
+   preview, import. Statuses, dates, sources and suppressions are kept.
+4. Export the Contacts tab of the Distribution CRM as CSV and import it as **New contacts**, added as
+   **Prospective**. Existing people are enriched, never duplicated or re-activated.
+5. Per-issue statistics: Claude reads them through the beehiiv connector and loads them under
    **Tools, Import historical metrics**.

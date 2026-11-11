@@ -342,3 +342,39 @@ test('admin password: generated high-entropy secret (sha256 scheme) and PBKDF2 b
   assert.equal(await verifyPassword('pw', ''), false);
   assert.equal(await verifyPassword('pw', 'plain$pw'), false);
 });
+
+test('Gmail connection: state-protected OAuth callback stores the token privately and enables the adapter', async () => {
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid.apps.googleusercontent.com', GMAIL_CLIENT_SECRET: 'csecret', SEND_MODE: 'live', EMAIL_PROVIDERS: 'gmail' }), c = client(env);
+  assert.equal((await c.get('/api/admin/gmail/connect')).status, 401, 'connect requires the owner session');
+  assert.equal((await c.get('/api/admin/gmail/callback?code=x&state=123.bad')).status, 400, 'forged state refused');
+  await c.login();
+  const go = await c.get('/api/admin/gmail/connect');
+  assert.equal(go.status, 302);
+  const loc = new URL(go.headers.get('location'));
+  assert.equal(loc.origin + loc.pathname, 'https://accounts.google.com/o/oauth2/v2/auth');
+  assert.equal(loc.searchParams.get('redirect_uri'), 'https://preview.example/api/admin/gmail/callback');
+  assert.deepEqual([loc.searchParams.get('access_type'), loc.searchParams.get('scope')], ['offline', 'https://www.googleapis.com/auth/gmail.send openid email']);
+  assert.equal((await c.get('/api/admin/providers')).data.gmail.connected, false);
+  const calls = [], realFetch = globalThis.fetch;
+  const idToken = 'h.' + Buffer.from(JSON.stringify({ email: 'sender@gmail.test' })).toString('base64url') + '.s';
+  globalThis.fetch = async (url, init) => {
+    calls.push(String(url));
+    if (String(url).includes('oauth2.googleapis.com/token')) return new Response(JSON.stringify(String(init.body).includes('authorization_code') ? { refresh_token: 'rt-1', scope: 'https://www.googleapis.com/auth/gmail.send openid', id_token: idToken } : { access_token: 'at-1', expires_in: 3600 }), { status: 200 });
+    return new Response(JSON.stringify({ id: 'gmail-msg-1' }), { status: 200 });
+  };
+  try {
+    c.dropCookie(); // the browser does not send the Strict cookie when Google redirects back
+    const cb = await c.get(`/api/admin/gmail/callback?code=auth-code&state=${encodeURIComponent(loc.searchParams.get('state'))}`);
+    assert.equal(cb.status, 303);
+    await c.login();
+    const prov = (await c.get('/api/admin/providers')).data;
+    assert.deepEqual([prov.gmail.connected, prov.gmail.account, prov.quotas[0].name], [true, 'sender@gmail.test', 'gmail']);
+    const backup = (await c.get('/api/admin/export/backup.json')).data;
+    assert.ok(!JSON.stringify(backup).includes('rt-1'), 'the refresh token is never included in a backup');
+    const t = await c.post('/api/admin/sends/test', { issue_slug: SLUG, emails: ['owner-test@example.com'] });
+    assert.deepEqual([t.status, t.data.recipients.sent], [201, 1]);
+    assert.ok(calls.some((u) => u.includes('gmail.googleapis.com/gmail/v1/users/me/messages/send')));
+    await c.post('/api/admin/gmail/disconnect');
+    assert.equal((await c.get('/api/admin/providers')).data.gmail.connected, false);
+  } finally { globalThis.fetch = realFetch; }
+});

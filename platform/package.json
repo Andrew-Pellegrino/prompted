@@ -5,7 +5,7 @@
   "version": "0.1.0",
   "description": "Prompted publishing platform: site, archive, subscriber database, sending engine.",
   "scripts": {
-    "build": "node src/build.mjs",
+    "build": "node src/build.mjs && node scripts/embed-assets.mjs",
     "test": "node --test --experimental-sqlite --test-concurrency=1 test/*.test.mjs",
     "dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
     "deploy:preview": "npm run build && wrangler deploy",

@@ -65,7 +65,7 @@ export async function siteConfig(env) {
   if (!res.ok) throw new HttpError(500, 'Site configuration is missing from the build.');
   const site = await res.json();
   const url = (env.SITE_URL || site.url).replace(/\/$/, '');
-  return { ...site, url, asset_base_url: url, index_url: url + '/index/', forward_subscribe_url: url + '/s/forward/', postal_address: env.POSTAL_ADDRESS || site.postal_address };
+  return { ...site, url, asset_base_url: url, index_url: url + '/index/', forward_subscribe_url: url + '/s/forward/', postal_address: env.POSTAL_ADDRESS || 'TODO: owner mailing address (required before any real send)' };
 }
 export async function loadIssue(env, slug) {
   if (!/^[a-z0-9-]+$/.test(slug)) throw new HttpError(400, 'Bad issue slug.');

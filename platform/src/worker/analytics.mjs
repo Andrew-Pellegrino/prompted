@@ -93,6 +93,7 @@ const BACKUP_TABLES = ['people', 'status_history', 'suppressions', 'organization
 export async function fullBackup(env) {
   const out = { schema: 'prompted-backup-1', created_at: now(), tables: {} };
   for (const t of BACKUP_TABLES) out.tables[t] = await all(env.DB, `SELECT * FROM ${t}`);
+  out.tables.settings = out.tables.settings.filter((r) => !/token|secret/i.test(r.key)); // credentials never leave in a backup
   return out;
 }
 

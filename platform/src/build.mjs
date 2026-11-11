@@ -252,7 +252,7 @@ export async function build(env = process.env) {
   }
   await out('data/search.json', JSON.stringify(search));
   await out('data/issues.json', JSON.stringify(issues.map((i) => ({ number: i.number, slug: i.slug, title: i.title, subtitle: i.subtitle, week: i.week, publication: i.publication, source: { system: i.source.system, post_id: i.source.post_id, slug: i.source.slug }, sections: sections(i).slice(1).map((s) => s.title), send: scheduledSendFor(i.week) }))));
-  await out('data/site.json', JSON.stringify({ name: site.name, tagline: site.tagline, attribution: site.attribution, url: site.url, env: site.env, campaigns: site.campaigns, send_slot_label: site.send_slot_label, postal_address: site.postal_address }));
+  await out('data/site.json', JSON.stringify({ name: site.name, tagline: site.tagline, attribution: site.attribution, url: site.url, env: site.env, campaigns: site.campaigns, send_slot_label: site.send_slot_label }));
 
   for (const c of site.campaigns) await out(`s/${c.code}/index.html`, redirectPage(`/subscribe/?utm_source=${encodeURIComponent(c.utm_source)}&utm_medium=${encodeURIComponent(c.utm_medium)}&utm_campaign=${encodeURIComponent(c.utm_campaign)}`));
 

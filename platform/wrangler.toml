@@ -1,22 +1,15 @@
 # Prompted platform: development preview on Cloudflare Workers (free plan).
-# Deploys to https://prompted-platform-dev.<your-subdomain>.workers.dev, never to the live site.
+# Deploys to https://prompted-platform-dev.readprompted.workers.dev, never to the live site.
 name = "prompted-platform-dev"
-main = "src/worker/index.mjs"
+main = "src/worker/entry.embedded.mjs" # the Worker with the built site packaged inside (see src/worker/assets.mjs)
 compatibility_date = "2026-06-01"
 workers_dev = true
-
-[assets]
-directory = "./dist"
-binding = "ASSETS"
-html_handling = "auto-trailing-slash"
-not_found_handling = "404-page"
-# Dynamic routes are handled by the Worker; everything else is served straight from static files.
-run_worker_first = ["/api/*", "/confirm/*", "/u/*", "/o/*", "/r/*"]
+preview_urls = false   # no extra per-version public addresses
 
 [[d1_databases]]
 binding = "DB"
 database_name = "prompted-dev"
-database_id = "00000000-0000-0000-0000-000000000000" # replace with the id printed by: wrangler d1 create prompted-dev
+database_id = "a282897c-cac0-4fcf-87dd-87a1adb49193" # preview database (an id, not a secret)
 migrations_dir = "migrations"
 
 [triggers]
@@ -24,6 +17,7 @@ crons = ["* * * * *"] # advances scheduled sends in small chunks; idle runs do a
 
 [vars]
 SITE_ENV = "preview"            # "production" only after an approved cutover
+SITE_URL = "https://prompted-platform-dev.readprompted.workers.dev"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"
 EMAIL_PROVIDERS = "brevo,resend,gmail"
@@ -32,6 +26,7 @@ SEND_CHUNK = "20"
 QUOTA_RESERVE = "10"
 TRACK_OPENS = "true"
 TRACK_CLICKS = "true"
-# Set per deployment (not secret): SITE_URL, FROM_EMAIL, GMAIL_FROM_EMAIL, REPLY_TO, POSTAL_ADDRESS, TEST_RECIPIENTS
-# Secrets (wrangler secret put): ADMIN_PASSWORD_HASH, SESSION_SECRET, WEBHOOK_SECRET,
+# Kept out of this public repository and stored as Worker secrets (wrangler secret put):
+#   personal details: POSTAL_ADDRESS, TEST_RECIPIENTS, FROM_EMAIL, GMAIL_FROM_EMAIL, REPLY_TO
+#   credentials: ADMIN_PASSWORD_HASH, SESSION_SECRET, WEBHOOK_SECRET,
 #   BREVO_API_KEY, RESEND_API_KEY, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN

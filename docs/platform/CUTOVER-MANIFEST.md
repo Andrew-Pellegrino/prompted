@@ -4,15 +4,15 @@ Nothing in this file has been changed in production. Every row is a planned chan
 approval. Until cutover, beehiiv keeps sending and every existing link keeps working.
 
 `NEW` below stands for the platform's production address. It does not exist yet: the preview address is
-`https://prompted-platform-dev.<subdomain>.workers.dev`, and the production address will be either the
+`https://prompted-platform-dev.readprompted.workers.dev`, and the production address will be either the
 free `eu.org` domain or a `workers.dev` address.
 
 ## Go / no-go: current answer is NO-GO
 
 | Acceptance test | State |
 | --- | --- |
-| Site, archive, Index copy and signup work in a deployed preview | Built and tested locally. Not deployed: needs the owner's Cloudflare account. |
-| Private database deployed with dashboard login | Built and tested locally. Not deployed. |
+| Site, archive, Index copy and signup work in a deployed preview | **Passed** on the preview, November 11 (synthetic data). |
+| Private database deployed with dashboard login | **Passed**: anonymous, forged and cross-site requests are refused. |
 | Real subscriber ledger imported and reconciled against beehiiv counts | Not started (needs the deployed database and owner approval). |
 | A sending identity exists and passes SPF/DKIM/DMARC checks | Not started (owner steps in OWNER-SETUP.md). |
 | Test issue received and compared in Gmail, Outlook and Apple Mail | Not started. |
