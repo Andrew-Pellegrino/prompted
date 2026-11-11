@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 35 of 35 pass.
+- `npm test`: 36 of 36 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -84,7 +84,9 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 Added this session, deployed and verified live with no email sent: inbox placement log with the
 three-in-a-row gate, stricter security headers, a fuller subscribe page, corrected confirmation-email
-wording, a hand-set "bounced" status for senders that give no bounce reports.
+wording, a hand-set "bounced" status for senders that give no bounce reports, and "tag everyone shown"
+in Audience (optionally only the first N longest-standing subscribers) for building a pilot group.
+`WEEKLY-RUNBOOK.md` describes the publishing week end to end.
 
 ## Deliverability is the open problem (read `DELIVERABILITY.md`)
 

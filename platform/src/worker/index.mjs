@@ -237,6 +237,20 @@ async function adminApi(request, env, path, url) {
     await run(db, 'INSERT INTO interactions (person_id, kind, body, actor, at) VALUES (?, ?, ?, ?, ?)', Number(m[1]), String(kind || 'note').slice(0, 40), String(text).slice(0, 5000), actor, now());
     return json(await getPerson(db, Number(m[1])));
   }
+  if (path === 'people/tag-filtered' && method === 'POST') {
+    const b = await body(request, 5000), tag = String(b.tag || '').trim().slice(0, 60);
+    if (!tag) return fail(400, 'Give the tag a name.');
+    const { where, args } = peopleQuery(b.filters || {});
+    const limit = Number.isInteger(b.limit) && b.limit > 0 ? b.limit : null;
+    // Oldest subscribers first when a limit is given: the longest-standing readers make the safest pilot group.
+    const pick = `SELECT p.id FROM people p ${where} ORDER BY COALESCE(p.subscribed_at, p.created_at), p.id${limit ? ' LIMIT ' + limit : ''}`;
+    const res = b.remove === true
+      ? await run(db, `DELETE FROM person_tags WHERE tag = ? AND person_id IN (${pick})`, tag, ...args)
+      : await run(db, `INSERT INTO person_tags (person_id, tag) SELECT id, ? FROM (${pick}) WHERE true ON CONFLICT DO NOTHING`, tag, ...args);
+    const total = (await first(db, 'SELECT COUNT(*) AS n FROM person_tags WHERE tag = ?', tag)).n;
+    await audit(db, actor, b.remove === true ? 'people.untag_filtered' : 'people.tag_filtered', null, null, { tag, filters: b.filters || {}, limit, changed: res.meta.changes });
+    return json({ ok: true, changed: res.meta.changes, tagged_total: total });
+  }
   if (path === 'people/bulk' && method === 'POST') {
     const { ids, action, value } = await body(request, 100_000);
     const list = (ids || []).map(Number).filter(Number.isInteger).slice(0, 90);

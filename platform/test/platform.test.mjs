@@ -611,3 +611,22 @@ test('inbox placement log: results are recorded and the three-in-a-row gate is c
   const h = (await c.get('/')).headers;
   assert.ok(h.get('strict-transport-security') && h.get('permissions-policy'));
 });
+
+test('tag everyone matching a filter, optionally only the first N longest-standing, to build a pilot group', async () => {
+  const env = await makeEnv(), c = client(env);
+  await c.login();
+  const csv = ['email,status,subscribed_at,organizations', ...Array.from({ length: 10 }, (_, i) => `r${i}@example.com,${i === 9 ? 'inactive' : 'active'},2026-0${1 + i % 9}-01T00:00:00Z,${i % 2 ? 'Founders' : 'AWE'}`)].join('\n');
+  await c.post('/api/admin/imports/commit', { csv, mode: 'migration', source_label: 'synthetic' });
+  assert.equal((await c.post('/api/admin/people/tag-filtered', { tag: '' })).status, 400);
+  let r = (await c.post('/api/admin/people/tag-filtered', { tag: 'pilot', filters: { status: 'active' }, limit: 3 })).data;
+  assert.deepEqual([r.changed, r.tagged_total], [3, 3]);
+  assert.deepEqual(many(env, "SELECT p.email_norm FROM person_tags t JOIN people p ON p.id = t.person_id WHERE t.tag = 'pilot' ORDER BY p.email_norm").map((x) => x.email_norm), ['r0@example.com', 'r1@example.com', 'r2@example.com'], 'longest-standing first');
+  r = (await c.post('/api/admin/people/tag-filtered', { tag: 'founders-active', filters: { status: 'active', org: 'Founders' } })).data;
+  assert.equal(r.changed, 4, 'r1, r3, r5, r7 (r9 is unsubscribed)');
+  r = (await c.post('/api/admin/people/tag-filtered', { tag: 'pilot', filters: { status: 'active' }, limit: 3 })).data;
+  assert.deepEqual([r.changed, r.tagged_total], [0, 3], 'running it again changes nothing');
+  r = (await c.post('/api/admin/people/tag-filtered', { tag: 'pilot', filters: {}, remove: true })).data;
+  assert.deepEqual([r.changed, r.tagged_total], [3, 0]);
+  c.dropCookie();
+  assert.equal((await c.post('/api/admin/people/tag-filtered', { tag: 'x' })).status, 401);
+});

@@ -96,11 +96,19 @@
         '<div><label for="f-org">Organization</label><select id="f-org">' + opt(f.organizations, filters.org) + '</select></div>' +
         '<div><label for="f-tag">Tag</label><select id="f-tag">' + opt(f.tags, filters.tag) + '</select></div>' +
         '<div><label for="f-source">Source</label><select id="f-source">' + opt(f.sources, filters.source) + '</select></div>' +
-        '<div><button class="btn ghost" id="f-export">Export CSV</button> <button class="btn" id="f-add">Add person</button></div></div></div>' +
+        '<div><button class="btn ghost" id="f-export">Export CSV</button> <button class="btn" id="f-add">Add person</button></div></div>' +
+        '<details style="margin-top:10px"><summary class="muted">Tag everyone shown (for a pilot group or a staged send)</summary><div class="row" style="margin-top:8px"><div><label for="tg-name">Tag</label><input id="tg-name" placeholder="pilot"></div><div><label for="tg-limit">Only the first… (optional)</label><input id="tg-limit" type="number" min="1" placeholder="e.g. 20" style="width:120px"></div><div><button class="btn ghost" id="tg-add">Add tag</button> <button class="btn ghost" id="tg-remove">Remove tag</button></div></div><p class="muted" style="margin:6px 0 0">Applies to everyone matching the filters above, longest-standing subscribers first when a number is given.</p></details></div>' +
         '<div class="panel"><div id="people"></div></div>';
       ['q', 'status', 'org', 'tag', 'source'].forEach(function (k) { $('#f-' + k).addEventListener(k === 'q' ? 'input' : 'change', function (e) { filters[k] = e.target.value; filters.offset = 0; clearTimeout(audience.t); audience.t = setTimeout(loadPeople, k === 'q' ? 250 : 0); }); });
       $('#f-export').addEventListener('click', function () { location.href = '/api/admin/export/people.csv?' + qs(); });
       $('#f-add').addEventListener('click', addPerson);
+      var tagFiltered = function (remove) {
+        var f = {}; ['q', 'status', 'org', 'tag', 'source'].forEach(function (k) { if (filters[k]) f[k] = filters[k]; });
+        var lim = parseInt($('#tg-limit').value, 10);
+        guard(post('people/tag-filtered', { tag: $('#tg-name').value, filters: f, limit: lim > 0 ? lim : undefined, remove: remove })).then(function (r) { toast((remove ? 'Removed from ' : 'Tagged ') + r.changed + ' people. “' + $('#tg-name').value.trim() + '” now has ' + r.tagged_total + '.', 6000); audience(); });
+      };
+      $('#tg-add').addEventListener('click', function () { tagFiltered(false); });
+      $('#tg-remove').addEventListener('click', function () { tagFiltered(true); });
       loadPeople();
     });
   }
