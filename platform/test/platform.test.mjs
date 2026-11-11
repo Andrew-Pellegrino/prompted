@@ -590,3 +590,24 @@ test('sending-domain check reads SPF, DKIM and DMARC and explains what is missin
     assert.equal((await c.get('/api/admin/deliverability/domain?domain=good.example')).status, 401);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('inbox placement log: results are recorded and the three-in-a-row gate is computed per sender and inbox', async () => {
+  const env = await makeEnv(), c = client(env);
+  assert.equal((await c.get('/api/admin/placement')).status, 401);
+  await c.login();
+  assert.equal((await c.post('/api/admin/placement', { tested_on: 'yesterday', sender: 'a', inbox: 'Gmail', result: 'inbox' })).status, 400);
+  const add = (d, sender, inbox, result) => c.post('/api/admin/placement', { tested_on: d, sender, inbox, result });
+  await add('2026-11-11', 'sender@gmail.test', 'Gmail', 'spam');
+  for (const d of ['2026-11-20', '2026-11-21', '2026-11-22']) await add(d, 'brief@prompted.example', 'Gmail', 'inbox');
+  await add('2026-11-20', 'brief@prompted.example', 'Outlook', 'inbox');
+  await add('2026-11-21', 'brief@prompted.example', 'Outlook', 'spam');
+  await add('2026-11-22', 'brief@prompted.example', 'Outlook', 'inbox');
+  const r = (await c.get('/api/admin/placement')).data;
+  const by = Object.fromEntries(r.streaks.map((s) => [s.sender + '|' + s.inbox, s]));
+  assert.deepEqual([by['brief@prompted.example|Gmail'].streak, by['brief@prompted.example|Gmail'].passes], [3, true]);
+  assert.deepEqual([by['brief@prompted.example|Outlook'].streak, by['brief@prompted.example|Outlook'].passes], [1, false], 'a spam result resets the run');
+  assert.deepEqual([by['sender@gmail.test|Gmail'].streak, by['sender@gmail.test|Gmail'].last], [0, 'spam']);
+  assert.equal((await c.get('/api/admin/export/backup.json')).data.tables.placement_tests.length, 7);
+  const h = (await c.get('/')).headers;
+  assert.ok(h.get('strict-transport-security') && h.get('permissions-policy'));
+});

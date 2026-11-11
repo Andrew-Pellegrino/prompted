@@ -321,12 +321,26 @@ async function adminApi(request, env, path, url) {
   }
   if (path === 'metrics/beehiiv' && method === 'POST') return json(await importBeehiivMetrics(env, await body(request), actor));
   if (path === 'metrics/growth' && method === 'POST') return json(await importGrowth(env, await body(request), actor));
+  if (path === 'placement' && method === 'GET') {
+    const rows = await all(db, 'SELECT * FROM placement_tests ORDER BY tested_on DESC, id DESC LIMIT 200');
+    // Per sender + inbox: how many of the most recent tests in a row reached the inbox.
+    const streaks = {};
+    for (const r of rows) { const k = r.sender + ' → ' + r.inbox; const s = (streaks[k] ||= { sender: r.sender, inbox: r.inbox, streak: 0, open: true, last: r.result, last_on: r.tested_on }); if (s.open && r.result === 'inbox') s.streak++; else s.open = false; }
+    return json({ rows, streaks: Object.values(streaks).map(({ open, ...s }) => ({ ...s, passes: s.streak >= 3 })) });
+  }
+  if (path === 'placement' && method === 'POST') {
+    const b = await body(request, 4000);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(b.tested_on || '') || !['inbox', 'promotions', 'spam', 'missing'].includes(b.result) || !String(b.sender || '').trim() || !String(b.inbox || '').trim()) return fail(400, 'Give a date, the sender, the kind of inbox and where the message landed.');
+    await run(db, 'INSERT INTO placement_tests (tested_on, sender, inbox, result, note, actor, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)', b.tested_on, String(b.sender).trim().slice(0, 120), String(b.inbox).trim().slice(0, 60), b.result, String(b.note || '').slice(0, 500) || null, actor, now());
+    return json({ ok: true }, 201);
+  }
   if (path === 'audit') return json({ rows: await all(db, 'SELECT * FROM audit_log ORDER BY id DESC LIMIT ? OFFSET ?', Math.min(200, Number(q.limit) || 100), Number(q.offset) || 0) });
   return fail(404, 'Unknown admin endpoint.');
 }
 
 // ---------- entry points ----------
-const SECURITY = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin', 'x-frame-options': 'SAMEORIGIN' };
+const SECURITY = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'strict-origin-when-cross-origin', 'x-frame-options': 'SAMEORIGIN',
+  'strict-transport-security': 'max-age=31536000', 'permissions-policy': 'camera=(), microphone=(), geolocation=(), payment=()', 'cross-origin-opener-policy': 'same-origin' };
 
 async function route(request, env) {
   const url = new URL(request.url), p = url.pathname;

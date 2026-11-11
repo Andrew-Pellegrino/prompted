@@ -88,7 +88,7 @@ export async function importGrowth(env, payload, actor) {
 }
 
 const BACKUP_TABLES = ['people', 'status_history', 'suppressions', 'organizations', 'memberships', 'person_tags', 'interactions', 'attribution_events', 'import_batches', 'import_rows',
-  'sends', 'send_recipients', 'send_links', 'delivery_events', 'provider_usage', 'issue_metrics', 'growth_series', 'audit_log', 'settings'];
+  'sends', 'send_recipients', 'send_links', 'delivery_events', 'provider_usage', 'issue_metrics', 'growth_series', 'placement_tests', 'audit_log', 'settings'];
 
 /** Full logical backup as JSON (all tables). The file contains private data: store it privately. */
 export async function fullBackup(env) {

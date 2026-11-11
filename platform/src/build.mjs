@@ -208,12 +208,18 @@ ${rest}
     jsonLd: { '@context': 'https://schema.org', '@type': 'NewsArticle', headline: issue.title, description: issue.subtitle, datePublished: issue.publication.date, author: { '@type': 'Person', name: site.author }, publisher: { '@type': 'Organization', name: site.name }, mainEntityOfPage: url, isAccessibleForFree: true } });
 }
 
-function subscribePage(site) {
-  const body = `<div class="wrap"><div class="prose" style="text-align:center">
+function subscribePage(site, issues) {
+  const latest = issues.at(-1);
+  const body = `<div class="wrap"><div class="prose" style="text-align:center;padding-bottom:20px">
   <h1>Subscribe to ${esc(site.name)}</h1>
   <p style="font-family:var(--serif);font-size:21px;margin:0 0 22px">${esc(site.promise)}</p>
   ${signupForm('subscribe-page')}
   <p class="fine">Free. One email, ${esc(site.send_slot_label)}. Unsubscribe any time with one click.</p>
+</div>
+<div class="grid three who" style="max-width:860px;margin:0 auto 20px;text-align:left">
+  <div class="card"><h3>What arrives</h3><p>One issue a week: the biggest developments, what they add up to, and what they mean for you.</p></div>
+  <div class="card"><h3>What does not</h3><p>No ads, no sponsored links, no daily mail. Your address is never shared.</p></div>
+  <div class="card"><h3>Try before you sign up</h3><p><a href="${issueUrl(latest)}">Read the latest issue</a> or browse <a href="/issues/">all ${issues.length}</a>.</p></div>
 </div></div>`;
   return layout(site, { title: `Subscribe — ${site.name}`, description: site.description, pathName: '/subscribe/', body });
 }
@@ -243,7 +249,7 @@ export async function build(env = process.env) {
 
   await out('index.html', homePage(site, issues));
   await out('issues/index.html', archivePage(site, issues));
-  await out('subscribe/index.html', subscribePage(site));
+  await out('subscribe/index.html', subscribePage(site, issues));
   await out('subscribe/confirmed/index.html', simplePage(site, '/subscribe/confirmed/', 'You are subscribed', `<p>Thanks for confirming. ${esc(site.name)} arrives ${esc(site.send_slot_label)}.</p><p><a href="/issues/">Read the archive</a> while you wait.</p>`));
   await out('unsubscribed/index.html', simplePage(site, '/unsubscribed/', 'You are unsubscribed', `<p>You will not receive further issues of ${esc(site.name)}. If this was a mistake, you can <a href="/subscribe/">subscribe again</a>.</p>`));
   await out('privacy/index.html', simplePage(site, '/privacy/', 'Privacy', `<p>${esc(site.name)} stores the email address you give us, when and where you signed up (including campaign tags in the link you followed), and whether issues were delivered, opened or clicked. Open and click figures are approximate because mail apps and security scanners can trigger them.</p><p>We use this only to send the newsletter and understand what readers find useful. We do not sell or share your address. Every email has a one-click unsubscribe link, and you can ask for your data to be deleted by replying to any issue.</p>`));

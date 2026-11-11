@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 34 of 34 pass.
+- `npm test`: 35 of 35 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -71,6 +71,20 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   only for addresses in `TEST_RECIPIENTS`.
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
+
+## Domain application in progress (November 11)
+
+- The owner created and confirmed an eu.org contact handle. `prompted.eu.org` was unused when checked.
+- Cloudflare must issue the two name servers first. Claude's token is refused for adding a domain
+  (missing the zone-create permission), so the owner adds `prompted.eu.org` in the Cloudflare dashboard
+  and reports the two name servers. Then the owner submits the eu.org request (`OWNER-SETUP.md` 6a, 6b).
+- After approval: `OWNER-SETUP.md` 6c. The site moves onto the domain by uncommenting one `routes` line in
+  `wrangler.toml` and changing `SITE_URL`.
+- Nothing here guarantees approval or good inbox placement. Both are tested before anything depends on them.
+
+Added this session, deployed and verified live with no email sent: inbox placement log with the
+three-in-a-row gate, stricter security headers, a fuller subscribe page, corrected confirmation-email
+wording, a hand-set "bounced" status for senders that give no bounce reports.
 
 ## Deliverability is the open problem (read `DELIVERABILITY.md`)
 

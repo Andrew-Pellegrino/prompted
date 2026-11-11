@@ -292,11 +292,11 @@ export async function sendConfirmation(env, person) {
   const site = await siteConfig(env), url = `${site.url}/confirm/${person.token}`;
   const html = `<div style="font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.55;color:#000;max-width:560px;margin:0 auto;padding:24px">
 <p style="font-size:28px;font-weight:bold;margin:0 0 16px">${esc(site.name)}</p>
-<p>Please confirm that you want to receive ${esc(site.name)}, ${esc(site.tagline.toLowerCase())}, ${esc(site.send_slot_label)}.</p>
+<p>Please confirm that you want to receive ${esc(site.name)}, a free weekly AI brief sent ${esc(site.send_slot_label)}.</p>
 <p><a href="${esc(url)}" style="display:inline-block;background:#c3142d;color:#fff;text-decoration:none;font-weight:bold;padding:12px 18px;border-radius:4px">Confirm my subscription</a></p>
 <p style="font-size:13px;color:#5f5e58">If you did not ask for this, ignore this email and you will not hear from us again.</p>
 <p style="font-size:12px;color:#5f5e58">${esc(site.name)} · ${esc(site.postal_address)}</p></div>`;
-  const text = `Please confirm that you want to receive ${site.name}.\n\nConfirm: ${url}\n\nIf you did not ask for this, ignore this email.\n\n${site.name} · ${site.postal_address}`;
+  const text = `Please confirm that you want to receive ${site.name}, a free weekly AI brief sent ${site.send_slot_label}.\n\nConfirm: ${url}\n\nIf you did not ask for this, ignore this email.\n\n${site.name} · ${site.postal_address}`;
   return sendTransactional(env, person.email_norm, `Confirm your subscription to ${site.name}`, html, text);
 }
 

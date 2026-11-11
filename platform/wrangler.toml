@@ -6,6 +6,10 @@ compatibility_date = "2026-06-01"
 workers_dev = true
 preview_urls = false   # no extra per-version public addresses
 
+# When the dedicated domain is active in Cloudflare, serve the site from it as well, so the links in an
+# email and the sender address share one domain. Uncomment, set SITE_URL below to match, and deploy.
+# routes = [{ pattern = "prompted.eu.org", custom_domain = true }]
+
 [[d1_databases]]
 binding = "DB"
 database_name = "prompted-dev"

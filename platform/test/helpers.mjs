@@ -27,7 +27,7 @@ export class FakeD1 {
 
 export async function makeEnv(overrides = {}) {
   const DB = new FakeD1();
-  for (const f of ['0001_init.sql', '0002_send_audience.sql']) DB.sqlite.exec(await readFile(path.join(ROOT, 'migrations', f), 'utf8'));
+  for (const f of ['0001_init.sql', '0002_send_audience.sql', '0003_placement_tests.sql']) DB.sqlite.exec(await readFile(path.join(ROOT, 'migrations', f), 'utf8'));
   const ASSETS = {
     async fetch(req) {
       const p = new URL(typeof req === 'string' ? req : req.url).pathname;

@@ -100,12 +100,62 @@ Tell Claude which of your own addresses may receive test emails. One Gmail, one 
 one Apple iCloud address give the best rendering coverage; one address is enough to start.
 Claude stores them as the Worker secret `TEST_RECIPIENTS`.
 
-## 6. Optional now: a free domain for a nicer From address
+## 6. The dedicated domain: `prompted.eu.org`
 
-1. Create a contact at https://nic.eu.org/arf/en/contact/create/ with your personal details.
-2. Request a name such as `prompted.eu.org`. When it asks for name servers, tell Claude; they come from
-   Cloudflare once the name is added there.
-3. Approval can take days or longer. When it arrives, Claude sets up Brevo and Resend on that domain.
+Why: mail from the Gmail account authenticated correctly but landed in Spam (see `DELIVERABILITY.md`).
+A domain of our own lets Prompted build a reputation that belongs to it and can move between providers.
+It is free, and it is not a guarantee: a new domain starts with no reputation and has to be warmed up.
+
+Status: eu.org contact handle created and confirmed by the owner (personal iCloud address).
+`prompted.eu.org`, `readprompted.eu.org` and `promptedbrief.eu.org` were all unused on November 11.
+`prompted.eu.org` is the first choice; `readprompted.eu.org` is the fallback if it is refused.
+
+eu.org's rules that matter here (from its policy page): the service is meant for individuals and
+non-profits, small commercial sites are tolerated, and holders must not send unsolicited bulk mail.
+Prompted mails only people who subscribed, with one-click unsubscribe, so it fits. eu.org gives no support
+and no promised approval time.
+
+### 6a. Add the domain to Cloudflare (owner) — to get the two name servers
+
+Claude's access token may not add domains, so this is an owner step.
+
+1. https://dash.cloudflare.com, account home, **Add a domain** (or **Onboard a domain**).
+2. Enter `prompted.eu.org`. If offered, choose **Manually enter DNS records**. Continue.
+3. Choose the **Free** plan. Skip the DNS records page.
+4. Cloudflare shows two name servers ending in `.ns.cloudflare.com`. Give both names to Claude.
+   If Cloudflare refuses the name, give Claude the exact message.
+
+### 6b. Request the name at eu.org (owner) — only after 6a
+
+1. Sign in at https://nic.eu.org/arf/ and choose **New domain**.
+2. Complete domain name: `prompted.eu.org`.
+3. Organization: `Prompted`. Leave the contact as your handle. Fill the address fields with the same
+   details as your contact.
+4. Under "Check for correctness of", choose **server names** (the lightest check; Cloudflare does not
+   answer for the name until eu.org has approved it).
+5. In "Name servers", put the first Cloudflare name in **Name1** and the second in **Name2**. Leave the IP
+   boxes empty.
+6. Submit. A page of green "OK" lines means the request is queued. Approval arrives by email and can take
+   days or longer.
+
+### 6c. After approval (Claude, with two small owner steps)
+
+1. Cloudflare shows the domain as **Active**.
+2. Owner widens the API token so Claude can manage the domain's records: Cloudflare, **My Profile**,
+   **API Tokens**, edit the existing token, add **Zone / DNS / Edit**, **Zone / Zone / Read** and
+   **Zone / Email Routing Rules / Edit** for the zone `prompted.eu.org`. Nothing else changes.
+3. Claude moves the site onto the domain (one setting in `wrangler.toml`), so email links and the sender
+   address share one domain.
+4. Owner creates a free Brevo account at https://www.brevo.com with the Prompted Google account, adds
+   `prompted.eu.org` as a sending domain, and asks Brevo support to enable sending through the API,
+   saying plainly that it is a weekly newsletter to people who subscribed, sent from our own software.
+   (Brevo's own page says activation is requested from support and that the purpose must be stated.)
+5. Claude adds the DNS records Brevo shows (a verification code, two DKIM records, a DMARC record) and
+   turns on Cloudflare's free email forwarding so replies to the domain reach the owner.
+6. The dashboard's **Check a sending domain** must say Ready before any test is sent.
+7. Owner stores the Brevo API key in Cloudflare as the secret `BREVO_API_KEY`, and `FROM_EMAIL`
+   (for example `brief@prompted.eu.org`) the same way.
+8. Seed tests, each one approved by the owner, recorded under **Where test emails landed**.
 
 ## 7. Private data migration (only after tests pass and you approve)
 

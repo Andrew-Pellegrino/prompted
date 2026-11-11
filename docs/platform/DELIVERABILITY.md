@@ -89,6 +89,23 @@ making until B1 has been tested.
 7. **Full cutover only when** the seed inboxes are clean, delivery is above 95 percent, there are no
    complaints, and unsubscribe works end to end.
 
+## Brevo on the free plan: what is verified and what is not
+
+| Question | Answer | Basis |
+| --- | --- | --- |
+| Daily limit | 300 emails a day, no expiry | Brevo pricing page |
+| Can our own software send a newsletter through its API? | Brevo's own page says API/SMTP sending is activated by asking support and stating whether it is for marketing or transactional mail. So it is allowed when declared, and it is not automatic | Brevo free SMTP page |
+| Domain needed | Yes. Without an authenticated domain Brevo rewrites the From address to its own shared domain | Brevo help centre |
+| Bounces and complaints | Reported to us by webhook; the platform suppresses the address automatically | Brevo features; platform tests |
+| Unsubscribe | Ours: a link in every issue plus the one-click header. Brevo does not add one to API sends | Platform design; to be confirmed in the first approved test |
+| Brevo logo in the email | Review sites say free-plan emails carry Brevo branding. Whether that applies to API sends is **not verified** | Third-party reviews |
+| Sending servers | Shared with other free senders; placement moves with that pool | Third-party test, indicative |
+| Growth | 300 a day covers the list today. Past that the platform adds Resend (100 a day) and then spreads a send over two days | Provider pages; platform tests |
+
+Things that can still go wrong on this route: eu.org never approves the name; Brevo declines to activate
+API sending for a new free account; the shared pool or the `eu.org` name space is distrusted by some
+filters. Each one is checked before anything depends on it, and beehiiv keeps sending until then.
+
 ## What the platform now does to help
 
 - **Warm-up cap** (`WARMUP = "start date,first-day cap,growth"`): real sending is limited per day and the
@@ -100,6 +117,9 @@ making until B1 has been tested.
   format.
 - **Sending-domain check** in the dashboard (Tools): reads SPF, DKIM and DMARC for any domain and says
   what is missing. Verified live against a correctly set-up domain and an empty one.
+- **Inbox placement log** in the dashboard (Tools): each test result is recorded by hand, and the gate
+  "three inbox results in a row for each kind of inbox" is computed from it. The November 11 Spam result
+  is the first entry.
 - **Plain delivery check** button, for telling "the account is filtered" apart from "the content is filtered".
 - **Gmail sign-in health** shown in the dashboard, with the expiry date while the Google app is in Testing.
 
