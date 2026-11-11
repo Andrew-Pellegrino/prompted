@@ -332,3 +332,13 @@ test('provider adapters: chain selection, Gmail MIME, header-injection guard', a
   assert.ok(!/^Bcc:/m.test(buildMime({ from: { name: 'P', email: 'a@b.c' }, to: 'r@example.com', subject: 'x\r\nBcc: evil@example.com', html: '', text: '' })));
   assert.throws(() => buildMime({ from: { name: 'P', email: 'a@b.c' }, to: 'r@example.com', subject: 'x', html: '', text: '', headers: { 'X-Test': 'a\r\nBcc: evil@example.com' } }));
 });
+
+test('admin password: generated high-entropy secret (sha256 scheme) and PBKDF2 both verify', async () => {
+  const { verifyPassword, hashPassword, sha256 } = await import('../src/worker/core.mjs');
+  const stored = 'sha256$abcd$' + (await sha256('abcd' + 'long-random-password'));
+  assert.equal(await verifyPassword('long-random-password', stored), true);
+  assert.equal(await verifyPassword('wrong', stored), false);
+  assert.equal(await verifyPassword('pw', await hashPassword('pw', 1000)), true);
+  assert.equal(await verifyPassword('pw', ''), false);
+  assert.equal(await verifyPassword('pw', 'plain$pw'), false);
+});

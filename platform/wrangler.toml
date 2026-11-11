@@ -1,0 +1,37 @@
+# Prompted platform: development preview on Cloudflare Workers (free plan).
+# Deploys to https://prompted-platform-dev.<your-subdomain>.workers.dev, never to the live site.
+name = "prompted-platform-dev"
+main = "src/worker/index.mjs"
+compatibility_date = "2026-06-01"
+workers_dev = true
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+html_handling = "auto-trailing-slash"
+not_found_handling = "404-page"
+# Dynamic routes are handled by the Worker; everything else is served straight from static files.
+run_worker_first = ["/api/*", "/confirm/*", "/u/*", "/o/*", "/r/*"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "prompted-dev"
+database_id = "00000000-0000-0000-0000-000000000000" # replace with the id printed by: wrangler d1 create prompted-dev
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["* * * * *"] # advances scheduled sends in small chunks; idle runs do almost nothing
+
+[vars]
+SITE_ENV = "preview"            # "production" only after an approved cutover
+SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
+DOUBLE_OPT_IN = "true"
+EMAIL_PROVIDERS = "brevo,resend,gmail"
+FROM_NAME = "Prompted"
+SEND_CHUNK = "20"
+QUOTA_RESERVE = "10"
+TRACK_OPENS = "true"
+TRACK_CLICKS = "true"
+# Set per deployment (not secret): SITE_URL, FROM_EMAIL, GMAIL_FROM_EMAIL, REPLY_TO, POSTAL_ADDRESS, TEST_RECIPIENTS
+# Secrets (wrangler secret put): ADMIN_PASSWORD_HASH, SESSION_SECRET, WEBHOOK_SECRET,
+#   BREVO_API_KEY, RESEND_API_KEY, GMAIL_CLIENT_ID, GMAIL_CLIENT_SECRET, GMAIL_REFRESH_TOKEN

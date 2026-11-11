@@ -139,3 +139,21 @@ test('CSV round-trips quotes, commas, newlines and neutralises formulas', () => 
 });
 
 test('closing line constant matches the production specification', () => assert.equal(CLOSING_LINE, 'That’s the week. See you next Monday.'));
+
+test('approved text imports without changing a word, and round-trips an existing issue', async () => {
+  const { importIssueText, parseInline } = await import('../src/lib/import-text.mjs');
+  assert.deepEqual(parseInline('Plain **bold,** then *italic* and [a link](https://example.com/a?b=1), 2 * 3 = 6, \\*literal\\*.'),
+    [{ text: 'Plain ' }, { text: 'bold,', bold: true }, { text: ' then ' }, { text: 'italic', italic: true }, { text: ' and ' }, { text: 'a link', href: 'https://example.com/a?b=1' }, { text: ', 2 * 3 = 6, *literal*.' }]);
+  // Serialise issue 31 to the text form and import it back: identical words, structure and marks.
+  const src = issues[30];
+  const esc = (t) => t.replace(/([\\*\[\]])/g, '\\$1');
+  const inline = (runs) => runs.map((r) => { let t = esc(r.text); if (r.italic) t = `*${t}*`; if (r.bold) { const m = /^(.*?)(\s*)$/.exec(t); t = `**${m[1]}**${m[2]}`; } return t; }).join('');
+  const md = [`# Week of ${src.week.label}`, `> ${src.subtitle}`, '', ...src.blocks.map((b) => (b.type === 'heading' ? '#'.repeat(b.level) + ' ' + inline(b.children) : b.role === 'signoff' ? '— Prompted' : inline(b.children)) + '\n')].join('\n');
+  const back = importIssueText(md, { number: 31 });
+  assert.equal(blocksText(back.blocks), blocksText(src.blocks));
+  assert.deepEqual([back.slug, back.week, back.subtitle], [src.slug, src.week, src.subtitle]);
+  assert.deepEqual(back.blocks.map((b) => [b.type, b.level, b.role]), src.blocks.map((b) => [b.type, b.level, b.role]));
+  assert.equal(runQA(back, site, { strict: true }).ok, true);
+  assert.throws(() => importIssueText('No title line\n\nBody'), /first line/);
+  assert.throws(() => importIssueText('# Week of Sometime\n\nBody'));
+});

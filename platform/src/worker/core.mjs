@@ -36,9 +36,13 @@ export async function hashPassword(password, iterations = 100000, saltHex = rand
   return `pbkdf2$${iterations}$${saltHex}$${hex(bits)}`;
 }
 export async function verifyPassword(password, stored) {
-  const [scheme, iter, salt] = String(stored || '').split('$');
-  if (scheme !== 'pbkdf2' || !salt) return false;
-  return safeEqual(await hashPassword(password, Number(iter), salt), stored);
+  const [scheme, a, b] = String(stored || '').split('$');
+  // sha256$<salt>$<hash>: for a long, randomly generated password (see scripts/make-admin-secret.mjs).
+  // Cheap to verify, which matters on the Workers free plan (10 ms CPU), and safe because the
+  // password itself has ~120 bits of entropy and logins are rate limited.
+  if (scheme === 'sha256' && b) return safeEqual(await sha256(a + password), b);
+  if (scheme !== 'pbkdf2' || !b) return false;
+  return safeEqual(await hashPassword(password, Number(a), b), stored);
 }
 
 /** Fixed-window rate limit stored in D1. Returns true when the caller is over the limit. */

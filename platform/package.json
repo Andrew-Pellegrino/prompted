@@ -7,10 +7,17 @@
   "scripts": {
     "build": "node src/build.mjs",
     "test": "node --test --experimental-sqlite --test-concurrency=1 test/*.test.mjs",
-    "dev": "npm run build && wrangler dev",
+    "dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
     "deploy:preview": "npm run build && wrangler deploy",
     "extract": "node scripts/extract-beehiiv.mjs --fetch",
-    "qa": "node scripts/qa.mjs"
+    "qa": "node scripts/qa.mjs",
+    "admin-secret": "node scripts/make-admin-secret.mjs",
+    "new-issue": "node scripts/new-issue.mjs"
   },
-  "engines": { "node": ">=22.5" }
+  "engines": {
+    "node": ">=22.5"
+  },
+  "devDependencies": {
+    "wrangler": "^4"
+  }
 }

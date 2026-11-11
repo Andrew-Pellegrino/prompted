@@ -245,7 +245,7 @@ export async function build(env = process.env) {
   for (const issue of issues) {
     await out(`issues/${issue.slug}/index.html`, issuePage(site, issue, issues, indexData));
     await out(`data/issues/${issue.slug}.json`, JSON.stringify(issue));
-    await out(`p/${issue.source.slug}/index.html`, redirectPage(issueUrl(issue))); // old beehiiv permalink paths
+    if (issue.source.slug) await out(`p/${issue.source.slug}/index.html`, redirectPage(issueUrl(issue))); // old beehiiv permalink paths
     const email = renderIssueEmail(issue, site);
     await out(`email/${issue.slug}.html`, fillRecipient(email.html, { unsubscribeUrl: site.url + '/unsubscribed/', webUrl: site.url + issueUrl(issue), openPixelUrl: null }).replace('<head>', '<head><meta name="robots" content="noindex">'));
     search[issue.slug] = blocksText(issue.blocks).toLowerCase();

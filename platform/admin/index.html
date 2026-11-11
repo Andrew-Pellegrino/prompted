@@ -1,1 +1,42 @@
-<!doctype html><title>admin placeholder</title>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Prompted — Owner dashboard</title>
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="stylesheet" href="/admin/admin.css">
+</head>
+<body>
+<div id="login" class="login" hidden>
+  <form id="login-form" class="panel">
+    <h1>Prompted</h1>
+    <p class="muted">Owner dashboard</p>
+    <label for="pw">Password</label>
+    <input id="pw" type="password" autocomplete="current-password" required>
+    <button class="btn" type="submit">Sign in</button>
+    <p id="login-msg" class="err" role="alert"></p>
+  </form>
+</div>
+<div id="app" hidden>
+  <header class="top">
+    <a class="brand" href="/">Prompted</a>
+    <nav id="tabs" aria-label="Sections">
+      <button data-tab="dashboard">Dashboard</button>
+      <button data-tab="audience">Audience</button>
+      <button data-tab="import">Import</button>
+      <button data-tab="publish">Publish</button>
+      <button data-tab="links">Links</button>
+      <button data-tab="tools">Tools</button>
+    </nav>
+    <span id="mode" class="pill"></span>
+    <button id="logout" class="link">Sign out</button>
+  </header>
+  <main id="view" tabindex="-1"></main>
+</div>
+<div id="drawer" class="drawer" hidden><div class="drawer-body" id="drawer-body"></div></div>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<script src="/admin/admin.js" defer></script>
+</body>
+</html>
