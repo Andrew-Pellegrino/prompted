@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 30 of 30 pass.
+- `npm test`: 31 of 31 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -85,6 +85,11 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Site.** Side contents list and progress bar on issue pages, dark-mode fix for the logo, tighter mobile
   header, home page balance.
 - **Viability assessment** of personal Gmail as a sender: `DELIVERY-VERDICT.md`.
+- Test sends use a connected provider immediately, while audience sending stays in dry run, so the owner
+  can send a real test the moment Gmail is connected without any redeploy.
+- Live re-check of the import column chooser passed (5 of 5).
+- Sending account created by the owner: a dedicated personal Google account (address recorded in the
+  dashboard once connected). Google Cloud project, consent screen and OAuth client are in progress.
 - Authorised test inbox stored as the `TEST_RECIPIENTS` secret. Postal address still a placeholder by the
   owner's instruction.
 

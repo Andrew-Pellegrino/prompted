@@ -27,7 +27,7 @@ the new values.
 This gives Prompted its own sender, with no domain needed. About 500 recipients per rolling day
 (third-party figure for personal Google accounts), which covers the current list in one morning.
 
-### 3a. Create the Google account
+### 3a. Create the Google account — DONE
 
 1. Open https://accounts.google.com/signup in a private browser window.
 2. Create a **personal** account just for Prompted. The address becomes the newsletter's From address,
@@ -83,8 +83,9 @@ This gives Prompted its own sender, with no domain needed. About 500 recipients 
 3. Leave the box "Send email on your behalf" ticked. Continue.
 4. You land back on the dashboard. It should read "Connected as" followed by the new address.
 
-Then tell Claude it is connected. Nothing is emailed yet: sending stays in dry-run mode until Claude
-switches the preview to live, and even then the preview can only reach your authorised test inboxes.
+Then, in the dashboard, open **Publish**, pick the latest issue and click **Send test**. That sends one
+real email to your authorised test inbox and nothing to anyone else. Audience sending stays in dry-run
+mode until you approve a real send.
 
 ## 4. Postal address for the footer
 

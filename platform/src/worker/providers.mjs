@@ -126,10 +126,13 @@ export const gmail = {
 export const PROVIDERS = { dryrun, brevo, resend, gmail };
 
 /** Providers in preference order. SEND_MODE must be "live" for anything but the dry-run adapter. */
-export function providerChain(env) {
-  if (env.SEND_MODE !== 'live') return [dryrun];
+export function providerChain(env, { forTest = false } = {}) {
   const names = String(env.EMAIL_PROVIDERS || 'brevo,resend,gmail').split(',').map((s) => s.trim()).filter(Boolean);
-  return names.map((n) => PROVIDERS[n]).filter((p) => p && p.name !== 'dryrun' && p.configured(env));
+  const real = names.map((n) => PROVIDERS[n]).filter((p) => p && p.name !== 'dryrun' && p.configured(env));
+  if (env.SEND_MODE === 'live') return real;
+  // Dry-run mode protects the audience. A test send is different: it can only ever go to the owner's
+  // authorised test inboxes, so it uses a real provider as soon as one is connected.
+  return forTest && real.length ? real : [dryrun];
 }
 
 /** Sender identity. Gmail must send as the authorised account; others use the authenticated domain. */

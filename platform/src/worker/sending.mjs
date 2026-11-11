@@ -50,7 +50,8 @@ export async function getSend(db, id) {
   const counts = await all(db, 'SELECT status, COUNT(*) AS n, SUM(opens > 0) AS opened, SUM(clicks > 0) AS clicked FROM send_recipients WHERE send_id = ? GROUP BY status', id);
   const links = await all(db, 'SELECT idx, url, clicks FROM send_links WHERE send_id = ? ORDER BY clicks DESC, idx', id);
   const remaining = send.kind === 'issue' ? (await first(db, `SELECT COUNT(*) AS n FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions) AND email_norm NOT IN (SELECT email_norm FROM send_recipients WHERE send_id = ?)`, id)).n : 0;
-  return { ...send, audience: JSON.parse(send.audience || '{}'), not_yet_included: remaining, qa: JSON.parse(send.qa), totals: JSON.parse(send.totals), recipients: Object.fromEntries(counts.map((c) => [c.status, c.n])), opened: counts.reduce((a, c) => a + (c.opened || 0), 0), clicked: counts.reduce((a, c) => a + (c.clicked || 0), 0), links };
+  const via = (await all(db, 'SELECT DISTINCT provider FROM send_recipients WHERE send_id = ? AND provider IS NOT NULL', id)).map((r) => r.provider);
+  return { ...send, audience: JSON.parse(send.audience || '{}'), not_yet_included: remaining, providers: via, qa: JSON.parse(send.qa), totals: JSON.parse(send.totals), recipients: Object.fromEntries(counts.map((c) => [c.status, c.n])), opened: counts.reduce((a, c) => a + (c.opened || 0), 0), clicked: counts.reduce((a, c) => a + (c.clicked || 0), 0), links };
 }
 
 async function requireFresh(env, send) {
@@ -113,14 +114,14 @@ export async function testSend(env, slug, emails, actor) {
 }
 
 /** Remaining quota per provider today, after the reserve kept for confirmations and tests. */
-export async function quotas(env) {
+export async function quotas(env, forTest = false) {
   env = await withMailSettings(env);
   const usage = Object.fromEntries((await all(env.DB, 'SELECT provider, count FROM provider_usage WHERE day = ?', today())).map((u) => [u.provider, u.count]));
-  return providerChain(env).map((p) => ({ name: p.name, limit: p.dailyLimit(env), used: usage[p.name] || 0, remaining: Math.max(0, p.dailyLimit(env) - (usage[p.name] || 0)) }));
+  return providerChain(env, { forTest }).map((p) => ({ name: p.name, limit: p.dailyLimit(env), used: usage[p.name] || 0, remaining: Math.max(0, p.dailyLimit(env) - (usage[p.name] || 0)) }));
 }
 
-async function pickProvider(env, reserve = 0) {
-  for (const q of await quotas(env)) if (q.remaining - reserve > 0) return { provider: providerChain(env).find((p) => p.name === q.name), remaining: q.remaining - reserve };
+async function pickProvider(env, reserve = 0, forTest = false) {
+  for (const q of await quotas(env, forTest)) if (q.remaining - reserve > 0) return { provider: providerChain(env, { forTest }).find((p) => p.name === q.name), remaining: q.remaining - reserve };
   return null;
 }
 
@@ -134,7 +135,7 @@ export async function processSend(env, send) {
   await run(db, "UPDATE send_recipients SET status = 'failed', last_error = 'unconfirmed: handed to provider but no result recorded; check the provider log before retrying' WHERE send_id = ? AND status = 'sending' AND claimed_at < ?",
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
-  const pick = await pickProvider(env, reserve);
+  const pick = await pickProvider(env, reserve, send.kind === 'test');
   const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(chunkSize, pick.remaining, pick.provider.maxPerTick ? pick.provider.maxPerTick(env) : chunkSize)) : [];
   if (queued.length) {
     const { provider } = pick;

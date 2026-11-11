@@ -294,7 +294,7 @@ async function adminApi(request, env, path, url) {
   }
   if (path === 'providers') {
     const m = await withMailSettings(env);
-    return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
+    return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), test_quotas: await quotas(env, true), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
       last_problem: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'delivery_last_problem'"))?.value || 'null'),
       gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: await gmailRedirect(env) },
       configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO/.test((await siteConfig(env)).postal_address) } });

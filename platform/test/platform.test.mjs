@@ -475,3 +475,26 @@ test('dashboard pages carry a strict content security policy', async () => {
   assert.match(r.headers.get('content-security-policy'), /default-src 'self'.*frame-ancestors 'none'/);
   assert.equal((await c.get('/')).headers.get('content-security-policy'), null);
 });
+
+test('with Gmail connected but audience sending in dry run: tests go out for real, the audience does not', async () => {
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-test-mode', GMAIL_FROM_EMAIL: 'sender@gmail.test' });
+  const c = await audience(env, 4);
+  const calls = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { calls.push(String(url)); return String(url).includes('oauth2') ? new Response('{"access_token":"at","expires_in":3600}') : new Response('{"id":"g1"}'); };
+  try {
+    const prov = (await c.get('/api/admin/providers')).data;
+    assert.deepEqual([prov.send_mode, prov.quotas[0].name, prov.test_quotas[0].name], ['dryrun', 'dryrun', 'gmail']);
+    const t = await c.post('/api/admin/sends/test', { issue_slug: SLUG, emails: ['owner-test@example.com'] });
+    assert.deepEqual([t.data.recipients.sent, t.data.providers], [1, ['gmail']]);
+    assert.equal(calls.filter((u) => u.includes('messages/send')).length, 1);
+    assert.equal((await c.post('/api/admin/sends/test', { issue_slug: SLUG, emails: ['reader0@example.com'] })).status, 403, 'still only authorised inboxes');
+    const send = await c.post('/api/admin/sends', { issue_slug: SLUG });
+    await c.post(`/api/admin/sends/${send.data.id}/approve`);
+    await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+    env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z' WHERE kind = 'issue'").run();
+    await tickAll(env);
+    const s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+    assert.deepEqual([s.status, s.recipients.sent, s.providers], ['sent', 4, ['dryrun']]);
+    assert.equal(calls.filter((u) => u.includes('messages/send')).length, 1, 'no real email to the audience in dry-run mode');
+  } finally { globalThis.fetch = realFetch; }
+});

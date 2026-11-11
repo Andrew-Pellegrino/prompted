@@ -21,7 +21,8 @@ Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, a
 6. Infrastructure must stay independent of Miami University (no university domain, mailbox or student-only
    entitlement). Altman Institute branding is editorial identity only.
 7. Sending defaults to dry run. `SEND_MODE=live` in a non-production environment only reaches
-   `TEST_RECIPIENTS`. Never mail the real audience during development.
+   `TEST_RECIPIENTS`. Never mail the real audience during development. Test sends (always limited to
+   `TEST_RECIPIENTS`) use a real provider as soon as one is connected, even in dry-run mode.
 8. Editorial text is never rewritten by code. Renderers wrap approved words in markup and nothing else.
 
 ## Architecture (all in `platform/`)
@@ -46,7 +47,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 30 tests, in-memory SQLite behind the D1 interface
+npm test               # 31 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
