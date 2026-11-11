@@ -1,8 +1,8 @@
 // Prompted Worker: static site (ASSETS) + public API + authenticated admin API + cron sender.
 import { json, fail, HttpError, all, first, run, now, hmac, safeEqual, verifyPassword, rateLimited, pruneRateLimits, audit, clientIp, siteConfig, listIssues, loadIssue } from './core.mjs';
 import { subscribe, confirm, unsubscribe, setStatus, createPerson, updatePerson, getPerson, listPeople, peopleQuery, PEOPLE_COLUMNS, STATUSES, normalizeEmail, suppress } from './people.mjs';
-import { planImport, commitImport } from './imports.mjs';
-import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, sendConfirmation, quotas, withMailSettings } from './sending.mjs';
+import { planImport, commitImport, reconcile } from './imports.mjs';
+import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
 import { runQA } from '../lib/qa.mjs';
@@ -162,6 +162,7 @@ async function gmailCallback(env, url) {
     env.DB.prepare("INSERT INTO settings (key, value) VALUES ('gmail_refresh_token', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(tok.refresh_token),
     env.DB.prepare("INSERT INTO settings (key, value) VALUES ('gmail_from_email', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value").bind(email || ''),
   ]);
+  await run(env.DB, "DELETE FROM settings WHERE key = 'delivery_last_problem'");
   await audit(env.DB, 'owner', 'gmail.connect', null, null, { account: email });
   return Response.redirect((await siteConfig(env)).url + '/admin/#tools', 303);
 }
@@ -267,6 +268,7 @@ async function adminApi(request, env, path, url) {
   // imports
   if (path === 'imports/preview' && method === 'POST') { const b = await body(request); const plan = await planImport(db, b.csv || '', b); return json({ ...plan, rows: plan.rows.map(({ fields, merge, ...r }) => r) }); }
   if (path === 'imports/commit' && method === 'POST') { const b = await body(request); return json(await commitImport(db, b.csv || '', b, actor)); }
+  if (path === 'imports/reconcile' && method === 'POST') { const b = await body(request); const r = await reconcile(db, b.csv || '', b); await audit(db, actor, 'import.reconcile', null, null, { rows: r.rows, in_agreement: r.in_agreement }); return json(r); }
   if (path === 'imports' && method === 'GET') return json({ rows: (await all(db, 'SELECT * FROM import_batches ORDER BY id DESC LIMIT 50')).map((b) => ({ ...b, totals: JSON.parse(b.totals) })) });
   if ((m = /^imports\/(\d+)$/.exec(path))) return json({ batch: await first(db, 'SELECT * FROM import_batches WHERE id = ?', Number(m[1])), rows: await all(db, 'SELECT row_no, email_norm, outcome, detail FROM import_rows WHERE batch_id = ? ORDER BY row_no', Number(m[1])) });
   // issues and sends
@@ -282,16 +284,18 @@ async function adminApi(request, env, path, url) {
   if (path === 'sends' && method === 'POST') return json(await prepareSend(env, (await body(request, 2000)).issue_slug, actor), 201);
   if (path === 'sends/test' && method === 'POST') { const b = await body(request, 5000); return json(await testSend(env, b.issue_slug, b.emails, actor), 201); }
   if ((m = /^sends\/(\d+)$/.exec(path)) && method === 'GET') return json({ ...(await getSend(db, Number(m[1]))), failures: await all(db, "SELECT email_norm, status, last_error, attempts FROM send_recipients WHERE send_id = ? AND status IN ('failed','skipped','bounced','complained') LIMIT 200", Number(m[1])) });
-  if ((m = /^sends\/(\d+)\/(approve|schedule|cancel|retry-failed)$/.exec(path)) && method === 'POST') {
+  if ((m = /^sends\/(\d+)\/(approve|schedule|cancel|retry-failed|extend)$/.exec(path)) && method === 'POST') {
     const id = Number(m[1]);
     if (m[2] === 'approve') return json(await approveSend(env, id, actor));
-    if (m[2] === 'schedule') return json(await scheduleSend(env, id, (await body(request, 2000)).at || null, actor));
+    if (m[2] === 'schedule') { const b = await body(request, 2000); return json(await scheduleSend(env, id, b.at || null, actor, { audience_tag: b.audience_tag || null })); }
+    if (m[2] === 'extend') return json(await extendSend(env, id, actor));
     if (m[2] === 'cancel') return json(await cancelSend(env, id, actor));
     return json(await retryFailed(env, id, actor));
   }
   if (path === 'providers') {
     const m = await withMailSettings(env);
     return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
+      last_problem: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'delivery_last_problem'"))?.value || 'null'),
       gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: await gmailRedirect(env) },
       configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO/.test((await siteConfig(env)).postal_address) } });
   }
@@ -329,6 +333,10 @@ export default {
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v);
     if (env.SITE_ENV !== 'production') out.headers.set('x-robots-tag', 'noindex, nofollow');
+    // The dashboard shell loads only its own script and styles; nothing third-party can run there.
+    const path = new URL(request.url).pathname;
+    if (path.startsWith('/admin')) { out.headers.set('content-security-policy', "default-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"); out.headers.set('x-frame-options', 'DENY'); }
+    if (path.startsWith('/api/admin/')) out.headers.set('x-robots-tag', 'noindex, nofollow');
     return out;
   },
   async scheduled(event, env, ctx) {

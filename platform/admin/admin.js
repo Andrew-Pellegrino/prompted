@@ -152,25 +152,39 @@
       '<div class="row"><div><label for="im-file">CSV file</label><input id="im-file" type="file" accept=".csv,text/csv"></div><div><label for="im-label">Source label</label><input id="im-label" placeholder="e.g. roster: Founders"></div>' +
       '<div><label for="im-mode">Kind of file</label><select id="im-mode"><option value="audience">New contacts</option><option value="migration">Full ledger from another system (keeps each status)</option></select></div>' +
       '<div id="im-target-wrap"><label for="im-target">Add new people as</label><select id="im-target"><option value="prospective">Prospective (not emailed)</option><option value="pending">Pending (must confirm by email)</option><option value="active">Active subscribers</option></select></div>' +
-      '<div><button class="btn" id="im-preview">Preview</button></div></div>' +
+      '<div><button class="btn" id="im-preview">Preview</button> <button class="btn ghost" id="im-recon" title="Compare this file with the database without changing anything">Compare only</button></div></div>' +
       '<p id="im-consent" hidden><label style="color:inherit"><input type="checkbox" id="im-attest"> I confirm every person in this file agreed to receive Prompted.</label></p></div><div id="im-out"></div>';
-    var csv = '', name = '';
-    $('#im-file').addEventListener('change', function (e) { var f = e.target.files[0]; if (!f) return; name = f.name; f.text().then(function (t) { csv = t; }); });
+    var csv = '', name = '', mapping = null;
+    $('#im-file').addEventListener('change', function (e) { var f = e.target.files[0]; if (!f) return; name = f.name; mapping = null; f.text().then(function (t) { csv = t; }); });
     $('#im-mode').addEventListener('change', function (e) { $('#im-target-wrap').hidden = e.target.value === 'migration'; });
     $('#im-target').addEventListener('change', function (e) { $('#im-consent').hidden = e.target.value !== 'active'; });
-    var payload = function () { return { csv: csv, filename: name, source_label: $('#im-label').value || ('import: ' + name), mode: $('#im-mode').value, target_status: $('#im-target').value, consent_attested: $('#im-attest').checked }; };
+    var payload = function () { return { csv: csv, filename: name, source_label: $('#im-label').value || ('import: ' + name), mode: $('#im-mode').value, target_status: $('#im-target').value, consent_attested: $('#im-attest').checked, mapping: mapping || undefined }; };
     $('#im-preview').addEventListener('click', function () {
       if (!csv) return toast('Choose a CSV file first.');
       guard(post('imports/preview', payload())).then(function (p) { renderPlan(p, false); });
+    });
+    $('#im-recon').addEventListener('click', function () {
+      if (!csv) return toast('Choose a CSV file first.');
+      guard(post('imports/reconcile', payload())).then(function (r) {
+        var cnt = function (o) { return Object.keys(o).map(function (k) { return '<span class="tag st-' + k + '">' + k + ': ' + o[k] + '</span>'; }).join('') || '<span class="muted">none</span>'; };
+        var tbl = function (title, rows, cols) { return rows.length ? '<h3 style="margin-top:14px">' + title + ' (' + rows.length + ')</h3><div class="scroll" style="max-height:240px;overflow:auto"><table>' + rows.slice(0, 300).map(function (x) { return '<tr>' + cols.map(function (c) { return '<td>' + esc(x[c]) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>' : ''; };
+        $('#im-out').innerHTML = '<div class="panel"><h2>Comparison: ' + (r.in_agreement ? '<span class="ok">file and database agree</span>' : '<span class="warn">differences found</span>') + '</h2><p class="muted">Nothing was changed.</p>' +
+          '<p>In the file (' + r.unique_addresses + ' addresses): ' + cnt(r.source_counts) + '</p><p>In the database: ' + cnt(r.database_counts) + '</p><p>' + r.matching + ' addresses match exactly.</p>' +
+          (r.dangerous.length ? '<p class="err"><b>' + r.dangerous.length + ' address(es) are active here but opted out or bounced in the file. Fix these before any send.</b></p>' : '') +
+          tbl('In the file but not in the database', r.missing_from_database, ['email', 'source_status']) + tbl('In the database but not in the file', r.only_in_database, ['email', 'status']) +
+          tbl('Status differs', r.status_differs, ['email', 'source_status', 'status']) + tbl('Invalid addresses in the file', r.invalid, ['row', 'email']) + '</div>';
+      });
     });
     function renderPlan(p, done) {
       var t = p.totals;
       $('#im-out').innerHTML = '<div class="panel"><h2>' + (done ? (p.already_imported ? 'This exact file was already imported' : 'Import complete') : 'Preview') + '</h2>' +
         '<p>' + Object.keys(t).map(function (k) { return '<span class="tag">' + esc(k.replace(/_/g, ' ')) + ': ' + t[k] + '</span>'; }).join('') + '</p>' +
-        (p.mapping ? '<p class="muted">Columns read: ' + Object.keys(p.mapping).map(function (h) { return esc(h) + ' → ' + esc(p.mapping[h]); }).join(', ') + '</p>' : '') +
-        (!done ? '<p><button class="btn" id="im-commit">Import ' + ((t.new || 0) + (t.existing || 0)) + ' rows</button></p>' : '') +
+        (p.headers && !done ? '<details' + (Object.values(p.mapping).indexOf('email') < 0 ? ' open' : '') + '><summary>How each column is read (' + Object.keys(p.mapping).length + ' of ' + p.headers.length + ' matched; the rest are kept as custom fields)</summary><div class="row" id="im-map">' +
+          p.headers.map(function (h) { return '<div><label>' + esc(h) + '</label><select data-h="' + esc(h) + '"><option value="">keep as custom field</option>' + p.fields.map(function (f) { return '<option' + (p.mapping[h] === f ? ' selected' : '') + '>' + f + '</option>'; }).join('') + '</select></div>'; }).join('') + '</div><p><button class="btn ghost" id="im-remap">Apply column choices</button></p></details>' : '') +
+        (p.needs_mapping ? '<p class="warn">This file has no column the importer recognises as the email address. Choose it below, then click “Apply column choices”.</p>' : !done ? '<p><button class="btn" id="im-commit">Import ' + ((t.new || 0) + (t.existing || 0)) + ' rows</button></p>' : '') +
         (p.rows ? '<div class="scroll" style="max-height:480px;overflow:auto"><table><tr><th>Row</th><th>Email</th><th>Outcome</th><th>Detail</th></tr>' + p.rows.map(function (r) { return '<tr><td>' + r.row + '</td><td>' + esc(r.email) + '</td><td>' + st(r.outcome) + '</td><td>' + esc(r.detail) + '</td></tr>'; }).join('') + '</table></div>' : '') + '</div>';
-      if (!done) $('#im-commit').addEventListener('click', function () { this.disabled = true; guard(post('imports/commit', payload())).then(function (r) { renderPlan(r, true); toast('Import recorded.'); }); });
+      if ($('#im-remap')) $('#im-remap').addEventListener('click', function () { mapping = {}; document.querySelectorAll('#im-map select').forEach(function (s) { if (s.value) mapping[s.dataset.h] = s.value; }); guard(post('imports/preview', payload())).then(function (np) { renderPlan(np, false); }); });
+      if (!done && $('#im-commit')) $('#im-commit').addEventListener('click', function () { this.disabled = true; guard(post('imports/commit', payload())).then(function (r) { renderPlan(r, true); toast('Import recorded.'); }); });
     }
   }
 
@@ -208,18 +222,20 @@
     }
     var rc = send.recipients, total = Object.keys(rc).reduce(function (a, k) { return a + rc[k]; }, 0);
     box.innerHTML = '<p>' + st(send.status) + ' Subject: <b>' + esc(send.subject) + '</b></p>' +
-      (send.scheduled_at ? '<p>Scheduled for ' + when(send.scheduled_at) + '.</p>' : '') +
+      (send.scheduled_at ? '<p>Scheduled for ' + when(send.scheduled_at) + (send.audience && send.audience.tag ? ', only to people tagged <b>' + esc(send.audience.tag) + '</b>' : '') + '.</p>' : '') +
       (total ? '<p>' + Object.keys(rc).map(function (k) { return '<span class="tag st-' + k + '">' + k + ': ' + rc[k] + '</span>'; }).join('') + ' · opened by ' + fmt(send.opened) + ' · clicked by ' + fmt(send.clicked) + '</p>' : '') +
       (send.failures && send.failures.length ? '<details><summary>' + send.failures.length + ' not delivered</summary><table>' + send.failures.map(function (f) { return '<tr><td>' + esc(f.email_norm) + '</td><td>' + st(f.status) + '</td><td>' + esc(f.last_error || '') + '</td></tr>'; }).join('') + '</table></details>' : '') +
       (send.links && send.links.some(function (l) { return l.clicks; }) ? '<h3>Most clicked links</h3><table>' + send.links.filter(function (l) { return l.clicks; }).slice(0, 8).map(function (l) { return '<tr><td class="n">' + l.clicks + '</td><td>' + esc(l.url) + '</td></tr>'; }).join('') + '</table>' : '') +
       '<p style="margin-top:12px">' +
       (send.status === 'draft' ? '<button class="btn" id="s-approve">I approve this issue for sending</button> ' : '') +
-      (send.status === 'approved' || send.status === 'scheduled' ? '<input id="s-at" type="datetime-local"> <button class="btn" id="s-schedule">' + (send.status === 'scheduled' ? 'Reschedule' : 'Schedule') + '</button> <span class="muted">Leave the time empty for the next Monday 8:45 a.m. Eastern slot.</span> ' : '') +
+      (send.status === 'approved' || send.status === 'scheduled' ? '<input id="s-at" type="datetime-local"> <input id="s-tag" placeholder="only people tagged… (optional)" value="' + esc((send.audience && send.audience.tag) || '') + '"> <button class="btn" id="s-schedule">' + (send.status === 'scheduled' ? 'Reschedule' : 'Schedule') + '</button> <span class="muted">Leave the time empty for the next Monday 8:45 a.m. Eastern slot. A tag sends to that group first; everyone else can be added afterwards.</span> ' : '') +
+      ((send.status === 'sent' || send.status === 'sending') && send.not_yet_included ? '<button class="btn" id="s-extend">Send to the ' + send.not_yet_included + ' subscriber(s) not yet included</button> ' : '') +
       (['draft', 'approved', 'scheduled'].indexOf(send.status) >= 0 ? '<button class="btn ghost" id="s-cancel">Cancel</button>' : '') +
       (rc.failed ? '<button class="btn ghost" id="s-retry">Retry failed (check the provider log first)</button>' : '') + '</p>';
     var act = function (id, path, body) { var b = $(id); if (b) b.addEventListener('click', function () { guard(post('sends/' + send.id + '/' + path, body ? body() : {})).then(again); }); };
     act('#s-approve', 'approve'); act('#s-cancel', 'cancel'); act('#s-retry', 'retry-failed');
-    act('#s-schedule', 'schedule', function () { var v = $('#s-at').value; return { at: v ? new Date(v).toISOString() : null }; });
+    act('#s-schedule', 'schedule', function () { var v = $('#s-at').value; return { at: v ? new Date(v).toISOString() : null, audience_tag: $('#s-tag').value.trim() || null }; });
+    act('#s-extend', 'extend');
   }
 
   // ---------- links ----------
@@ -244,7 +260,7 @@
       view.innerHTML = '<div class="grid g2"><div class="panel"><h2>Backup and export</h2><p class="muted">Backups contain private subscriber data. Keep them in private storage only.</p><p><a class="btn ghost" href="/api/admin/export/backup.json">Download full backup (JSON)</a> <a class="btn ghost" href="/api/admin/export/people.csv">Download everyone (CSV)</a></p>' +
         '<h3 style="margin-top:14px">Restore</h3><p class="muted">Only works on an empty database.</p><input type="file" id="r-file" accept="application/json"> <button class="btn ghost" id="r-go">Restore</button></div>' +
         '<div class="panel"><h2>Email delivery</h2><p>Mode: <b>' + (p.send_mode === 'live' ? 'LIVE' : 'dry run (nothing is emailed)') + '</b><br>From address: ' + esc(p.from || 'not set') + '<br>Authorised test inboxes: ' + p.test_recipients + '<br>Footer postal address: ' + (p.configured.postal_address ? 'set' : '<span class="err">not set</span>') + '</p>' +
-        '<h3>Gmail sending account</h3><p>' + (p.gmail.connected ? '<span class="ok">Connected</span> as <b>' + esc(p.gmail.account || 'unknown account') + '</b>. <button class="link" id="g-off">Disconnect</button>' : p.gmail.client_configured ? 'Not connected. <a class="btn" href="/api/admin/gmail/connect">Connect Gmail</a>' : '<span class="muted">Waiting for GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET to be added as Worker secrets.</span>') + '</p><p class="muted">Redirect address to register at Google: <code>' + esc(p.gmail.redirect_uri) + '</code></p><p style="margin:0"><table><tr><th>Provider</th><th class="n">Used today</th><th class="n">Daily limit</th></tr>' + p.quotas.map(function (q) { return '<tr><td>' + esc(q.name) + '</td><td class="n">' + q.used + '</td><td class="n">' + q.limit + '</td></tr>'; }).join('') + '</table></div></div>' +
+        (p.last_problem ? '<p class="err">Last delivery problem (' + when(p.last_problem.at) + ', ' + esc(p.last_problem.provider) + '): ' + esc(p.last_problem.message) + '</p>' : '') + '<h3>Gmail sending account</h3><p>' + (p.gmail.connected ? '<span class="ok">Connected</span> as <b>' + esc(p.gmail.account || 'unknown account') + '</b>. <button class="link" id="g-off">Disconnect</button>' : p.gmail.client_configured ? 'Not connected. <a class="btn" href="/api/admin/gmail/connect">Connect Gmail</a>' : '<span class="muted">Waiting for GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET to be added as Worker secrets.</span>') + '</p><p class="muted">Redirect address to register at Google: <code>' + esc(p.gmail.redirect_uri) + '</code></p><p style="margin:0"><table><tr><th>Provider</th><th class="n">Used today</th><th class="n">Daily limit</th></tr>' + p.quotas.map(function (q) { return '<tr><td>' + esc(q.name) + '</td><td class="n">' + q.used + '</td><td class="n">' + q.limit + '</td></tr>'; }).join('') + '</table></div></div>' +
         '<div class="grid g2"><div class="panel"><h2>Import historical metrics</h2><p class="muted">Paste beehiiv post statistics (JSON with a "posts" list) or a growth series (JSON with a "series" list). Figures are stored exactly as given and labelled as beehiiv-era.</p><textarea id="m-json" placeholder=\'{"posts":[...]}\'></textarea><p><button class="btn ghost" id="m-go">Import</button></p></div>' +
         '<div class="panel"><h2>Suppression list (' + res[2].rows.length + ')</h2><div class="row"><div style="flex:1"><input id="sup-email" type="email" placeholder="address to never email" style="width:100%"></div><div><input id="sup-detail" placeholder="why"></div><div><button class="btn ghost" id="sup-add">Suppress</button></div></div>' +
         '<div class="scroll" style="max-height:260px;overflow:auto"><table>' + res[2].rows.map(function (s) { return '<tr><td>' + esc(s.email_norm) + '</td><td>' + st(s.reason) + '</td><td class="muted">' + esc(s.source) + '</td><td>' + day(s.created_at) + '</td></tr>'; }).join('') + '</table></div></div></div>' +

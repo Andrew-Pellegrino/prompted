@@ -89,21 +89,36 @@ export const gmail = {
   name: 'gmail',
   configured: (env) => !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET && env.GMAIL_REFRESH_TOKEN),
   dailyLimit: (env) => num(env.GMAIL_DAILY_LIMIT, 400),
+  // Gmail API allows 6,000 quota units a minute per user on new projects and a send costs 100,
+  // so at most 60 sends a minute. Cron runs once a minute; stay well under.
+  maxPerTick: (env) => num(env.GMAIL_MAX_PER_TICK, 30),
   async send(env, msg) {
-    if (!gmailToken || gmailToken.expires < Date.now() + 60000) {
+    // Cached per sign-in, so reconnecting a different account never reuses the old account's access.
+    if (!gmailToken || gmailToken.key !== env.GMAIL_REFRESH_TOKEN || gmailToken.expires < Date.now() + 60000) {
       const res = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({ client_id: env.GMAIL_CLIENT_ID, client_secret: env.GMAIL_CLIENT_SECRET, refresh_token: env.GMAIL_REFRESH_TOKEN, grant_type: 'refresh_token' }),
       });
-      if (!res.ok) return { ok: false, error: 'gmail token ' + (await errText(res)), retryable: retryableStatus(res.status) };
+      if (!res.ok) {
+        const text = await errText(res);
+        // invalid_grant: the sign-in was revoked or expired (password change, 7-day test-mode expiry, six months unused).
+        if (/invalid_grant|invalid_client|unauthorized_client/.test(text)) return { ok: false, authError: true, retryable: true, error: 'Gmail sign-in has expired or was revoked. Reconnect Gmail in the dashboard (Tools).' };
+        return { ok: false, error: 'gmail token ' + text, retryable: retryableStatus(res.status) };
+      }
       const j = await res.json();
-      gmailToken = { value: j.access_token, expires: Date.now() + (j.expires_in || 3000) * 1000 };
+      gmailToken = { key: env.GMAIL_REFRESH_TOKEN, value: j.access_token, expires: Date.now() + (j.expires_in || 3000) * 1000 };
     }
     const res = await fetch('https://gmail.googleapis.com/gmail/v1/users/me/messages/send', {
       method: 'POST', headers: { authorization: `Bearer ${gmailToken.value}`, 'content-type': 'application/json' },
       body: JSON.stringify({ raw: b64url(new TextEncoder().encode(buildMime(msg))) }),
     });
-    if (!res.ok) return { ok: false, error: 'gmail ' + (await errText(res)), retryable: retryableStatus(res.status) };
+    if (!res.ok) {
+      const text = await errText(res);
+      if (res.status === 401) { gmailToken = null; return { ok: false, authError: true, retryable: true, error: 'Gmail rejected the sign-in. Reconnect Gmail in the dashboard (Tools).' }; }
+      // Per-minute quota or the account's daily sending cap: stop and try again later, without counting it as a failure.
+      if (res.status === 429 || (res.status === 403 && /rateLimitExceeded|userRateLimitExceeded|dailyLimitExceeded|quota/i.test(text))) return { ok: false, rateLimited: true, retryable: true, error: 'gmail limit reached: ' + text.slice(0, 160) };
+      return { ok: false, error: 'gmail ' + text, retryable: retryableStatus(res.status) };
+    }
     return { ok: true, id: (await res.json()).id || null };
   },
 };

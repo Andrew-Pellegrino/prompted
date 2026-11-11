@@ -119,3 +119,32 @@ footer.site nav{display:flex;gap:16px;flex-wrap:wrap}
 @media(max-width:600px){.pager{grid-template-columns:1fr}.wrap{padding:0 16px}.nav .wrap{gap:10px}.brand{font-size:19px;gap:8px}.brand img{width:22px;height:22px}.nav nav{gap:12px;font-size:14px}.nav nav .btn{padding:8px 11px;font-size:14px}}
 @media(prefers-reduced-motion:no-preference){html{scroll-behavior:smooth}}
 @media print{.nav,.gate,.after,footer.site,.preview-banner,.toc{display:none}.gate-fade{max-height:none}.gate-fade::after{display:none}}
+
+/* reading aids */
+.progress{position:fixed;top:0;left:0;right:0;height:3px;z-index:6;pointer-events:none}
+.progress i{display:block;height:100%;width:0;background:var(--red)}
+.toc-side{display:none}
+@media(min-width:1180px){
+  .issue-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,680px) minmax(0,1fr);gap:36px;align-items:start}
+  .issue-layout>article{grid-column:2;margin:0}
+  .toc-side{display:block;grid-column:1;position:sticky;top:84px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.35;justify-self:end;max-width:230px;padding-right:4px}
+  .toc-side p{margin:0 0 8px;font-weight:700;color:var(--muted)}
+  .toc-side ol{list-style:none;margin:0;padding:0;border-left:1px solid var(--hair)}
+  .toc-side li a{display:block;padding:5px 0 5px 12px;margin-left:-1px;border-left:2px solid transparent;text-decoration:none;color:var(--muted)}
+  .toc-side li.l2 a{color:var(--ink);font-weight:700;margin-top:6px}
+  .toc-side li a:hover,.toc-side li a.on{color:var(--red);border-left-color:var(--red)}
+  details.toc{display:none}
+}
+/* home facts strip */
+.facts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:16px}
+.facts div{border:1px solid var(--hair);border-radius:6px;padding:14px;background:var(--sheet)}
+.facts b{display:block;font-size:22px;line-height:1.1}
+.facts span{display:block;color:var(--muted);font-size:13px;margin-top:4px}
+@media(max-width:600px){.facts{grid-template-columns:1fr}}
+/* the institutional lockup is drawn on white: give it a white plate in dark mode */
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .lockup{background:#fff;border-radius:8px;padding:8px;box-sizing:content-box}}
+:root[data-theme="dark"] .lockup{background:#fff;border-radius:8px;padding:8px;box-sizing:content-box}
+section.block:nth-of-type(odd){background:var(--sheet)}
+section.block:nth-of-type(odd) .lead-issue,section.block:nth-of-type(odd) .card,section.block:nth-of-type(odd) .facts div{background:var(--paper)}
+footer.site{border-top:3px solid var(--red)}
+@media print{.progress,.toc-side{display:none}}

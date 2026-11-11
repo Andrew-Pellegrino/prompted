@@ -104,7 +104,7 @@ ${body}
 const issueLi = (i) => `<li data-issue="${i.slug}" data-hay="${esc((i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ') + ' issue ' + i.number).toLowerCase())}"><a href="${issueUrl(i)}"><span class="no">${String(i.number).padStart(2, '0')}</span><span class="wk">Week of ${esc(i.week.label)}</span><span class="st">${esc(i.subtitle)}</span></a></li>`;
 
 function homePage(site, issues) {
-  const latest = issues.at(-1), recent = issues.slice(-7, -1).reverse();
+  const latest = issues.at(-1), recent = issues.slice(-5, -1).reverse();
   const body = `<section class="hero"><div class="wrap">
   <img class="lockup" src="/img/miami-altman-lockup.png" width="160" height="127" alt="Miami University, John W. Altman Institute for Entrepreneurship">
   <h1>${esc(site.name)}</h1>
@@ -123,6 +123,11 @@ function homePage(site, issues) {
       <ul>${storyTitles(latest).slice(0, 5).map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
       <span class="more">Read the issue →</span>
     </a>
+    <div class="facts">
+      <div><b>${issues.length}</b><span>issues in the archive</span></div>
+      <div><b>${esc(site.send_slot_label.replace(/ at .*/, ''))}</b><span>8:45 a.m. Eastern, every week</span></div>
+      <div><b>Free</b><span>no ads, one click to leave</span></div>
+    </div>
   </div>
   <div>
     <p class="kicker">Recent issues</p>
@@ -177,10 +182,12 @@ function issuePage(site, issue, issues, indexData) {
   const gated = site.gate === 'soft' && parts.length > site.gate_after_blocks + 4;
   const head = gated ? parts.slice(0, site.gate_after_blocks).join('\n') : html;
   const rest = gated ? parts.slice(site.gate_after_blocks).join('\n') : '';
-  const body = `<div class="wrap">
+  const body = `<div class="progress" aria-hidden="true"><i></i></div><div class="wrap">
 ${renderMasthead(issue, site)}
 <p class="meta"><span>No. ${issue.number}</span><span>Week of ${esc(issue.week.label)}</span><span>${readMinutes(issue)} min read</span><span>By ${esc(site.author)}</span></p>
 <details class="toc"><summary>In this issue</summary><ol>${toc.map((t) => `<li class="l${t.level}"><a href="#${t.id}">${esc(t.text)}</a></li>`).join('')}</ol></details>
+<div class="issue-layout">
+<nav class="toc-side" aria-label="In this issue"><p>In this issue</p><ol>${toc.map((t) => `<li class="l${t.level}"><a href="#${t.id}">${esc(t.text)}</a></li>`).join('')}</ol></nav>
 <article class="issue">
 <h1>${esc(issue.title)}</h1>
 ${head}
@@ -189,6 +196,7 @@ ${gated ? `<div class="gate card" data-gate hidden><h2>Keep reading. It is free.
 ${rest}
 </div>` : ''}
 </article>
+</div>
 <div class="after">
   ${terms.length ? `<section class="terms" aria-labelledby="terms-h"><h2 id="terms-h">Terms from this issue in the Prompted Index</h2><div class="chips">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div></section>` : ''}
   <div class="share"><span>Share:</span><a href="https://www.linkedin.com/sharing/share-offsite/?url=${share}" rel="noopener">LinkedIn</a><a href="mailto:?subject=${encodeURIComponent(issue.title)}&body=${share}">Email</a><a href="${esc(url)}">Permalink</a></div>

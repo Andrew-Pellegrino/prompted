@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 26 of 26 pass.
+- `npm test`: 30 of 30 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -40,6 +40,11 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   for Monday 13:45 UTC.
 - **Cloudflare's own cron** started and completed a dry-run send to 30 synthetic subscribers in two
   chunks, with no duplicates.
+- **Second live pass, 12 of 12 after one fix:** staged send through the real cron (3 tagged pilot
+  subscribers first, then "everyone not yet included": 30 sent, nobody twice, an unsubscribed address
+  excluded); compare tool found a planted new address and a planted opt-out and flagged the opt-out as
+  dangerous; import with hand-chosen columns kept an unknown column as a custom field and applied the
+  opt-out; strict security policy on the dashboard; side contents list and progress bar on issue pages.
 - Real local Workers runtime (wrangler dev with a local D1 database) driven by a browser: campaign link,
   signup, confirmation, reading gate, archive search, Index link, dashboard login, CSV import (40 synthetic
   rows), QA, test send, approval, scheduling (resolved to Monday 13:45 UTC, which is 8:45 a.m. Eastern in
@@ -67,6 +72,22 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
 
+## Added since the first deploy
+
+- **Staged sends.** Schedule to people carrying a tag first, then extend to everyone else. For a careful
+  first live send and for keeping Gmail volume gentle.
+- **Gmail behaviour.** At most 30 sends a minute (Google allows 60); a rate limit or an expired sign-in
+  pauses the send, loses nobody, and shows the reason in the dashboard.
+- **Migration tools.** Column chooser for unfamiliar exports, unmapped columns kept as custom fields, and a
+  read-only "Compare only" report (counts by status on both sides, missing, extra, differing, and any
+  address that is active here but opted out in the source).
+- **Security.** Strict content security policy on the dashboard; credentials are filtered out of backups.
+- **Site.** Side contents list and progress bar on issue pages, dark-mode fix for the logo, tighter mobile
+  header, home page balance.
+- **Viability assessment** of personal Gmail as a sender: `DELIVERY-VERDICT.md`.
+- Authorised test inbox stored as the `TEST_RECIPIENTS` secret. Postal address still a placeholder by the
+  owner's instruction.
+
 ## Open blockers and owner actions
 
 1. Create the dedicated Google sending account and OAuth client, add two secrets in Cloudflare, click
@@ -79,8 +100,8 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## State of the preview database
 
-It holds **synthetic data only**: 30 `@example.org` subscribers, one `@example.com` signup test, one
-completed dry-run send of issue 31. Empty it before any real import:
+It holds **synthetic data only**: 31 `@example.org` people (one unsubscribed), one `@example.com` signup
+test, and completed dry-run sends of issues 30 and 31. Empty it before any real import:
 
 ```bash
 npx wrangler d1 execute DB --remote --command "DELETE FROM send_recipients; DELETE FROM send_links; DELETE FROM sends; DELETE FROM delivery_events; DELETE FROM import_rows; DELETE FROM import_batches; DELETE FROM people; DELETE FROM organizations; DELETE FROM suppressions; DELETE FROM provider_usage; DELETE FROM rate_limits;"

@@ -49,7 +49,8 @@ export async function getSend(db, id) {
   if (!send) throw new HttpError(404, 'No such send.');
   const counts = await all(db, 'SELECT status, COUNT(*) AS n, SUM(opens > 0) AS opened, SUM(clicks > 0) AS clicked FROM send_recipients WHERE send_id = ? GROUP BY status', id);
   const links = await all(db, 'SELECT idx, url, clicks FROM send_links WHERE send_id = ? ORDER BY clicks DESC, idx', id);
-  return { ...send, qa: JSON.parse(send.qa), totals: JSON.parse(send.totals), recipients: Object.fromEntries(counts.map((c) => [c.status, c.n])), opened: counts.reduce((a, c) => a + (c.opened || 0), 0), clicked: counts.reduce((a, c) => a + (c.clicked || 0), 0), links };
+  const remaining = send.kind === 'issue' ? (await first(db, `SELECT COUNT(*) AS n FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions) AND email_norm NOT IN (SELECT email_norm FROM send_recipients WHERE send_id = ?)`, id)).n : 0;
+  return { ...send, audience: JSON.parse(send.audience || '{}'), not_yet_included: remaining, qa: JSON.parse(send.qa), totals: JSON.parse(send.totals), recipients: Object.fromEntries(counts.map((c) => [c.status, c.n])), opened: counts.reduce((a, c) => a + (c.opened || 0), 0), clicked: counts.reduce((a, c) => a + (c.clicked || 0), 0), links };
 }
 
 async function requireFresh(env, send) {
@@ -70,7 +71,7 @@ export async function approveSend(env, id, actor) {
   return getSend(db, id);
 }
 
-export async function scheduleSend(env, id, at, actor) {
+export async function scheduleSend(env, id, at, actor, opts = {}) {
   const db = env.DB, send = await first(db, 'SELECT * FROM sends WHERE id = ?', id);
   if (!send || send.kind !== 'issue') throw new HttpError(404, 'No such send.');
   if (!['approved', 'scheduled'].includes(send.status)) throw new HttpError(409, 'A send must be approved by the owner before it can be scheduled.');
@@ -79,8 +80,9 @@ export async function scheduleSend(env, id, at, actor) {
   if (isNaN(when)) throw new HttpError(400, 'Bad schedule time.');
   if (!at && when <= new Date()) when = new Date(nextSendSlot().utc);
   if (when <= new Date()) throw new HttpError(400, 'The schedule time must be in the future.');
-  await run(db, "UPDATE sends SET status = 'scheduled', scheduled_at = ? WHERE id = ?", when.toISOString(), id);
-  await audit(db, actor, 'send.schedule', 'send', id, { at: when.toISOString() });
+  const audience = opts.audience_tag ? { tag: String(opts.audience_tag).slice(0, 60) } : {};
+  await run(db, "UPDATE sends SET status = 'scheduled', scheduled_at = ?, audience = ? WHERE id = ?", when.toISOString(), JSON.stringify(audience), id);
+  await audit(db, actor, 'send.schedule', 'send', id, { at: when.toISOString(), audience });
   return getSend(db, id);
 }
 
@@ -133,7 +135,7 @@ export async function processSend(env, send) {
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
   const pick = await pickProvider(env, reserve);
-  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(chunkSize, pick.remaining)) : [];
+  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(chunkSize, pick.remaining, pick.provider.maxPerTick ? pick.provider.maxPerTick(env) : chunkSize)) : [];
   if (queued.length) {
     const { provider } = pick;
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
@@ -148,7 +150,9 @@ export async function processSend(env, send) {
     await db.batch(queued.map((r) => stmt(db, "UPDATE send_recipients SET status = 'sending', claimed_at = ?, attempts = attempts + 1, provider = ? WHERE send_id = ? AND email_norm = ? AND status = 'queued'", claimedAt, provider.name, send.id, r.email_norm)));
     const results = [];
     const allow = testAllowlist(env);
+    let paused = null; // set when the provider says "not now" (rate limit, expired sign-in): nothing more is attempted this run
     for (const r of queued) {
+      if (paused) { results.push({ r, res: { ok: false, deferred: true } }); continue; }
       // Outside production, real providers may only reach authorised test inboxes.
       if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) { results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } }); continue; }
       const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
@@ -157,8 +161,10 @@ export async function processSend(env, send) {
       try {
         res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });
       } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
+      if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
       results.push({ r, res });
     }
+    if (paused) await run(db, "INSERT INTO settings (key, value) VALUES ('delivery_last_problem', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ at: now(), provider: provider.name, message: paused.error }));
     // 3. Record results in one batch.
     const at = now(), stmts = [];
     let sent = 0;
@@ -167,6 +173,9 @@ export async function processSend(env, send) {
         sent++;
         stmts.push(stmt(db, "UPDATE send_recipients SET status = 'sent', sent_at = ?, provider_message_id = ?, last_error = NULL WHERE send_id = ? AND email_norm = ?", at, res.id || null, send.id, r.email_norm));
         stmts.push(stmt(db, "INSERT INTO delivery_events (send_id, email_norm, type, provider, at) VALUES (?, ?, 'sent', ?, ?)", send.id, r.email_norm, provider.name, at));
+      } else if (res.deferred) {
+        // Back to the queue untouched: a provider pause is not a failed attempt.
+        stmts.push(stmt(db, "UPDATE send_recipients SET status = 'queued', claimed_at = NULL, attempts = MAX(0, attempts - 1), last_error = ? WHERE send_id = ? AND email_norm = ?", res.error || null, send.id, r.email_norm));
       } else {
         const status = res.skipped ? 'skipped' : res.retryable && r.attempts + 1 < MAX_ATTEMPTS ? 'queued' : 'failed';
         stmts.push(stmt(db, 'UPDATE send_recipients SET status = ?, last_error = ? WHERE send_id = ? AND email_norm = ?', status, res.error || 'unknown error', send.id, r.email_norm));
@@ -186,6 +195,11 @@ export async function processSend(env, send) {
   return { done: false, left: left.n, waiting_for_quota: !pick };
 }
 
+function audienceFilter(audience) {
+  // Optional staged rollout: only people carrying this tag. Everyone else can be added later with extendSend().
+  return audience?.tag ? { sql: ' AND id IN (SELECT person_id FROM person_tags WHERE tag = ?)', args: [audience.tag] } : { sql: '', args: [] };
+}
+
 /** Cron entry point: start due sends, then advance every send in progress by one chunk. */
 export async function tick(env) {
   const db = env.DB, out = [];
@@ -197,18 +211,35 @@ export async function tick(env) {
       await audit(db, 'cron', 'send.blocked', 'send', send.id, { reason: 'content changed after approval' });
       continue;
     }
+    const aud = audienceFilter(JSON.parse(send.audience || '{}'));
     const urls = [...new Set(issue.blocks.flatMap((b) => (b.type === 'list' ? b.items.flat() : b.children || [])).filter((r) => /^https?:\/\//.test(r.href || '')).map((r) => r.href))];
     await db.batch([
       stmt(db, "UPDATE sends SET status = 'sending', started_at = ? WHERE id = ? AND status = 'scheduled'", now(), send.id),
       // Audience snapshot: active people who are not suppressed. One statement, so it cannot half-run.
       stmt(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status)
-        SELECT ?, id, email_norm, token, 'queued' FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)`, send.id),
+        SELECT ?, id, email_norm, token, 'queued' FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)${aud.sql}`, send.id, ...aud.args),
       ...urls.map((u, i) => stmt(db, 'INSERT OR IGNORE INTO send_links (send_id, idx, url) VALUES (?, ?, ?)', send.id, i, u)),
     ]);
     await audit(db, 'cron', 'send.start', 'send', send.id, { slug: send.issue_slug });
   }
   for (const send of await all(db, "SELECT * FROM sends WHERE status = 'sending' ORDER BY id LIMIT 2")) out.push({ id: send.id, ...(await processSend(env, send)) });
   return out;
+}
+
+/**
+ * Staged rollout, step two: add every active, unsuppressed subscriber who has not already been queued for
+ * this send. The primary key on (send, address) makes it impossible to mail anyone twice.
+ */
+export async function extendSend(env, id, actor) {
+  const db = env.DB, send = await first(db, 'SELECT * FROM sends WHERE id = ?', id);
+  if (!send || send.kind !== 'issue') throw new HttpError(404, 'No such send.');
+  if (!['sending', 'sent'].includes(send.status)) throw new HttpError(409, 'Only a send that has started can be extended to the rest of the audience.');
+  await requireFresh(env, send);
+  const res = await run(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status)
+    SELECT ?, id, email_norm, token, 'queued' FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)`, id);
+  await run(db, "UPDATE sends SET status = 'sending', finished_at = NULL, audience = '{}' WHERE id = ?", id);
+  await audit(db, actor, 'send.extend', 'send', id, { added: res.meta.changes });
+  return getSend(db, id);
 }
 
 /** Re-queue failed recipients after the owner has checked the provider log. */

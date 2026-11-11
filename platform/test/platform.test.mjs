@@ -378,3 +378,100 @@ test('Gmail connection: state-protected OAuth callback stores the token privatel
     assert.equal((await c.get('/api/admin/providers')).data.gmail.connected, false);
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('staged send: a tagged pilot group first, then everyone else, nobody twice', async () => {
+  const env = await makeEnv({ SEND_CHUNK: '50' });
+  const c = await audience(env, 20);
+  await c.post('/api/admin/people/bulk', { ids: [1, 2, 3], action: 'tag', value: 'pilot' });
+  const send = await c.post('/api/admin/sends', { issue_slug: SLUG });
+  await c.post(`/api/admin/sends/${send.data.id}/approve`);
+  assert.equal((await c.post(`/api/admin/sends/${send.data.id}/extend`)).status, 409, 'cannot extend before it starts');
+  const sch = await c.post(`/api/admin/sends/${send.data.id}/schedule`, { audience_tag: 'pilot' });
+  assert.deepEqual(sch.data.audience, { tag: 'pilot' });
+  env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+  await tickAll(env);
+  let s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+  assert.deepEqual([s.status, s.recipients.sent, s.not_yet_included], ['sent', 3, 17]);
+  env.DB.sqlite.prepare("UPDATE people SET status = 'unsubscribed' WHERE id = 20").run();
+  env.DB.sqlite.prepare("INSERT INTO suppressions (email_norm, reason, source, created_at) VALUES ('reader19@example.com', 'unsubscribed', 'platform', '2026-01-01')").run();
+  s = (await c.post(`/api/admin/sends/${send.data.id}/extend`)).data;
+  assert.deepEqual([s.status, s.recipients.queued], ['sending', 16]);
+  await tickAll(env);
+  s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+  assert.deepEqual([s.status, s.recipients.sent, s.not_yet_included], ['sent', 19, 0]);
+  assert.equal(one(env, 'SELECT COUNT(DISTINCT email_norm) n FROM send_recipients').n, 19);
+  assert.equal(one(env, "SELECT COUNT(*) n FROM delivery_events WHERE type = 'sent'").n, 19);
+});
+
+test('Gmail limits and expired sign-in pause a send without burning attempts or losing anyone', async () => {
+  const env = await makeEnv({ SEND_MODE: 'live', EMAIL_PROVIDERS: 'gmail', GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt', GMAIL_FROM_EMAIL: 'sender@gmail.test', SITE_ENV: 'production', SEND_CHUNK: '10' });
+  const c = await audience(env, 6);
+  const send = await c.post('/api/admin/sends', { issue_slug: SLUG });
+  await c.post(`/api/admin/sends/${send.data.id}/approve`);
+  await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+  env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+  let sends = 0, mode = 'limit';
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    if (String(url).includes('oauth2.googleapis.com')) return mode === 'revoked' ? new Response('{"error":"invalid_grant"}', { status: 400 }) : new Response('{"access_token":"at","expires_in":1}', { status: 200 });
+    sends++;
+    if (mode === 'limit' && sends > 2) return new Response('{"error":{"errors":[{"reason":"userRateLimitExceeded"}]}}', { status: 403 });
+    return new Response('{"id":"m' + sends + '"}', { status: 200 });
+  };
+  try {
+    await tick(env);
+    let s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+    assert.deepEqual([s.status, s.recipients.sent, s.recipients.queued], ['sending', 2, 4], 'stops at the limit');
+    assert.equal(sends, 3, 'no further calls after Gmail says stop');
+    assert.equal(one(env, "SELECT MAX(attempts) a FROM send_recipients WHERE status = 'queued'").a, 0);
+    assert.match((await c.get('/api/admin/providers')).data.last_problem.message, /gmail limit reached/);
+    mode = 'revoked'; await new Promise((r) => setTimeout(r, 5));
+    env.DB.sqlite.prepare('DELETE FROM provider_usage').run();
+    await tick(env);
+    s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+    assert.deepEqual([s.recipients.sent, s.recipients.queued, s.recipients.failed], [2, 4, undefined], 'expired sign-in: everyone stays queued');
+    assert.match((await c.get('/api/admin/providers')).data.last_problem.message, /Reconnect Gmail/);
+    mode = 'ok';
+    await tickAll(env);
+    s = (await c.get(`/api/admin/sends/${send.data.id}`)).data;
+    assert.deepEqual([s.status, s.recipients.sent], ['sent', 6]);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('migration tooling: column mapping, custom fields kept, reconcile report flags dangerous differences', async () => {
+  const env = await makeEnv(), c = client(env);
+  await c.login();
+  const ledger = 'Subscriber,State,Joined,Favourite Topic,Plan\na@example.com,active,2026-09-01T00:00:00Z,agents,free\nb@example.com,inactive,2026-09-02T00:00:00Z,,free\nc@example.com,active,2026-09-03T00:00:00Z,chips,free\n';
+  const pre = await c.post('/api/admin/imports/preview', { csv: ledger, mode: 'migration', source_label: 'x' });
+  assert.deepEqual([pre.status, pre.data.needs_mapping, pre.data.headers.length], [200, true, 5], 'no email column recognised: the dashboard asks which one it is');
+  assert.equal((await c.post('/api/admin/imports/commit', { csv: ledger, mode: 'migration', source_label: 'x' })).status, 400);
+  const mapping = { Subscriber: 'email', State: 'status', Joined: 'subscribed_at', Bogus: 'email', Plan: 'not_a_field' };
+  const plan = await c.post('/api/admin/imports/preview', { csv: ledger, mode: 'migration', source_label: 'x', mapping });
+  assert.deepEqual(plan.data.mapping, { Subscriber: 'email', State: 'status', Joined: 'subscribed_at' }, 'unknown headers and fields are dropped');
+  assert.ok(plan.data.fields.includes('institution_id'));
+  await c.post('/api/admin/imports/commit', { csv: ledger, mode: 'migration', source_label: 'x', mapping });
+  assert.deepEqual(JSON.parse(one(env, "SELECT custom FROM people WHERE email_norm = 'a@example.com'").custom), { 'Favourite Topic': 'agents', Plan: 'free' });
+  let r = (await c.post('/api/admin/imports/reconcile', { csv: ledger, mapping })).data;
+  assert.deepEqual([r.in_agreement, r.matching, r.source_counts, r.database_counts], [true, 3, { active: 2, unsubscribed: 1 }, { active: 2, unsubscribed: 1 }]);
+  // drift: someone unsubscribed in the source, someone new appeared there, someone exists only here
+  const later = ledger.replace('c@example.com,active', 'c@example.com,inactive') + 'd@example.com,active,2026-10-01T00:00:00Z,,free\nnot-an-address,active,,,\n';
+  await c.post('/api/admin/people', { email: 'local@example.com' });
+  r = (await c.post('/api/admin/imports/reconcile', { csv: later, mapping })).data;
+  assert.equal(r.in_agreement, false);
+  assert.deepEqual(r.missing_from_database, [{ email: 'd@example.com', source_status: 'active' }]);
+  assert.deepEqual(r.only_in_database, [{ email: 'local@example.com', status: 'prospective' }]);
+  assert.deepEqual(r.dangerous, [{ email: 'c@example.com', source_status: 'unsubscribed', status: 'active' }]);
+  assert.equal(r.invalid.length, 1);
+  assert.equal(one(env, "SELECT status FROM people WHERE email_norm = 'c@example.com'").status, 'active', 'reconcile changes nothing');
+  // importing the newer ledger applies the opt-out and never the reverse
+  await c.post('/api/admin/imports/commit', { csv: later.replace('not-an-address,active,,,\n', ''), mode: 'migration', source_label: 'x', mapping });
+  assert.equal(one(env, "SELECT status FROM people WHERE email_norm = 'c@example.com'").status, 'unsubscribed');
+  assert.equal((await c.post('/api/admin/imports/reconcile', { csv: later.replace('not-an-address,active,,,\n', ''), mapping })).data.dangerous.length, 0);
+});
+
+test('dashboard pages carry a strict content security policy', async () => {
+  const env = await makeEnv(), c = client(env);
+  const r = await c.get('/admin/');
+  assert.match(r.headers.get('content-security-policy'), /default-src 'self'.*frame-ancestors 'none'/);
+  assert.equal((await c.get('/')).headers.get('content-security-policy'), null);
+});

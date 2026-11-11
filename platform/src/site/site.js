@@ -47,6 +47,22 @@
     if (location.hash) { open(); }
   }
 
+  // Reading progress bar and "you are here" in the side contents list.
+  var bar = document.querySelector('.progress i'), art = document.querySelector('article.issue');
+  if (bar && art) {
+    var links = [].slice.call(document.querySelectorAll('.toc-side a')), heads = links.map(function (a) { return document.getElementById(a.getAttribute('href').slice(1)); });
+    var tick = false, update = function () {
+      tick = false;
+      var r = art.getBoundingClientRect(), total = r.height - window.innerHeight * 0.6;
+      bar.style.width = Math.max(0, Math.min(100, (-r.top / (total > 0 ? total : 1)) * 100)) + '%';
+      var cur = -1;
+      for (var i = 0; i < heads.length; i++) if (heads[i] && heads[i].getBoundingClientRect().top < 120) cur = i;
+      links.forEach(function (a, i) { a.classList.toggle('on', i === cur); });
+    };
+    window.addEventListener('scroll', function () { if (!tick) { tick = true; requestAnimationFrame(update); } }, { passive: true });
+    update();
+  }
+
   // Archive search: titles and summaries instantly, full text after the index loads.
   var box = document.querySelector('[data-search]');
   if (box) {

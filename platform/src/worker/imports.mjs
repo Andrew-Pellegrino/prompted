@@ -40,9 +40,14 @@ const isoOrNull = (v) => { if (!v) return null; const d = new Date(v); return is
 const STATUS_MAP = { active: 'active', subscribed: 'active', inactive: 'unsubscribed', unsubscribed: 'unsubscribed', pending: 'pending', validating: 'pending',
   needs_attention: 'bounced', bounced: 'bounced', undeliverable: 'bounced', complained: 'complained', spam: 'complained', suppressed: 'suppressed', prospective: 'prospective' };
 
+export const IMPORT_FIELDS = Object.keys(ALIASES);
+
 function rowFields(rec, map) {
-  const f = {};
+  const f = {}, custom = {};
   for (const [header, field] of Object.entries(map)) if (field && rec[header] !== undefined && rec[header] !== '') f[field] = rec[header];
+  // Columns that are not mapped to a known field are kept, verbatim, as custom fields.
+  for (const [header, value] of Object.entries(rec)) if (header !== '_row' && !map[header] && value !== '') custom[header] = value;
+  f._custom = custom;
   if (f.name && !f.first_name) { const parts = f.name.trim().split(/\s+/); f.first_name = parts[0]; f.last_name = parts.slice(1).join(' ') || undefined; }
   return f;
 }
@@ -55,9 +60,13 @@ export async function planImport(db, csvText, opts = {}) {
   const { headers, records } = parseCsvObjects(csvText);
   if (!headers.length) throw new HttpError(400, 'The file is empty.');
   if (records.length > 5000) throw new HttpError(400, 'Import files are limited to 5,000 rows.');
-  const mapping = opts.mapping && Object.keys(opts.mapping).length ? opts.mapping : autoMap(headers);
-  if (!Object.values(mapping).includes('email')) throw new HttpError(400, 'No email column found. Map a column to "email".');
+  // A mapping from the dashboard may only name known headers and known fields; "" means "keep as a custom field".
+  const mapping = opts.mapping && Object.keys(opts.mapping).length
+    ? Object.fromEntries(Object.entries(opts.mapping).filter(([h, field]) => headers.includes(h) && IMPORT_FIELDS.includes(field)))
+    : autoMap(headers);
   const mode = opts.mode === 'migration' ? 'migration' : 'audience';
+  // No recognisable email column: hand back the headers so the owner can choose one in the dashboard.
+  if (!Object.values(mapping).includes('email')) return { headers, fields: IMPORT_FIELDS, mapping, mode, target_status: null, source_label: opts.source_label || 'import', totals: { rows: records.length }, rows: [], needs_mapping: true, sha256: await sha256(csvText) };
   const target = mode === 'audience' ? (opts.target_status || 'prospective') : null;
   if (mode === 'audience' && !['prospective', 'pending', 'active'].includes(target)) throw new HttpError(400, 'Target status must be prospective, pending or active.');
 
@@ -86,6 +95,7 @@ export async function planImport(db, csvText, opts = {}) {
       tags: list(f.tags), memberships: list(f.organizations).map((org, i) => ({ org, role: list(f.role)[i] || (list(f.organizations).length === 1 ? f.role : null) || null })),
       subscribed_at: isoOrNull(f.subscribed_at), unsubscribed_at: isoOrNull(f.unsubscribed_at), created_at: isoOrNull(f.subscribed_at) || undefined,
       external_ids: f.external_id ? { [mode === 'migration' ? 'beehiiv' : 'import']: f.external_id } : {},
+      custom: f._custom,
     };
     const fileStatus = STATUS_MAP[String(f.status || '').toLowerCase().replace(/\s+/g, '_')];
     const person = existing.get(email_norm), sup = suppressed.get(email_norm);
@@ -105,12 +115,13 @@ export async function planImport(db, csvText, opts = {}) {
     return { ...base, outcome: 'new', detail: `will be added as ${target}`, fields };
   });
   const totals = rows.reduce((t, r) => ({ ...t, [r.outcome]: (t[r.outcome] || 0) + 1 }), { rows: rows.length });
-  return { headers, mapping, mode, target_status: target, source_label: opts.source_label || 'import', totals, rows, sha256: await sha256(csvText) };
+  return { headers, fields: IMPORT_FIELDS, mapping, mode, target_status: target, source_label: opts.source_label || 'import', totals, rows, sha256: await sha256(csvText) };
 }
 
 /** Apply a plan. Requires an explicit consent attestation from the owner to add people as active. */
 export async function commitImport(db, csvText, opts, actor) {
   const plan = await planImport(db, csvText, opts);
+  if (plan.needs_mapping) throw new HttpError(400, 'Choose which column holds the email address before importing.');
   if (plan.mode === 'audience' && plan.target_status === 'active' && opts.consent_attested !== true)
     throw new HttpError(400, 'Adding people as active subscribers requires the owner to confirm that each person agreed to receive Prompted.');
   const dupe = await first(db, 'SELECT id, totals, created_at FROM import_batches WHERE sha256 = ? AND source_label = ? AND target_status = ?', plan.sha256, plan.source_label, plan.target_status || 'migration');
@@ -149,4 +160,31 @@ export async function commitImport(db, csvText, opts, actor) {
   }
   await audit(db, actor, 'import.commit', 'import_batch', batchId, { ...plan.totals, mode: plan.mode, target_status: plan.target_status, source_label: plan.source_label, consent_attested: opts.consent_attested === true });
   return { already_imported: false, batch_id: batchId, totals: plan.totals, rows: plan.rows.map(({ fields, merge, ...r }) => r) };
+}
+
+/**
+ * Reconciliation report: compare a ledger exported from another system with this database.
+ * Read-only. Lists counts by status on both sides and every address that differs.
+ */
+export async function reconcile(db, csvText, opts = {}) {
+  const { headers, records } = parseCsvObjects(csvText);
+  const mapping = opts.mapping && Object.keys(opts.mapping).length ? opts.mapping : autoMap(headers);
+  if (!Object.values(mapping).includes('email')) throw new HttpError(400, 'No email column found.');
+  const file = new Map(), invalid = [];
+  for (const rec of records) {
+    const f = rowFields(rec, mapping), e = normalizeEmail(f.email);
+    if (!validEmail(e)) { invalid.push({ row: rec._row, email: e }); continue; }
+    if (!file.has(e)) file.set(e, STATUS_MAP[String(f.status || 'active').toLowerCase().replace(/\s+/g, '_')] || 'suppressed');
+  }
+  const dbRows = await all(db, 'SELECT email_norm, status FROM people');
+  const here = new Map(dbRows.map((r) => [r.email_norm, r.status]));
+  const count = (it) => { const c = {}; for (const s of it) c[s] = (c[s] || 0) + 1; return c; };
+  const missing = [...file].filter(([e]) => !here.has(e)).map(([email, status]) => ({ email, source_status: status }));
+  const extra = [...here].filter(([e]) => !file.has(e)).map(([email, status]) => ({ email, status }));
+  const mismatched = [...file].filter(([e, s]) => here.has(e) && here.get(e) !== s).map(([email, source_status]) => ({ email, source_status, status: here.get(email) }));
+  // The one difference that must never exist: active here while the source says the person opted out or bounced.
+  const dangerous = mismatched.filter((m) => m.status === 'active' && m.source_status !== 'active' && m.source_status !== 'pending');
+  return { rows: records.length, unique_addresses: file.size, invalid, source_counts: count(file.values()), database_counts: count(here.values()),
+    matching: file.size - missing.length - mismatched.length, missing_from_database: missing, only_in_database: extra, status_differs: mismatched, dangerous,
+    in_agreement: !missing.length && !mismatched.length && !invalid.length };
 }
