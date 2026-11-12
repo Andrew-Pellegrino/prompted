@@ -14,8 +14,13 @@ and pointing everything in this table at it, not moving the site again.
 | Site, archive, Index copy and signup work in a deployed preview | **Passed** on the preview, November 11 (synthetic data). |
 | Private database deployed with dashboard login | **Passed**: anonymous, forged and cross-site requests are refused. |
 | Real subscriber ledger imported and reconciled against beehiiv counts | Not started (needs the deployed database and owner approval). |
-| A sending identity exists and passes SPF/DKIM/DMARC checks | Gmail account connected and authenticating, but its mail lands in Spam. A dedicated domain is the plan (`DELIVERABILITY.md`). |
-| Test issues reach the inbox (not Spam) at Gmail, Outlook, iCloud and a university inbox, three times running | **Failed** on the first attempt from the Gmail account (Spam). |
+| A sending identity exists and passes SPF/DKIM/DMARC checks | **Passed for the domain**: `readprompted.org` is verified at Amazon SES (DKIM, MAIL FROM) and at Brevo; one SPF, one DMARC record. Inbox placement not yet tested. |
+| Amazon SES production access granted, with a daily limit above the whole list and a per-second rate known | **Waiting**: request under review since November 12 (sandbox: 200 a day, 1 a second). |
+| Bounce, complaint and delivery reports arrive and are processed (signed SNS) | Built and tested with simulated reports; **the SNS subscription is the owner's next step** (`OWNER-SETUP.md` 6f). |
+| Amazon Auto Validation off, or explicitly accepted by the owner | **Passed**: off, confirmed through the SES API, November 12. |
+| Whole list deliverable inside the Monday window, with room to grow | Bulk mode built and tested with simulated answers; needs `ses:SendBulkEmail` on the IAM key (`OWNER-SETUP.md` 6g). Pace measured on code: 2,500 in about 45 minutes on the free Cloudflare plan, about 5 minutes on Workers Paid ($5 a month, needs owner approval). Must be confirmed with a staged real send. |
+| Test issues reach the inbox (not Spam) at Gmail, Outlook, iCloud and a university inbox, three times running | **Failed** on the first attempt from the Gmail account (Spam). Not yet tried from `readprompted.org`. |
+| **Cross-group inbox placement**: owner-approved seed tests and staged sends reach the inbox for each audience group: Miami University addresses in several groups (the October SEPi cohort, Founders, AWE, faculty and staff, the November batch), other university addresses, and non-university addresses (Gmail, Outlook, iCloud). Each group judged on evidence beyond "delivered" (a recipient confirms where it landed, or Miami IT message trace) | **Not started.** Open concern: two October SEPi members say they never saw Prompted although beehiiv records all four issues as delivered. See `DELIVERABILITY.md`. Changing provider alone is not assumed to fix this. |
 | New sending address announced to readers from beehiiv in two issues | Not started. |
 | Warm-up completed with staged sends while beehiiv covers the rest | Not started. |
 | Test issue received and compared in Gmail, Outlook and Apple Mail | Not started. |

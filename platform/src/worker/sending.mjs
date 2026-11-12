@@ -2,6 +2,7 @@
 // Quota-aware and duplicate-safe. Runs from the cron trigger in small chunks.
 import { all, first, run, stmt, now, audit, HttpError, siteConfig, loadIssue } from './core.mjs';
 import { providerChain, senderFor } from './providers.mjs';
+import { BULK_TOKEN, bulkSafe } from './ses.mjs';
 import { normalizeEmail, validEmail } from './people.mjs';
 import { runQA } from '../lib/qa.mjs';
 import { renderIssueEmail, fillRecipient } from '../lib/render-email.mjs';
@@ -21,11 +22,22 @@ const STALE_CLAIM_MS = 15 * 60 * 1000;
  * "Connect Gmail" flow, so it never passes through chat, the repository or the owner's clipboard.
  */
 export async function withMailSettings(env) {
-  if (env._mailSettings || !env.GMAIL_CLIENT_ID || env.GMAIL_REFRESH_TOKEN) return env;
-  const rows = await all(env.DB, "SELECT key, value FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email')");
+  if (env._mailSettings) return env;
+  const rows = await all(env.DB, "SELECT key, value FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email','ses_account')");
   const m = Object.fromEntries(rows.map((r) => [r.key, r.value]));
-  return { ...env, _mailSettings: true, GMAIL_REFRESH_TOKEN: m.gmail_refresh_token, GMAIL_FROM_EMAIL: env.GMAIL_FROM_EMAIL || m.gmail_from_email };
+  let sesAccount = env.SES_ACCOUNT || null;
+  if (!sesAccount && m.ses_account) { try { sesAccount = JSON.parse(m.ses_account); } catch { sesAccount = null; } }
+  return { ...env, _mailSettings: true, SES_ACCOUNT: sesAccount,
+    GMAIL_REFRESH_TOKEN: env.GMAIL_REFRESH_TOKEN || (env.GMAIL_CLIENT_ID ? m.gmail_refresh_token : undefined),
+    GMAIL_FROM_EMAIL: env.GMAIL_FROM_EMAIL || m.gmail_from_email };
 }
+
+/** How many recipients one cron run may hand to this provider. */
+function perTick(provider, env, send, chunkSize) {
+  if (send.kind !== 'test' && provider.sendBatch && provider.bulkEnabled?.(env)) { const p = provider.batchPlan(env); return p.perCall * p.calls; }
+  return provider.maxPerTick ? provider.maxPerTick(env) : chunkSize;
+}
+const pause = (ms) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : null);
 
 const contentHash = (issue) => sha256(issue.title + '\n' + issue.subtitle + '\n' + blocksText(issue.blocks));
 
@@ -158,7 +170,7 @@ export async function processSend(env, send) {
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
   const pick = await pickProvider(env, reserve, send.kind === 'test');
-  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, pick.provider.maxPerTick ? pick.provider.maxPerTick(env) : chunkSize)) : [];
+  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, perTick(pick.provider, env, send, chunkSize))) : [];
   if (queued.length) {
     const { provider } = pick;
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
@@ -174,18 +186,48 @@ export async function processSend(env, send) {
     const results = [];
     const allow = testAllowlist(env);
     let paused = null; // set when the provider says "not now" (rate limit, expired sign-in): nothing more is attempted this run
+    // Bulk: the issue goes out once per request with up to a second's worth of recipients; each person's
+    // private token is filled in by the provider. Only for the real issue send, and only if nothing else in
+    // the email looks like a template placeholder (the editorial text is never altered to make it fit).
+    const bulkHtml = send.kind !== 'test' && provider.sendBatch && provider.bulkEnabled?.(env)
+      ? fillRecipient(email.html, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${BULK_TOKEN}.gif` : null }) : null;
+    const bulkText = bulkHtml && fillRecipient(email.text, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, openPixelUrl: null }, false);
+    const useBulk = !!bulkHtml && bulkSafe(bulkHtml, bulkText, send.subject);
+    const eligible = [];
     for (const r of queued) {
-      if (paused) { results.push({ r, res: { ok: false, deferred: true } }); continue; }
       // Outside production, real providers may only reach authorised test inboxes.
-      if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) { results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } }); continue; }
-      const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
-      const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
-      let res;
-      try {
-        res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });
-      } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
-      if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
-      results.push({ r, res });
+      if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } });
+      else eligible.push(r);
+    }
+    if (useBulk) {
+      const plan = provider.batchPlan(env);
+      for (let i = 0; i < eligible.length; i += plan.perCall) {
+        const chunk = eligible.slice(i, i + plan.perCall);
+        if (paused) { for (const r of chunk) results.push({ r, res: { ok: false, deferred: true } }); continue; }
+        if (i > 0) await pause(plan.spacingMs);
+        let out;
+        try {
+          out = await provider.sendBatch(env, { from, replyTo, subject: send.subject, html: bulkHtml, text: bulkText,
+            recipients: chunk.map((r) => ({ to: r.email_norm, token: r.token, headers: listHeaders(`${site.url}/u/${r.token}`) })) });
+        } catch (e) { out = chunk.map(() => ({ ok: false, error: String(e.message || e).slice(0, 300), retryable: true })); }
+        chunk.forEach((r, k) => {
+          let res = out[k];
+          if (res.rateLimited || res.authError) { paused = paused || res; res = { ...res, deferred: true }; }
+          results.push({ r, res });
+        });
+      }
+    } else {
+      for (const r of eligible) {
+        if (paused) { results.push({ r, res: { ok: false, deferred: true } }); continue; }
+        const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
+        const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
+        let res;
+        try {
+          res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });
+        } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
+        if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
+        results.push({ r, res });
+      }
     }
     if (paused) await run(db, "INSERT INTO settings (key, value) VALUES ('delivery_last_problem', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ at: now(), provider: provider.name, message: paused.error }));
     // 3. Record results in one batch.

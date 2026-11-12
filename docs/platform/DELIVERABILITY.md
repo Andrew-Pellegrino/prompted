@@ -16,6 +16,33 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
 | Signup confirmation | one (`workers.dev`) | none | no | Spam |
 | Plain delivery check | none | none | no | Spam |
 
+## Open concern: Miami recipients who say they never saw Prompted (November 12)
+
+Two members of the SEPi group who joined on October 12 told the owner they had not seen Prompted. In
+beehiiv, both records are active and all four issues since (October 19 and 26, November 2 and 9) show
+**Sent** and **Delivered**, with no bounce. Their recorded opens may come from automated image loading or
+security scanners, so they do not prove a person saw the email. "Delivered" means the receiving mail
+server accepted the message; it can still be quarantined, filtered, moved or overlooked afterwards. One
+of the two checked Spam and found nothing. A follow-up asking for a search of all mail is pending.
+Names and addresses are in the owner's private CRM only.
+
+What follows from this:
+
+- It is a **sentinel**, not a measured rate. Two reports do not show that everyone in the group, or every
+  Miami address, is affected, and they do not show that nobody else is.
+- It concerns the **current beehiiv sends**, so moving to Amazon SES is not, by itself, a fix. The
+  receiving side (Miami's Google Workspace filtering, quarantine, or forwarding rules) is as likely a
+  cause as anything on the sending side.
+- Before cutover, compare groups on evidence that goes beyond "delivered": the whole October SEPi
+  cohort (exact membership from the CRM and beehiiv), other Miami groups, other universities and
+  non-university addresses. Where nobody can confirm, ask Miami IT for a message trace of a specific
+  Monday send. All outreach and any test email need the owner's approval.
+- The cutover acceptance list (`CUTOVER-MANIFEST.md`) now includes cross-group inbox placement.
+
+What the platform contributes once SES sends: per-recipient delivery, delay, bounce and complaint
+reports from Amazon, kept per send and per address, so a group's results can be compared without relying
+on open pixels (Amazon's own open and click tracking should stay off).
+
 ## What the evidence rules out
 
 The plain message's headers were read in full:

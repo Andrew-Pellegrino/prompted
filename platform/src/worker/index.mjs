@@ -5,7 +5,8 @@ import { planImport, commitImport, reconcile } from './imports.mjs';
 import { sendTransactional } from './sending.mjs';
 import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
-import { sesStatus, readSesNotification } from './ses.mjs';
+import { sesStatus, sesEvents, refreshSesAccount } from './ses.mjs';
+import { verifySnsMessage, isAmazonSnsUrl } from './sns.mjs';
 import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
@@ -121,33 +122,92 @@ const HOOK_TYPES = {
   resend: { 'email.delivered': 'delivered', 'email.bounced': 'bounce_hard', 'email.complained': 'complaint', 'email.delivery_delayed': 'bounce_soft' },
 };
 async function webhookRoute(request, env, provider) {
+  // Amazon SES reports arrive through Amazon SNS and are proven by Amazon's signature, so that address
+  // carries no secret. Brevo and Resend keep the shared secret in the URL, exactly as before.
+  if (provider === 'ses') return sesHook(request, env);
   if (!env.WEBHOOK_SECRET || !safeEqual(new URL(request.url).searchParams.get('key') || '', env.WEBHOOK_SECRET)) return fail(401, 'Bad webhook key.');
-  if (!HOOK_TYPES[provider] && provider !== 'ses') return fail(404, 'Unknown provider.');
+  if (!HOOK_TYPES[provider]) return fail(404, 'Unknown provider.');
   const payload = await body(request, 200_000);
-  // Put every provider's report into one shape: { type, email, msgId, reason }.
-  let events;
-  if (provider === 'ses') {
-    const n = readSesNotification(payload, env);
-    if (n.rejected) return fail(400, 'Notification refused: ' + n.rejected);
-    if (n.confirm) { const r = await fetch(n.confirm); await audit(env.DB, 'webhook:ses', 'ses.reports_confirmed', null, null, { ok: r.ok }); return json({ ok: r.ok, confirmed: r.ok }); }
-    events = n.events;
-  } else {
-    events = (Array.isArray(payload) ? payload : [payload]).map((ev) => provider === 'brevo'
-      ? { type: HOOK_TYPES.brevo[ev.event], email: ev.email, msgId: ev['message-id'], reason: ev.reason }
-      : { type: HOOK_TYPES.resend[ev.type], email: ev.data?.to?.[0], msgId: ev.data?.email_id, reason: ev.data?.bounce?.message });
+  const events = (Array.isArray(payload) ? payload : [payload]).map((ev) => provider === 'brevo'
+    ? { type: HOOK_TYPES.brevo[ev.event], email: ev.email, msgId: ev['message-id'], reason: ev.reason }
+    : { type: HOOK_TYPES.resend[ev.type], email: ev.data?.to?.[0], msgId: ev.data?.email_id, reason: ev.data?.bounce?.message });
+  return json({ ok: true, handled: await applyDeliveryEvents(env, provider, events.slice(0, 20)) });
+}
+
+const sesReports = async (env) => JSON.parse((await first(env.DB, "SELECT value FROM settings WHERE key = 'ses_reports'"))?.value || '{}');
+const saveSesReports = (env, v) => run(env.DB, "INSERT INTO settings (key, value) VALUES ('ses_reports', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify(v));
+
+async function sesHook(request, env) {
+  if (request.method !== 'POST') return fail(405, 'POST only.');
+  if (await rateLimited(env.DB, 'hook:ses:' + clientIp(request), 600, 60)) return fail(429, 'Too many requests.');
+  const m = await body(request, 300_000);
+  const v = await verifySnsMessage(m, { topicArn: env.SES_TOPIC_ARN });
+  if (!v.ok) {
+    // A temporary problem fetching Amazon's certificate: answer 503 so SNS tries again later.
+    if (v.retry) return fail(503, 'Could not check the signature yet.');
+    await audit(env.DB, 'webhook:ses', 'ses.report_refused', null, null, { reason: v.reason });
+    return fail(403, 'Refused.');
   }
+  // Each SNS message is handled once, however often it is delivered.
+  if (await first(env.DB, "SELECT 1 AS x FROM webhook_messages WHERE provider = 'ses' AND message_id = ?", m.MessageId)) return json({ ok: true, duplicate: true });
+  const remember = (kind) => run(env.DB, "INSERT OR IGNORE INTO webhook_messages (provider, message_id, kind, received_at) VALUES ('ses', ?, ?, ?)", m.MessageId, kind, now());
+
+  if (m.Type === 'SubscriptionConfirmation') {
+    const u = isAmazonSnsUrl(m.SubscribeURL) ? new URL(m.SubscribeURL) : null;
+    if (!u || u.searchParams.get('Action') !== 'ConfirmSubscription' || u.searchParams.get('TopicArn') !== env.SES_TOPIC_ARN) return fail(403, 'Refused.');
+    const r = await fetch(u.href, { redirect: 'manual' });
+    if (!r.ok) return fail(502, 'Amazon did not accept the confirmation; SNS will retry.');
+    await remember('SubscriptionConfirmation');
+    await saveSesReports(env, { ...(await sesReports(env)), subscribed_at: now(), unsubscribed_at: null });
+    await audit(env.DB, 'webhook:ses', 'ses.reports_connected', null, null, null);
+    return json({ ok: true, confirmed: true });
+  }
+  if (m.Type === 'UnsubscribeConfirmation') {
+    // Someone removed the subscription in AWS. Record it and do not resubscribe on our own.
+    await remember('UnsubscribeConfirmation');
+    await saveSesReports(env, { ...(await sesReports(env)), unsubscribed_at: now() });
+    await audit(env.DB, 'webhook:ses', 'ses.reports_disconnected', null, null, null);
+    return json({ ok: true });
+  }
+  const parsed = sesEvents(m.Message);
+  await remember(parsed.kind);
+  try {
+    if (parsed.tracking) {
+      const rep = await sesReports(env);
+      if (!rep.tracking_seen_at) await saveSesReports(env, { ...rep, tracking_seen_at: now() });
+    }
+    const handled = await applyDeliveryEvents(env, 'ses', parsed.events.slice(0, 60));
+    return json({ ok: true, kind: parsed.kind, handled });
+  } catch (e) {
+    // Let SNS deliver it again rather than lose a bounce or complaint.
+    await run(env.DB, "DELETE FROM webhook_messages WHERE provider = 'ses' AND message_id = ?", m.MessageId);
+    throw e;
+  }
+}
+
+/**
+ * One vocabulary for every provider's reports:
+ *   delivered    the receiving mail server accepted it (not proof of the inbox)
+ *   bounce_hard  the address does not work: the person is marked bounced and suppressed for good
+ *   complaint    the person marked it as spam: marked complained and suppressed for good
+ *   unsubscribe  the person left through the provider: unsubscribed and suppressed
+ *   held         the provider chose not to send (its own guess or its own list): message marked not
+ *                delivered, the person is NOT changed
+ *   not_sent     the provider refused or could not build the message: marked not delivered, person unchanged
+ *   bounce_soft, delayed   temporary: recorded only
+ */
+async function applyDeliveryEvents(env, provider, events) {
   let handled = 0;
-  for (const ev of events.slice(0, 20)) {
+  for (const ev of events) {
     const type = ev.type, msgId = ev.msgId;
     const email = normalizeEmail((/<([^<>]+)>/.exec(String(ev.email || '')) || [])[1] || ev.email);
     if (!type || !email) continue;
-    const rec = (msgId && await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE provider_message_id = ?', msgId))
+    const rec = (msgId && await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE provider_message_id = ? AND email_norm = ?', msgId, email))
       || await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE email_norm = ? ORDER BY send_id DESC LIMIT 1', email);
-    await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, String(ev.reason || '').slice(0, 300) || null, now());
+    const reason = String(ev.reason || '').slice(0, 300) || null;
+    await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, reason, now());
     if (rec && type === 'delivered') await run(env.DB, "UPDATE send_recipients SET status = 'delivered', delivered_at = ? WHERE send_id = ? AND email_norm = ? AND status = 'sent'", now(), rec.send_id, email);
-    // "held": the provider chose not to send (its own address check or its own do-not-send list). No mailbox
-    // refused the message, so the person is not suppressed here. The owner sees it under "not delivered".
-    if (rec && type === 'held') await run(env.DB, "UPDATE send_recipients SET status = 'failed', last_error = ? WHERE send_id = ? AND email_norm = ? AND status IN ('sent','delivered')", String(ev.reason || 'held by the provider').slice(0, 300), rec.send_id, email);
+    if (rec && (type === 'held' || type === 'not_sent')) await run(env.DB, "UPDATE send_recipients SET status = 'failed', last_error = ? WHERE send_id = ? AND email_norm = ? AND status IN ('sent','delivered')", reason || 'not sent by the provider', rec.send_id, email);
     if (type === 'bounce_hard' || type === 'complaint' || type === 'unsubscribe') {
       const to = type === 'bounce_hard' ? 'bounced' : type === 'complaint' ? 'complained' : 'unsubscribed';
       if (rec && to !== 'unsubscribed') await run(env.DB, 'UPDATE send_recipients SET status = ? WHERE send_id = ? AND email_norm = ?', to, rec.send_id, email);
@@ -157,7 +217,7 @@ async function webhookRoute(request, env, provider) {
     }
     handled++;
   }
-  return json({ ok: true, handled });
+  return handled;
 }
 
 // ---------- Gmail connection (OAuth) ----------
@@ -213,7 +273,7 @@ async function adminApi(request, env, path, url) {
   if (!actor) return fail(401, 'Sign in required.');
   if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env, url);
   if (path === 'deliverability/domain' && method === 'GET') { try { return json(await checkDomain(url.searchParams.get('domain'))); } catch (e) { return fail(400, String(e.message || e)); } }
-  if (path === 'ses/status' && method === 'GET') return json(await sesStatus(env));
+  if (path === 'ses/status' && method === 'GET') return json(await sesStatus(env, await siteConfig(env)));
   if (path === 'brevo/status' && method === 'GET') return json(await brevoStatus(env, await siteConfig(env)));
   if (path === 'brevo/setup' && method === 'POST') { const r = await brevoSetup(env, await siteConfig(env)); await audit(db, actor, 'brevo.setup', null, null, { ok: r.ok, done: r.done || null }); return json(r, r.ok ? 200 : 400); }
   if (path === 'gmail/check' && method === 'POST') return json({ ok: true, health: await checkGmailHealth(env) });
@@ -446,6 +506,8 @@ export default {
         const t = new Date();
         if (t.getUTCMinutes() === 0) await pruneRateLimits(env.DB);
         if (t.getUTCMinutes() === 7 && t.getUTCHours() % 6 === 0) await checkGmailHealth(env); // four times a day; sends nothing
+        if (t.getUTCMinutes() % 30 === 13) await refreshSesAccount(env); // Amazon's current limits, read-only; sends nothing
+        if (t.getUTCHours() === 4 && t.getUTCMinutes() === 21) await env.DB.prepare("DELETE FROM webhook_messages WHERE received_at < ?").bind(new Date(Date.now() - 30 * 86400000).toISOString()).run();
       }
       catch (e) { console.error('cron failed', e?.message); }
     })());

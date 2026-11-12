@@ -169,39 +169,72 @@ send".
 
 No test email is sent until the owner approves that specific send.
 
-### 6e. Main sender: Amazon SES
+### 6e. Main sender: Amazon SES — set up, waiting for Amazon
 
-Why, what it costs and what could go wrong: `SENDING-PROVIDER.md`.
+Why, what it costs, how fast it sends and what is proven: `SENDING-PROVIDER.md`.
 
-1. AWS account created by the owner. DONE (November 12).
-2. `readprompted.org` added in SES, region US East (N. Virginia), with the custom MAIL FROM subdomain
-   `bounce.readprompted.org`. DONE by the owner.
-3. Amazon's five DNS records added by Claude and checked on two public DNS services. DONE. The CSV also
-   suggested a DMARC record; it was **not** applied, because the domain already has one DMARC record
-   (which also sends reports to Brevo) and a second would break both.
-4. **Owner:** in the SES console, open **Configuration**, **Identities**, `readprompted.org`. It should
-   show Identity status **Verified**, DKIM **Successful** and MAIL FROM **Successful**. Usually minutes,
-   sometimes a few hours.
-5. **Owner:** in the SES console, open **Email Validation**, **Auto Validation**, and make sure
-   **Enabled** is **not** ticked. (Why: see `SENDING-PROVIDER.md`, "Auto Validation".)
-6. **Owner:** request production access (SES console, **Account dashboard**, **Request production
-   access**). Mail type **Marketing**, website `https://readprompted.org`. Text to paste where the form or
-   the support reply asks for the use case (edit anything that is not exactly true):
+Done by the owner on November 12: AWS account (paid plan, root passkey, no root keys, $5 budget alert),
+`readprompted.org` identity with MAIL FROM `bounce.readprompted.org` (Verified), production access
+request (Marketing; **under review**), IAM user `prompted-ses-sender` with a restricted policy and its key
+stored as Worker secrets, configuration set `prompted-newsletter` (domain default) with an event
+destination to the SNS topic `prompted-ses-events`, Auto Validation turned off.
 
-   > Prompted is a free weekly newsletter about AI, published every Monday morning. It currently has a few
-   > hundred subscribers and sends one email per subscriber per week, so volume is small and predictable.
-   > People subscribe through the signup form on https://readprompted.org, which uses confirmed
-   > (double) opt-in: nobody is added until they click a confirmation link. We do not buy, rent or scrape
-   > addresses. Every email carries a visible unsubscribe link and the one-click List-Unsubscribe header,
-   > and unsubscribes take effect immediately. Bounces and complaints are received through Amazon SNS and
-   > processed automatically: hard bounces and complaints are suppressed permanently and never mailed
-   > again. The domain is authenticated with DKIM, a custom MAIL FROM domain and DMARC.
+Done by Claude: DNS records; topic pinned in the Worker; read-only checks of the key, identity,
+configuration set and Auto Validation against the real account (all pass).
 
-   Important: only claim what is true about how the existing subscribers joined. If some were added
-   from a roster rather than signing up themselves, say so to Claude first so the wording is honest.
-7. After approval: a send-only access key stored as the secrets `AWS_ACCESS_KEY_ID` and
-   `AWS_SECRET_ACCESS_KEY`, then the configuration set and SNS topic for bounce and complaint reports.
-   Steps will be given one at a time.
+If Amazon writes back asking for more detail, answer truthfully. Suggested wording, edit as needed:
+
+> Prompted is a free weekly newsletter about AI, sent every Monday morning to about 255 subscribers who
+> asked to receive it. Most joined through our earlier newsletter platform's signup form or by asking to
+> be added through university and founder programmes we work with; new readers now subscribe on
+> https://readprompted.org with confirmed (double) opt-in. We do not buy, rent or scrape addresses. Every
+> email has a visible unsubscribe link and the one-click List-Unsubscribe header, and unsubscribes take
+> effect immediately. Bounces and complaints arrive through Amazon SNS and are processed automatically:
+> hard bounces and complaints are suppressed permanently. We will move the existing list over gradually,
+> starting with small batches, and watch bounce and complaint rates before each step.
+
+Only keep sentences that are exactly true. In particular, do not describe the existing list as all
+double opt-in.
+
+### 6f. Connect Amazon's delivery reports (owner, about five minutes; can be done now)
+
+The IAM key cannot change SNS, by design, so this one step is the owner's.
+
+1. AWS console, region **US East (N. Virginia)**, open **Simple Notification Service**, **Topics**,
+   `prompted-ses-events`.
+2. **Create subscription**. Protocol **HTTPS**. Endpoint: `https://readprompted.org/api/hooks/ses`
+   (exactly this; no key or password in it). Leave **Enable raw message delivery** unticked.
+   **Create subscription**.
+3. Wait one minute and refresh. The subscription's status should change from "Pending confirmation" to
+   **Confirmed**: the platform checks Amazon's signature and confirms it by itself. The dashboard's SES
+   panel then shows "Delivery reports (SNS): yes".
+4. Recommended, same visit: open **SES**, **Configuration sets**, `prompted-newsletter`, **Event
+   destinations**, `prompted-newsletter-events`, **Edit**, and untick **Opens** and **Clicks**. With them
+   ticked, Amazon adds its own tracking pixel to every email and rewrites every link through an Amazon
+   address; that hurts privacy and can hurt inbox placement, and the platform does not use it. If **VDM**
+   (Virtual Deliverability Manager) shows **Engagement tracking** turned on under **Settings**, turn that
+   off too. Keep Sends, Deliveries, Bounces, Complaints, Rejects, Delivery delays, Rendering failures and
+   Subscriptions ticked.
+
+Optional tidy-up, any time: the topic's access policy lets SES from our account publish with a source of
+`arn:aws:ses:*`. Narrower would be `arn:aws:ses:us-east-1:<account>:configuration-set/prompted-newsletter`.
+It is not a security hole (only our account can publish), so leave it unless convenient.
+
+### 6g. Before cutover: allow bulk sending (owner, two minutes)
+
+Bulk requests are what make a whole-list Monday send fast (see `SENDING-PROVIDER.md`). In IAM, open
+**Policies**, `PromptedSESSenderPolicy`, **Edit**, JSON, and in the statement that allows `ses:SendEmail`
+add `ses:SendBulkEmail` to the list of actions (same resources and conditions). Save, then tell Claude,
+who turns `SES_BULK` on. Nothing is sent by this change.
+
+### Gmail fallback: the sign-in expires around November 18
+
+Recommendation: **do nothing.** Brevo is now the fallback and test sender, and Gmail's test emails went
+to Spam. When the Gmail sign-in expires, the platform simply stops using Gmail; a send that reached it
+would pause, not lose anyone. If you ever want Gmail back as a permanent fallback, publish the Google app
+(Google Cloud, **Auth Platform**, **Audience**, **Publish app**; Google may show an "unverified app"
+warning, which is acceptable for your own account), add `https://readprompted.org/api/admin/gmail/callback`
+as a redirect address in the OAuth client, and click **Connect Gmail** again from the dashboard.
 
 ## 7. Private data migration (only after tests pass and you approve)
 

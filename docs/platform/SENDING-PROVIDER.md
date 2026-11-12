@@ -1,8 +1,25 @@
-# Which service sends the newsletter (decision record, November 12, 2026)
+# Which service sends the newsletter (decision record, updated November 12, 2026, evening)
 
 **Decision: Amazon SES as the main sender, Brevo's free plan for tests and as the fallback, Gmail as
-the last resort.** The owner approved it and opened the AWS account on November 12. The domain's SES
-records are in DNS. Next: production access (`OWNER-SETUP.md` 6e).
+the last resort.** Approved by the owner on November 12.
+
+## Where it stands (read from the real AWS account through the dashboard, November 12)
+
+| Item | State | How we know |
+| --- | --- | --- |
+| AWS account | Paid plan, root passkey, no root keys, $5 budget alert (an alert, not a cap) | Owner |
+| Domain `readprompted.org` | Verified; DKIM and MAIL FROM (`bounce.readprompted.org`) successful | SES API, live |
+| Production access | **Not granted.** Under review since November 12; Amazon answers within 96 hours | SES API: sandbox, 200 a day, 1 a second |
+| IAM key `prompted-ses-sender` | Works for read-only calls (account, identity, configuration set) | SES API, live |
+| Configuration set `prompted-newsletter` | Exists; it is the domain's default | SES API, live |
+| Auto Validation | **Off** at account level, no override on the configuration set | SES API, live |
+| Amazon's own suppression list | Bounces and complaints | SES API, live |
+| SNS topic `prompted-ses-events` | Pinned in the Worker (secret `SES_TOPIC_ARN`); **no subscription yet** | Owner; dashboard |
+| Platform use of SES | **None.** SES stays out of the sender chain until production access is granted | Code and live check |
+| Real emails sent by the platform through SES | None | Usage counters |
+
+Amazon's counter showed one message sent in the previous 24 hours. The platform did not send it; it is
+most likely from the owner's console setup. Worth a glance in the SES console if unsure.
 
 ## Why the plan changed
 
@@ -14,7 +31,8 @@ must get the issue on Monday morning. The owner is willing to pay a small recurr
 - New SES accounts start on the "Essentials" plan: **$0.16 per 1,000 emails**, no monthly fee, no minimum.
   It can be switched to "à la carte" pricing at **$0.10 per 1,000** at any time (the difference is a
   deliverability dashboard that Essentials includes).
-- New AWS customers get up to $200 of credits that also cover SES, usable for up to 12 months.
+- New AWS customers get $100 of credits at sign-up and up to $100 more for completing onboarding activities
+  (so up to $200, not automatically). They also cover SES.
 - Optional extras we do not need and will leave off: dedicated IP addresses ($24.95 a month each or $15 a
   month managed), the global deliverability add-on ($1,250 a month).
 - Bounce and complaint reports travel through Amazon's notification service (SNS). At our volume that is
@@ -36,7 +54,7 @@ must get the issue on Monday morning. The owner is willing to pay a small recurr
 - **After approval the daily amount and the per-second rate are set by Amazon for our case.** Amazon's
   documentation gives no fixed number. Commonly reported starting figures are 50,000 a day and 14 a second;
   that is not from Amazon's documentation. The dashboard's SES panel reads the real numbers from the
-  account, and the platform's own daily limit (`SES_DAILY_LIMIT`) stays at 190 until then.
+  account every 30 minutes, and the platform's own daily limit is 90% of Amazon's (or `SES_DAILY_LIMIT`).
 - Amazon reviews or pauses accounts with high bounce or complaint rates, so the platform suppresses hard
   bounces and complaints automatically (already built).
 
@@ -64,23 +82,40 @@ What the platform does (built and tested with simulated reports):
   set, shows it, and does not report "ready" while it is on. Setting `SES_ALLOW_AUTO_VALIDATION = "true"`
   overrides that if the owner ever wants the feature.
 
-Recommended setting: **off**. Every new subscriber confirms by double opt-in, so the list is already
-checked by a real delivery; the feature would add cost and the risk of wrongly held subscribers.
+Setting: **off** (owner turned it off on November 12; confirmed through the SES API). Reasons: held
+messages are still billed, Amazon's guess can hold back a real reader, and the platform already removes
+addresses for good after a real hard bounce or complaint. This does not assume the list is clean: people
+who joined on the new site confirm by double opt-in, but the existing subscribers came from beehiiv
+signups and earlier imports, so their addresses have not all been confirmed that way. The first sends to
+the existing list must therefore be staged (see `DELIVERABILITY.md`) so a run of bad addresses shows up
+early and small.
 
 ## How fast a Monday send goes out
 
-The platform sends in small batches once a minute, because Cloudflare's free plan allows 50 outside
-requests per run.
+The platform sends from Cloudflare's cron, once a minute. Two limits decide the pace: Amazon's per-second
+rate (unknown until production access; commonly 14 a second at the start, not guaranteed) and Cloudflare's
+processor time per run (about 10 ms on the free plan, 30 seconds on Workers Paid).
 
-| Setup | Speed | 255 people | 1,000 | 2,500 |
-| --- | --- | --- | --- | --- |
-| SES on the free Cloudflare plan (built now) | 30 a minute | 9 min | 34 min | 84 min |
-| SES bulk requests, 50 people per request, free Cloudflare plan (to build after the first real SES test) | estimated 500 a minute or more | 1 min | 2 min | 5 min |
-| Cloudflare Workers Paid, $5 a month | limited only by Amazon's rate | about 1 min | a few min | a few min |
+Measured on this code with the largest issue so far (about 60 KB of email): one bulk request costs about
+1.2 ms of processor time (the issue is serialised and signed each time), and a run costs about 4 ms
+before it does anything. Bulk mode puts up to one second's worth of people in each request (14 at 14 a
+second, never more than 50) and spaces requests to stay at 90% of Amazon's rate.
 
-So the current build covers today's list in under ten minutes from 8:45 a.m. The bulk method (or, failing
-that, the $5 Cloudflare plan) is needed before the list passes roughly 1,000. No Cloudflare spending is
-proposed now.
+| Setup | Pace | 255 | 1,000 | 2,500 | 10,000 |
+| --- | --- | --- | --- | --- | --- |
+| One request per person (today's default, `SES_BULK` off) | 10 a minute | 26 min | 100 min | 4 h 10 min | too slow |
+| Bulk, free Cloudflare plan (4 requests a run, at 14 a second) | 56 a minute | 5 min | 18 min | 45 min | 3 h |
+| Bulk, Workers Paid ($5 a month, 40 requests a run, at 14 a second) | about 560 a minute | 1 min | 2 min | 5 min | 18 min |
+| Bulk, Workers Paid, if Amazon grants 50 a second | about 2,000 a minute | 1 min | 1 min | 2 min | 5 min |
+
+Conclusions:
+
+- **Bulk mode is required before cutover.** It needs one more permission on the IAM key
+  (`ses:SendBulkEmail`); until then `SES_BULK` stays off.
+- **Free Cloudflare plan:** the whole list goes out within an hour up to about 3,000 subscribers.
+- **Past that, Workers Paid ($5 a month) is the clean answer** and gives large headroom. It is a new
+  charge and needs the owner's approval; it is not needed for the current list.
+- Real numbers can only be confirmed after production access, with an owner-approved staged send.
 
 ## Alternatives considered
 
@@ -100,28 +135,54 @@ proposed now.
 
 The website, archive, database, dashboard, domain and Brevo connection stay exactly as they are. SES is one
 more adapter behind the same interface (`platform/src/worker/ses.mjs`). The provider order is
-`ses, brevo, resend, gmail`; a provider is skipped until its credentials exist, so Brevo sends today and
-SES takes over when its keys are stored. Unsubscribe links, the one-click unsubscribe header, the
+`ses, brevo, resend, gmail`; a provider is skipped until its credentials exist, so Brevo sends tests today and
+SES joins the chain only once Amazon grants production access (the platform reads that from the account). Unsubscribe links, the one-click unsubscribe header, the
 suppression list and the warm-up cap work the same with every provider.
 
-## Setup once approved (owner steps marked)
+## Setup steps
 
-1. DONE. Owner created the AWS account.
-2. DONE. Owner added `readprompted.org` as an identity in US East (N. Virginia) with the MAIL FROM
-   subdomain `bounce.readprompted.org`.
-3. DONE. Claude added the three DKIM records and the two MAIL FROM records. They sit on their own names,
-   so the existing SPF and DMARC records stay single. Amazon's suggested DMARC record was not applied.
-4. **Owner:** request production access with the text Claude drafts.
-5. **Owner:** create a restricted access key (send-only) and store it in Cloudflare as the secrets
-   `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
-6. Bounce and complaint reports: a configuration set and an SNS topic that posts to
-   `/api/hooks/ses?key=<webhook secret>`. The platform confirms the subscription by itself.
-7. Seed tests, each approved by the owner, then the staged warm-up in `DELIVERABILITY.md`.
+1. DONE. AWS account (paid plan, passkey, budget alert).
+2. DONE. `readprompted.org` identity with MAIL FROM `bounce.readprompted.org`; five DNS records added.
+3. DONE. Production access requested (Marketing, `https://readprompted.org/`). **Under review.**
+4. DONE. IAM user `prompted-ses-sender` with a restricted policy; key stored as Worker secrets; read-only
+   calls verified live.
+5. DONE. Configuration set `prompted-newsletter` (domain default), event destination to SNS topic
+   `prompted-ses-events`, all ten event types. Auto Validation off.
+6. DONE by Claude. Topic pinned in the Worker (`SES_TOPIC_ARN`); signed-report endpoint deployed.
+7. **Owner:** add the HTTPS subscription on the topic (`OWNER-SETUP.md` 6f). The platform confirms it.
+8. **Owner (recommended):** stop Amazon's own open and click tracking (`OWNER-SETUP.md` 6f).
+9. **Owner, before cutover:** add `ses:SendBulkEmail` to the IAM policy; then Claude turns `SES_BULK` on.
+10. After production access: seed tests, each approved by the owner, then the staged warm-up in
+    `DELIVERABILITY.md`.
+
+## Event reports: how they are trusted and what each one does
+
+The SNS subscription address is `https://readprompted.org/api/hooks/ses`. It contains no secret.
+Instead every message is checked: it must name our topic, its signing certificate must come from
+`https://sns.<region>.amazonaws.com/...pem`, Amazon's RSA signature must be valid (version 1 SHA-1 or
+version 2 SHA-256), the timestamp must be within six hours, and each message id is processed once
+(`webhook_messages` table). The subscription handshake is confirmed only for our topic and only by
+calling Amazon's own SNS host. Brevo's address and its shared secret are unchanged.
+
+| Amazon event | Platform effect |
+| --- | --- |
+| Bounce, permanent (General, NoEmail) | Person marked bounced and suppressed for good |
+| Bounce, transient | Recorded only |
+| Bounce or Complaint caused by Amazon's own list or Auto Validation | **Held**: message marked not delivered, person unchanged |
+| Complaint | Person marked complained and suppressed for good |
+| Delivery | Message marked delivered (receiving server accepted it; not proof of the inbox) |
+| DeliveryDelay | Recorded only |
+| Reject, Rendering Failure | Message marked not delivered with Amazon's reason, person unchanged |
+| Subscription (unsubscribe from everything) | Person unsubscribed |
+| Send | Ignored (already known) |
+| Open, Click | Ignored; the dashboard warns, because these mean Amazon is rewriting links and adding a pixel |
 
 ## What is built and what is not proven
 
-- Built and tested with simulated Amazon answers: request signing (checked against Amazon's published
-  example), the send call with unsubscribe headers, rate-limit and bad-key handling, the status panel, and
-  the bounce and complaint reader including the subscription handshake.
-- Not proven: anything against the real Amazon service. Expect small fixes on first contact.
-- Not built: the bulk method (50 people per request).
+- Verified live (read-only): the IAM key, domain state, configuration set, Auto Validation setting,
+  sandbox limits, the SNS address refusing unsigned and forged messages.
+- Tested with simulated Amazon answers only: single and bulk sending, per-person unsubscribe links and
+  headers in bulk, throttling and rejection handling, SNS signature checking (with a locally generated
+  certificate), every event type.
+- Not proven: a real send through SES, a real signed SNS message, Amazon's real production limits, inbox
+  placement.

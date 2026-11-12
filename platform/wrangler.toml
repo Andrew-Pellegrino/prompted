@@ -32,6 +32,11 @@ DOUBLE_OPT_IN = "true"
 EMAIL_PROVIDERS = "ses,brevo,resend,gmail"
 # Amazon SES: the AWS region the sending account lives in. Keys are secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
 SES_REGION = "us-east-1"
+# The SES configuration set that carries event reports (bounces, complaints, deliveries) to the SNS topic.
+SES_CONFIGURATION_SET = "prompted-newsletter"
+# "on" sends the issue in bulk requests (up to a second's worth of people each). Needs the access key to be
+# allowed ses:SendBulkEmail; until the owner adds that permission it stays off and SES sends one by one.
+SES_BULK = ""
 FROM_NAME = "Prompted"
 # The address issues are sent from once Brevo is connected. Mail sent to it is forwarded to the owner.
 FROM_EMAIL = "brief@readprompted.org"

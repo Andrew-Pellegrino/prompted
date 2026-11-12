@@ -1,6 +1,12 @@
 // End-to-end tests of the Worker against an in-memory database. Synthetic identities only.
 import test from 'node:test';
-import { awsSign, ses, readSesNotification } from '../src/worker/ses.mjs';
+import { awsSign, ses, bulkSafe } from '../src/worker/ses.mjs';
+import { execFileSync } from 'node:child_process';
+import { mkdtempSync, readFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { createPrivateKey, sign as rsaSign } from 'node:crypto';
+import { stringToSign, _clearCertCache } from '../src/worker/sns.mjs';
 import assert from 'node:assert/strict';
 import { makeEnv, client, tickAll } from './helpers.mjs';
 import { build } from '../src/build.mjs';
@@ -729,114 +735,244 @@ test('on the preview, the public signup form cannot trigger a real email, even f
   } finally { globalThis.fetch = realFetch; }
 });
 
-test('Amazon SES: request signing matches the published AWS example; the adapter sends one message with unsubscribe headers', async () => {
+test('Amazon SES: request signing matches the published AWS example; single sends carry unsubscribe headers; the sandbox keeps SES out of the chain', async () => {
   // The "get-vanilla" case from the AWS Signature Version 4 test suite.
   const signed = await awsSign({ accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', region: 'us-east-1', service: 'service', method: 'GET', host: 'example.amazonaws.com', path: '/', at: new Date('2015-08-30T12:36:00Z') });
   assert.equal(signed['x-amz-date'], '20150830T123600Z');
   assert.equal(signed.authorization, 'AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=5fa00fa31553b73ebf1942676e86291e8372ff2a2260956d9b8aae1d763fbf31');
 
-  const env = { AWS_ACCESS_KEY_ID: 'AKIDEXAMPLE', AWS_SECRET_ACCESS_KEY: 'secret', SES_REGION: 'us-east-2', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted' };
-  assert.equal(ses.configured({ AWS_ACCESS_KEY_ID: 'a', AWS_SECRET_ACCESS_KEY: 'b' }), false, 'keys without a sender address are not ready');
-  assert.deepEqual([ses.configured(env), ses.dailyLimit(env), ses.dailyLimit({ SES_DAILY_LIMIT: '45000' })], [true, 190, 45000]);
-  assert.deepEqual(providerChain({ ...env, SEND_MODE: 'live', BREVO_API_KEY: 'k' }).map((p) => p.name), ['ses', 'brevo'], 'SES first, Brevo as fallback');
+  const keys = { AWS_ACCESS_KEY_ID: 'AKIDEXAMPLE', AWS_SECRET_ACCESS_KEY: 'secret', SES_REGION: 'us-east-2', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted' };
+  const sandbox = { ...keys, SES_ACCOUNT: { production_access: false, max_24h: 200, max_rate: 1 } };
+  const approved = { ...keys, SES_ACCOUNT: { production_access: true, max_24h: 50000, max_rate: 14 } };
+  assert.equal(ses.configured(keys), false, 'Amazon limits never read: not used');
+  assert.equal(ses.configured(sandbox), false, 'sandbox: not used, tests go through Brevo instead');
+  assert.equal(ses.configured({ ...sandbox, SES_USE_IN_SANDBOX: 'true' }), true);
+  assert.equal(ses.configured({ ...approved, FROM_EMAIL: '' }), false, 'keys without a sender address are not ready');
+  assert.deepEqual([ses.configured(approved), ses.dailyLimit(approved), ses.dailyLimit(keys), ses.dailyLimit({ ...approved, SES_DAILY_LIMIT: '1000' })], [true, 45000, 190, 1000]);
+  assert.deepEqual(providerChain({ ...approved, SEND_MODE: 'live', BREVO_API_KEY: 'k' }).map((p) => p.name), ['ses', 'brevo'], 'SES first, Brevo as fallback');
+  assert.deepEqual(providerChain({ ...sandbox, SEND_MODE: 'live', BREVO_API_KEY: 'k' }).map((p) => p.name), ['brevo']);
+  // pacing follows Amazon's per-second rate
+  assert.deepEqual(ses.batchPlan(approved), { perCall: 14, calls: 4, spacingMs: 1112, perMinute: 56 });
+  assert.deepEqual(ses.batchPlan({ ...approved, SES_ACCOUNT: { production_access: true, max_rate: 100 } }).perCall, 50, 'never more than 50 people in one request');
+
   const calls = [], realFetch = globalThis.fetch;
   let answer = () => new Response(JSON.stringify({ MessageId: 'ses-1' }), { status: 200 });
   globalThis.fetch = async (url, init) => { calls.push({ url: String(url), init }); return answer(); };
   try {
     const msg = { from: { name: 'Prompted', email: 'brief@prompted.example' }, replyTo: null, to: 'reader@example.com', subject: 'Prompted | Week of November 1–8', html: '<p>hi</p>', text: 'hi', headers: { 'List-Unsubscribe': '<https://x/u/1>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
-    assert.deepEqual(await ses.send(env, msg), { ok: true, id: 'ses-1' });
+    assert.deepEqual(await ses.send(approved, msg), { ok: true, id: 'ses-1' });
     const sent = JSON.parse(calls[0].init.body);
     assert.equal(calls[0].url, 'https://email.us-east-2.amazonaws.com/v2/email/outbound-emails');
     assert.match(calls[0].init.headers.authorization, /^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\/\d{8}\/us-east-2\/ses\/aws4_request, SignedHeaders=host;x-amz-date, Signature=[0-9a-f]{64}$/);
     assert.ok(!JSON.stringify(calls[0]).includes('"secret"'), 'the secret key is never sent');
     assert.deepEqual([sent.FromEmailAddress, sent.Destination.ToAddresses, sent.ConfigurationSetName, sent.Content.Simple.Subject.Data], ['"Prompted" <brief@prompted.example>', ['reader@example.com'], 'prompted', msg.subject]);
     assert.deepEqual(sent.Content.Simple.Headers, [{ Name: 'List-Unsubscribe', Value: '<https://x/u/1>' }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }]);
-    assert.deepEqual([sent.Content.Simple.Body.Html.Data, sent.Content.Simple.Body.Text.Data], ['<p>hi</p>', 'hi']);
-    await assert.rejects(() => ses.send(env, { ...msg, subject: 'x\r\nBcc: evil@example.com' }), /Header injection/);
+    await assert.rejects(() => ses.send(approved, { ...msg, subject: 'x\r\nBcc: evil@example.com' }), /Header injection/);
     answer = () => new Response(JSON.stringify({ message: 'Maximum sending rate exceeded.' }), { status: 429, headers: { 'x-amzn-errortype': 'TooManyRequestsException' } });
-    assert.equal((await ses.send(env, msg)).rateLimited, true, 'a rate limit pauses the send instead of failing people');
-    answer = () => new Response(JSON.stringify({ message: 'The security token included in the request is invalid.' }), { status: 403, headers: { 'x-amzn-errortype': 'UnrecognizedClientException' } });
-    assert.equal((await ses.send(env, msg)).authError, true);
+    assert.equal((await ses.send(approved, msg)).rateLimited, true, 'a rate limit pauses the send instead of failing people');
+    answer = () => new Response(JSON.stringify({ message: 'not authorized to perform: ses:SendEmail' }), { status: 403, headers: { 'x-amzn-errortype': 'AccessDeniedException' } });
+    assert.equal((await ses.send(approved, msg)).authError, true);
     answer = () => new Response(JSON.stringify({ message: 'Email address is not verified.' }), { status: 400, headers: { 'x-amzn-errortype': 'MessageRejected' } });
-    const rejected = await ses.send(env, msg);
+    const rejected = await ses.send(approved, msg);
     assert.deepEqual([rejected.ok, rejected.retryable, !!rejected.rateLimited], [false, false, false]);
   } finally { globalThis.fetch = realFetch; }
 });
 
-test('Amazon SES reports: status endpoint names the next step; bounces and complaints suppress people; the handshake only calls Amazon', async () => {
+test('Amazon SES bulk: a whole issue goes out in requests of up to a second of recipients, each with their own unsubscribe link and header; failures are sorted correctly', async () => {
+  const n = 40;
+  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'ses', SES_BULK: 'on', SES_CALL_SPACING_MS: '0', AWS_ACCESS_KEY_ID: 'AKID', AWS_SECRET_ACCESS_KEY: 's', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted-newsletter', QUOTA_RESERVE: '0' });
+  env.DB.sqlite.prepare("INSERT INTO settings (key, value) VALUES ('ses_account', ?)").run(JSON.stringify({ production_access: true, sending_enabled: true, max_24h: 50000, max_rate: 14 }));
+  const c = await audience(env, n);
+  const requests = [], realFetch = globalThis.fetch;
+  let call = 0;
+  globalThis.fetch = async (url, init) => {
+    const b = JSON.parse(init.body); requests.push({ url: String(url), b }); call++;
+    return new Response(JSON.stringify({ BulkEmailEntryResults: b.BulkEmailEntries.map((e, i) => {
+      const to = e.Destination.ToAddresses[0];
+      if (to === 'reader3@example.com') return { Status: 'MESSAGE_REJECTED', Error: 'Email address is on the suppression list' };
+      if (call === 3 && i === 5) return { Status: 'ACCOUNT_THROTTLED', Error: 'Maximum sending rate exceeded.' };
+      return { Status: 'SUCCESS', MessageId: 'm-' + to };
+    }) }), { status: 200 });
+  };
+  try {
+    const send = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+    await c.post(`/api/admin/sends/${send.data.id}/approve`);
+    await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+    env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+    await tick(env);
+    assert.equal(requests.length, 3, '40 people at 14 a request');
+    assert.ok(requests.every((r) => r.url === 'https://email.us-east-1.amazonaws.com/v2/email/outbound-bulk-emails'));
+    assert.deepEqual(requests.map((r) => r.b.BulkEmailEntries.length), [14, 14, 12]);
+    const first = requests[0].b, tpl = first.DefaultContent.Template.TemplateContent;
+    assert.equal(first.ConfigurationSetName, 'prompted-newsletter');
+    assert.equal(first.FromEmailAddress, '"Prompted" <brief@prompted.example>');
+    assert.ok(tpl.Html.includes('https://preview.example/u/{{TOKEN}}') && tpl.Text.includes('https://preview.example/u/{{TOKEN}}'), 'the unsubscribe link carries each person\'s token');
+    assert.equal(tpl.Html.split('{{').length - 1, tpl.Html.split('{{TOKEN}}').length - 1, 'no other placeholder reaches Amazon');
+    const people = Object.fromEntries(many(env, 'SELECT email_norm, token FROM people').map((p) => [p.email_norm, p.token]));
+    for (const e of first.BulkEmailEntries) {
+      const to = e.Destination.ToAddresses[0], tok = people[to];
+      assert.equal(JSON.parse(e.ReplacementEmailContent.ReplacementTemplate.ReplacementTemplateData).TOKEN, tok);
+      assert.deepEqual(e.ReplacementHeaders, [{ Name: 'List-Unsubscribe', Value: `<https://preview.example/u/${tok}>` }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }]);
+    }
+    const rows = Object.fromEntries(many(env, 'SELECT email_norm, status, provider_message_id, last_error FROM send_recipients').map((r) => [r.email_norm, r]));
+    assert.equal(rows['reader0@example.com'].provider_message_id, 'm-reader0@example.com');
+    assert.equal(rows['reader3@example.com'].status, 'failed', 'a rejected address fails without being retried');
+    const throttled = requests[2].b.BulkEmailEntries[5].Destination.ToAddresses[0];
+    assert.equal(rows[throttled].status, 'queued', 'a throttled person goes back to the queue, not counted as a failure');
+    assert.equal(many(env, "SELECT * FROM send_recipients WHERE status = 'sent'").length, n - 2);
+    await tick(env);
+    assert.equal(rows[throttled] && many(env, 'SELECT status FROM send_recipients WHERE email_norm = ?', throttled)[0].status, 'sent', 'and goes out on the next run');
+    assert.equal((await c.get(`/api/admin/sends/${send.data.id}`)).data.status, 'sent');
+    // editorial text that happens to contain "{{" is never altered: the send falls back to one request per person
+    assert.equal(bulkSafe('<p>Hello {{TOKEN}}</p>'), true);
+    assert.equal(bulkSafe('<p>Use {{name}} in a prompt</p>'), false);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+// ---- signed SNS reports ----
+
+function snsKit() {
+  const dir = mkdtempSync(join(tmpdir(), 'sns-'));
+  execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-keyout', join(dir, 'k.pem'), '-out', join(dir, 'c.pem'), '-days', '3650', '-subj', '/CN=sns.amazonaws.com'], { stdio: 'ignore' });
+  const key = createPrivateKey(readFileSync(join(dir, 'k.pem'))), cert = readFileSync(join(dir, 'c.pem'), 'utf8');
+  const TOPIC = 'arn:aws:sns:us-east-1:111122223333:prompted-ses-events', CERT_URL = 'https://sns.us-east-1.amazonaws.com/SimpleNotificationService-test.pem';
+  let seq = 0;
+  const signed = (m) => {
+    const msg = { MessageId: 'msg-' + (++seq), TopicArn: TOPIC, Timestamp: new Date().toISOString(), SignatureVersion: '1', SigningCertURL: CERT_URL, ...m };
+    msg.Signature = rsaSign(msg.SignatureVersion === '2' ? 'sha256' : 'sha1', Buffer.from(stringToSign(msg)), key).toString('base64');
+    return msg;
+  };
+  const note = (event, extra = {}) => signed({ Type: 'Notification', Message: JSON.stringify(event), ...extra });
+  return { TOPIC, CERT_URL, cert, signed, note };
+}
+
+test('Amazon SES reports through SNS: only correctly signed messages from our topic are accepted, once each; every event type is accounted for', async () => {
+  _clearCertCache();
+  const kit = snsKit();
+  const env = await makeEnv({ SES_TOPIC_ARN: kit.TOPIC }), c = client(env);
+  const outside = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => {
+    outside.push(String(url));
+    if (String(url) === kit.CERT_URL) return new Response(kit.cert);
+    if (String(url).startsWith('https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription')) return new Response('<ConfirmSubscriptionResponse/>');
+    return new Response('not found', { status: 404 });
+  };
+  const hook = (m) => c.post('/api/hooks/ses', JSON.stringify(m), { 'content-type': 'text/plain; charset=UTF-8' });
+  try {
+    // the subscription handshake: confirmed automatically, but only through Amazon and only for our topic
+    const confirmUrl = `https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&TopicArn=${encodeURIComponent(kit.TOPIC)}&Token=abc`;
+    const sub = kit.signed({ Type: 'SubscriptionConfirmation', Message: 'You have chosen to subscribe', SubscribeURL: confirmUrl, Token: 'abc' });
+    assert.equal((await hook({ ...sub, SubscribeURL: 'https://evil.example/x' })).status, 403, 'changing any signed field breaks the signature');
+    assert.ok(!outside.includes('https://evil.example/x'));
+    const ok = await hook(sub);
+    assert.deepEqual([ok.status, ok.data.confirmed], [200, true]);
+    assert.ok(outside.includes(confirmUrl));
+    assert.equal((await hook(sub)).data.duplicate, true, 'the same message twice is handled once');
+    assert.equal(outside.filter((u) => u === confirmUrl).length, 1);
+
+    // forged, foreign, stale or oddly sourced messages are refused before anything changes
+    const bounce = (to, subtype = 'General', type = 'Permanent', id = 'mx') => ({ eventType: 'Bounce', mail: { messageId: id, destination: [to] }, bounce: { bounceType: type, bounceSubType: subtype, bouncedRecipients: [{ emailAddress: to, diagnosticCode: 'smtp; 550 5.1.1 user unknown' }] } });
+    await c.login();
+    for (const e of ['gone@example.com', 'angry@example.com', 'full@example.com', 'checked@example.com', 'listed@example.com', 'late@example.com', 'refused@example.com', 'v2@example.com']) await c.post('/api/admin/people', { email: e, status: 'active', consent_attested: true });
+    const forged = kit.note(bounce('angry@example.com')); forged.Message = forged.Message.replace('angry', 'gone');
+    assert.equal((await hook(forged)).status, 403);
+    assert.equal((await hook(kit.note(bounce('gone@example.com'), { TopicArn: 'arn:aws:sns:us-east-1:999999999999:other' }))).status, 403, 'another topic');
+    assert.equal((await hook(kit.note(bounce('gone@example.com'), { Timestamp: new Date(Date.now() - 7 * 3600e3).toISOString() }))).status, 403, 'a replayed old message');
+    const before = outside.length;
+    assert.equal((await hook(kit.note(bounce('gone@example.com'), { SigningCertURL: 'https://sns.us-east-1.amazonaws.com.evil.example/cert.pem' }))).status, 403);
+    assert.equal((await hook(kit.note(bounce('gone@example.com'), { SigningCertURL: 'http://sns.us-east-1.amazonaws.com/cert.pem' }))).status, 403);
+    assert.equal(outside.length, before, 'a certificate address that is not Amazon\'s is never fetched');
+    assert.equal((await c.post('/api/hooks/ses?key=hook-secret', '{"Type":"Notification"}', { 'content-type': 'text/plain' })).status, 403, 'the old shared key no longer opens the SES address');
+    const status = (e) => one(env, 'SELECT status FROM people WHERE email_norm = ?', e).status;
+    assert.equal(status('gone@example.com'), 'active', 'nothing changed by refused messages');
+
+    // a sent issue to match reports against
+    env.DB.sqlite.exec("INSERT INTO sends (id, issue_slug, kind, status, subject, content_sha256, created_by, created_at) VALUES (900, 'week-of-august-9-16-2026', 'issue', 'sent', 's', 'x', 'test', '2026-11-12T00:00:00Z')");
+    for (const e of ['gone', 'angry', 'full', 'checked', 'listed', 'late', 'refused', 'v2']) env.DB.sqlite.prepare("INSERT INTO send_recipients (send_id, person_id, email_norm, token, status, provider, provider_message_id) VALUES (900, (SELECT id FROM people WHERE email_norm = ?), ?, ?, 'sent', 'ses', ?)").run(`${e}@example.com`, `${e}@example.com`, 'tok-' + e, 'id-' + e);
+    const r1 = await hook(kit.note(bounce('gone@example.com', 'General', 'Permanent', 'id-gone')));
+    assert.deepEqual([r1.status, r1.data.kind, r1.data.handled], [200, 'Bounce', 1]);
+    await hook(kit.note({ notificationType: 'Complaint', mail: { messageId: 'id-angry' }, complaint: { complaintFeedbackType: 'abuse', complainedRecipients: [{ emailAddress: 'angry@example.com' }] } }));
+    await hook(kit.note(bounce('full@example.com', 'MailboxFull', 'Transient', 'id-full')));
+    await hook(kit.note(bounce('checked@example.com', 'EmailValidationSuppressed', 'Permanent', 'id-checked')));
+    await hook(kit.note({ eventType: 'Complaint', mail: { messageId: 'id-listed' }, complaint: { complaintSubType: 'OnAccountSuppressionList', complainedRecipients: [{ emailAddress: 'listed@example.com' }] } }));
+    await hook(kit.note({ eventType: 'DeliveryDelay', mail: { messageId: 'id-late', destination: ['late@example.com'] }, deliveryDelay: { delayType: 'MailboxFull', delayedRecipients: [{ emailAddress: 'late@example.com', diagnosticCode: '452 4.2.2' }] } }));
+    await hook(kit.note({ eventType: 'Reject', mail: { messageId: 'id-refused', destination: ['refused@example.com'] }, reject: { reason: 'Bad content' } }));
+    const v2 = await hook(kit.note({ eventType: 'Delivery', mail: { messageId: 'id-v2', destination: ['v2@example.com'] }, delivery: { recipients: ['v2@example.com'] } }, { SignatureVersion: '2' }));
+    const v2Again = kit.note({ eventType: 'Delivery', mail: { messageId: 'id-v2' }, delivery: { recipients: ['v2@example.com'] } }, { SignatureVersion: '2' });
+    assert.equal(v2.status, 200, 'SHA-256 signatures (version 2) are accepted too');
+    for (const k of ['Send', 'Open', 'Click']) assert.equal((await hook(kit.note({ eventType: k, mail: { messageId: 'id-v2', destination: ['v2@example.com'] } }))).data.handled, 0);
+    assert.deepEqual(['gone', 'angry', 'full', 'checked', 'listed', 'late', 'refused', 'v2'].map((e) => status(`${e}@example.com`)),
+      ['bounced', 'complained', 'active', 'active', 'active', 'active', 'active', 'active'], 'only real hard bounces and real complaints change a subscriber');
+    assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('gone@example.com','angry@example.com')").n, 2);
+    const rec = Object.fromEntries(many(env, 'SELECT email_norm, status, last_error FROM send_recipients WHERE send_id = 900').map((r) => [r.email_norm.split('@')[0], r]));
+    assert.deepEqual(['gone', 'angry', 'full', 'checked', 'listed', 'late', 'refused', 'v2'].map((e) => rec[e].status), ['bounced', 'complained', 'sent', 'failed', 'failed', 'sent', 'failed', 'delivered']);
+    assert.match(rec.checked.last_error, /Auto Validation/);
+    assert.match(rec.refused.last_error, /Amazon refused to send this message: Bad content/);
+    const types = many(env, "SELECT type FROM delivery_events WHERE provider = 'ses' ORDER BY id").map((r) => r.type);
+    assert.deepEqual(types, ['bounce_hard', 'complaint', 'bounce_soft', 'held', 'held', 'delayed', 'not_sent', 'delivered']);
+    assert.equal((await hook(v2Again)).status, 200);
+
+    // the dashboard sees that reports are connected and that Amazon is adding tracking
+    const rep = JSON.parse(one(env, "SELECT value FROM settings WHERE key = 'ses_reports'").value);
+    assert.ok(rep.subscribed_at && rep.tracking_seen_at && !rep.unsubscribed_at);
+    await hook(kit.signed({ Type: 'UnsubscribeConfirmation', Message: 'unsubscribed', SubscribeURL: confirmUrl, Token: 'abc' }));
+    assert.ok(JSON.parse(one(env, "SELECT value FROM settings WHERE key = 'ses_reports'").value).unsubscribed_at);
+    // Brevo's address and secret are unchanged
+    assert.equal((await c.post('/api/hooks/brevo', { event: 'hard_bounce', email: 'x@example.com' })).status, 401);
+    assert.equal((await c.post('/api/hooks/brevo?key=hook-secret', { event: 'delivered', email: 'x@example.com' })).status, 200);
+    // without a configured topic nothing is accepted at all
+    delete env.SES_TOPIC_ARN;
+    assert.equal((await hook(kit.note(bounce('v2@example.com')))).status, 403);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('Amazon SES status: reads the real account state, names the single next step, and never reports ready while anything is missing', async () => {
   const env = await makeEnv(), c = client(env);
   assert.equal((await c.get('/api/admin/ses/status')).status, 401);
   await c.login();
   assert.equal((await c.get('/api/admin/ses/status')).data.configured, false);
   Object.assign(env, { AWS_ACCESS_KEY_ID: 'AKID', AWS_SECRET_ACCESS_KEY: 's', FROM_EMAIL: 'brief@prompted.example' });
-  const state = { production: false, verified: false }, calls = [], realFetch = globalThis.fetch;
+  const state = { production: false, verified: true, autoValidation: 'ENABLED', setOverride: null, setExists: true }, calls = [], realFetch = globalThis.fetch;
   globalThis.fetch = async (url, init = {}) => {
-    const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.host + u.pathname);
+    const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.pathname);
     const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
-    if (u.pathname === '/v2/email/configuration-sets/prompted') return j({ ConfigurationSetName: 'prompted', SuppressionOptions: state.setOverride ? { ValidationOptions: { ConditionThreshold: { ConditionThresholdEnabled: state.setOverride } } } : {} });
-    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: state.autoValidation ? { ConditionThreshold: { ConditionThresholdEnabled: 'ENABLED', OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } : { ConditionThreshold: { ConditionThresholdEnabled: 'DISABLED' } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
-    if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, DkimAttributes: { Status: state.verified ? 'SUCCESS' : 'PENDING' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
-    if (u.host === 'sns.us-east-1.amazonaws.com') return new Response('<ok/>');
+    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: { ConditionThreshold: { ConditionThresholdEnabled: state.autoValidation, OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
+    if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, ConfigurationSetName: 'prompted-newsletter', DkimAttributes: { Status: 'SUCCESS' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
+    if (u.pathname === '/v2/email/configuration-sets/prompted-newsletter') return state.setExists ? j({ ConfigurationSetName: 'prompted-newsletter', SuppressionOptions: state.setOverride ? { ValidationOptions: { ConditionThreshold: { ConditionThresholdEnabled: state.setOverride } } } : {} }) : j({ message: 'not found' }, 404);
     return j({}, 404);
   };
+  const st = async () => (await c.get('/api/admin/ses/status')).data;
   try {
-    let st = (await c.get('/api/admin/ses/status')).data;
-    assert.deepEqual([st.key_valid, st.domain.verified, st.production_access, st.quota.per_day], [true, false, false, 200]);
-    assert.match(st.next, /Waiting for Amazon to see the DKIM records/);
-    state.verified = true;
-    assert.match((await c.get('/api/admin/ses/status')).data.next, /Request production access/);
+    let s = await st();
+    assert.deepEqual([s.key_valid, s.production_access, s.quota.per_day, s.used_by_platform, s.ready], [true, false, 200, false, false]);
+    assert.match(s.next, /Waiting for Amazon to approve production access/);
+    assert.deepEqual(JSON.parse(one(env, "SELECT value FROM settings WHERE key = 'ses_account'").value).max_24h, 200, 'Amazon\'s limits are kept for the sender');
     state.production = true;
-    assert.match((await c.get('/api/admin/ses/status')).data.next, /bounce and complaint reports/);
-    env.SES_CONFIGURATION_SET = 'prompted';
-    st = (await c.get('/api/admin/ses/status')).data;
-    assert.deepEqual([st.ready, st.quota.per_day, st.quota.per_second, st.auto_validation.active], [true, 50000, 14, false]);
-    // Auto Validation switched on at Amazon: not ready, and the panel says what to do
-    state.autoValidation = true;
-    st = (await c.get('/api/admin/ses/status')).data;
-    assert.deepEqual([st.ready, st.auto_validation.active, st.auto_validation.level], [false, true, 'MANAGED']);
-    assert.match(st.next, /Turn off Auto Validation/);
-    state.setOverride = 'DISABLED'; // the configuration set we send with overrides the account setting
-    st = (await c.get('/api/admin/ses/status')).data;
-    assert.deepEqual([st.ready, st.auto_validation.active, st.auto_validation.account.enabled], [true, false, true]);
-    state.autoValidation = false; state.setOverride = null;
-    assert.ok(!calls.some((x) => x.includes('outbound-emails')), 'reading status sends no email');
-
-    // reports arrive through Amazon's notification service
-    const hook = (payload, key = 'hook-secret') => c.post('/api/hooks/ses?key=' + key, JSON.stringify(payload), { 'content-type': 'text/plain; charset=UTF-8' });
-    assert.equal((await hook({ Type: 'Notification', Message: '{}' }, 'wrong')).status, 401);
-    const before = calls.length;
-    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'https://evil.example/steal' })).status, 400);
-    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'http://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription' })).status, 400);
-    assert.equal(calls.length, before, 'a confirmation address that is not Amazon is never called');
-    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&Token=t' })).data.confirmed, true);
-    assert.equal(calls.at(-1), 'GET sns.us-east-1.amazonaws.com/');
-
-    await c.post('/api/admin/people', { email: 'gone@example.com', status: 'active', consent_attested: true });
-    await c.post('/api/admin/people', { email: 'angry@example.com', status: 'active', consent_attested: true });
-    await c.post('/api/admin/people', { email: 'full@example.com', status: 'active', consent_attested: true });
-    const note = (m) => hook({ Type: 'Notification', Message: JSON.stringify(m) });
-    assert.equal((await note({ eventType: 'Bounce', mail: { messageId: 'm1' }, bounce: { bounceType: 'Permanent', bounceSubType: 'General', bouncedRecipients: [{ emailAddress: 'Gone <gone@example.com>', diagnosticCode: 'smtp; 550 5.1.1 user unknown' }] } })).data.handled, 1);
-    await note({ eventType: 'Bounce', mail: { messageId: 'm2' }, bounce: { bounceType: 'Transient', bounceSubType: 'MailboxFull', bouncedRecipients: [{ emailAddress: 'full@example.com' }] } });
-    await note({ notificationType: 'Complaint', mail: { messageId: 'm3' }, complaint: { complaintFeedbackType: 'abuse', complainedRecipients: [{ emailAddress: 'angry@example.com' }] } });
-    const status = (e) => one(env, 'SELECT status FROM people WHERE email_norm = ?', e).status;
-    assert.deepEqual([status('gone@example.com'), status('full@example.com'), status('angry@example.com')], ['bounced', 'active', 'complained'], 'a full mailbox is not a reason to drop someone');
-    assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('gone@example.com','angry@example.com')").n, 2, 'both can never be mailed again');
-    assert.match(one(env, "SELECT detail FROM delivery_events WHERE email_norm = 'gone@example.com' AND type = 'bounce_hard'").detail, /user unknown/);
-    // Amazon chose not to send (its address check, or its own suppression list). That is not a bounce:
-    // the message is marked not delivered and the subscriber is left exactly as they were.
-    for (const e of ['checked@example.com', 'listed@example.com', 'earlier@example.com']) await c.post('/api/admin/people', { email: e, status: 'active', consent_attested: true });
-    env.DB.sqlite.exec("INSERT INTO sends (id, issue_slug, kind, status, subject, content_sha256, created_by, created_at) VALUES (900, 'week-of-august-9-16-2026', 'issue', 'sent', 's', 'x', 'test', '2026-11-12T00:00:00Z')");
-    for (const [e, id] of [['checked@example.com', 'h1'], ['listed@example.com', 'h2'], ['earlier@example.com', 'h3']]) env.DB.sqlite.prepare("INSERT INTO send_recipients (send_id, person_id, email_norm, token, status, provider, provider_message_id) VALUES (900, (SELECT id FROM people WHERE email_norm = ?), ?, ?, 'sent', 'ses', ?)").run(e, e, 'tok-' + id, id);
-    assert.equal((await note({ eventType: 'Bounce', mail: { messageId: 'h1' }, bounce: { bounceType: 'Permanent', bounceSubType: 'EmailValidationSuppressed', bouncedRecipients: [{ emailAddress: 'checked@example.com' }] } })).data.handled, 1);
-    await note({ eventType: 'Bounce', mail: { messageId: 'h2' }, bounce: { bounceType: 'Permanent', bounceSubType: 'OnAccountSuppressionList', bouncedRecipients: [{ emailAddress: 'listed@example.com' }] } });
-    await note({ eventType: 'Complaint', mail: { messageId: 'h3' }, complaint: { complaintSubType: 'OnAccountSuppressionList', complainedRecipients: [{ emailAddress: 'earlier@example.com' }] } });
-    assert.deepEqual(['checked@example.com', 'listed@example.com', 'earlier@example.com'].map(status), ['active', 'active', 'active'], 'a hold by Amazon never unsubscribes or suppresses anyone');
-    assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('checked@example.com','listed@example.com','earlier@example.com')").n, 0);
-    const heldRows = many(env, "SELECT email_norm, status, last_error FROM send_recipients WHERE send_id = 900 ORDER BY email_norm");
-    assert.deepEqual(heldRows.map((r) => r.status), ['failed', 'failed', 'failed'], 'but the message is shown as not delivered');
-    assert.match(heldRows[0].last_error, /Auto Validation/);
-    assert.equal(one(env, "SELECT COUNT(*) n FROM delivery_events WHERE type = 'held' AND provider = 'ses'").n, 3);
-    env.SES_TOPIC_ARN = 'arn:aws:sns:us-east-1:111122223333:prompted';
-    assert.equal((await hook({ Type: 'Notification', TopicArn: 'arn:aws:sns:us-east-1:999:other', Message: '{}' })).status, 400, 'reports from another topic are refused once the topic is pinned');
+    assert.match((await st()).next, /configuration set name/);
+    env.SES_CONFIGURATION_SET = 'prompted-newsletter';
+    state.setExists = false;
+    assert.match((await st()).next, /no configuration set named "prompted-newsletter"/);
+    state.setExists = true;
+    assert.match((await st()).next, /SES_TOPIC_ARN/);
+    env.SES_TOPIC_ARN = 'arn:aws:sns:us-east-1:111122223333:prompted-ses-events';
+    s = await st();
+    assert.match(s.next, /add an HTTPS subscription on the SNS topic with the address https:\/\/preview\.example\/api\/hooks\/ses/);
+    assert.ok(!JSON.stringify(s).includes('hook-secret'), 'the subscription address carries no secret');
+    env.DB.sqlite.prepare("INSERT INTO settings (key, value) VALUES ('ses_reports', ?)").run(JSON.stringify({ subscribed_at: '2026-11-12T20:00:00Z' }));
+    s = await st();
+    assert.deepEqual([s.ready, s.auto_validation.active, s.auto_validation.level], [false, true, 'MANAGED']);
+    assert.match(s.next, /Turn off Auto Validation/);
+    state.setOverride = 'DISABLED';
+    s = await st();
+    assert.deepEqual([s.ready, s.auto_validation.active], [true, false], 'the configuration set\'s own setting wins');
+    state.setOverride = null; state.autoValidation = 'DISABLED';
+    s = await st();
+    assert.deepEqual([s.ready, s.used_by_platform, s.platform_daily_limit, s.pace.mode], [true, true, 45000, 'one request per person']);
+    assert.equal(s.pace.per_minute, 10);
+    assert.ok(s.warnings.some((w) => /Bulk sending is off/.test(w)));
+    env.SES_BULK = 'on';
+    s = await st();
+    assert.deepEqual([s.pace.mode, s.pace.per_minute, s.pace.minutes_for['2500']], ['bulk', 56, 45]);
+    assert.ok(!calls.some((x) => /outbound/.test(x)), 'reading status sends no email');
   } finally { globalThis.fetch = realFetch; }
 });

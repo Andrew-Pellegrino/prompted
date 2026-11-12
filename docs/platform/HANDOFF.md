@@ -8,28 +8,54 @@ A fully independent Prompted publishing platform: website, archive, subscriber d
 publishing, scheduling, sending and analytics, with no beehiiv and no Miami University infrastructure,
 at $0. beehiiv keeps running only as a safety net until an owner-approved cutover.
 
+## Current state (November 12, evening). Read this first; older sections below are history.
+
+- **Live preview:** https://readprompted.org (also the original `workers.dev` address). Noindex, banner,
+  synthetic data, `SEND_MODE = "dryrun"`. Not a cutover. beehiiv remains the live sender.
+- **Main sender: Amazon SES** (`SENDING-PROVIDER.md` has the full state table). Verified live through the
+  dashboard on November 12: IAM key works for read-only calls; domain verified with DKIM and MAIL FROM;
+  configuration set `prompted-newsletter` exists and is the domain default; Auto Validation **off**;
+  Amazon's suppression list covers bounces and complaints; account still in the **sandbox** (200 a day,
+  1 a second) while production access is under review. While in the sandbox the platform leaves SES out
+  of the sending chain entirely.
+- **Delivery reports:** `/api/hooks/ses` accepts only Amazon-signed SNS messages for the pinned topic
+  (`SES_TOPIC_ARN` secret), recent, each once. No secret in that address. Live check: unsigned and
+  forged messages are refused (403). **No SNS subscription exists yet** (owner step, `OWNER-SETUP.md` 6f).
+- **Bulk sending** built (up to one second of recipients per request, per-person unsubscribe link and
+  header, spacing at 90% of Amazon's rate). Off until the IAM key may call `ses:SendBulkEmail`
+  (`OWNER-SETUP.md` 6g). Measured pace: 2,500 people in about 45 minutes on the free Cloudflare plan;
+  about 5 minutes on Workers Paid ($5 a month, not approved, not needed for 255).
+- **Brevo:** connected, authenticated, delivery reports registered; tests and fallback (300 a day).
+- **Gmail:** last-resort fallback; sign-in expires about November 18; recommended to let it lapse.
+- **Opt-in wording corrected:** the existing ~255 subscribers asked for Prompted but did not all join
+  through the new site's double opt-in. Docs no longer claim otherwise. Real bounce and complaint
+  suppression is unchanged; first sends to the existing list must be staged.
+- **Open deliverability concern:** two October SEPi members report never seeing Prompted although
+  beehiiv records delivery. Cross-group inbox placement is now a cutover gate (`DELIVERABILITY.md`,
+  `CUTOVER-MANIFEST.md`). Investigation is the owner's (private CRM); no contact or emails without approval.
+- **Tests:** 45 passing. **Production systems untouched:** `main`, beehiiv, the Index, the CRM, the
+  automations. **No real email** has been sent by the platform since the three Gmail tests on November 11.
+
 ## Status at a glance
 
 | Area | State |
 | --- | --- |
 | Issue archive (31 issues) | **Migrated and verified** on this branch |
-| Public site (home, archive, search, issue pages, subscribe, short links, RSS, Index copy) | **Built, tested locally.** Not deployed |
-| Email template from the same issue source | **Built, tested** (structure and text parity). Not yet checked in real inboxes |
+| Public site (home, archive, search, issue pages, subscribe, short links, RSS, Index copy) | **Deployed** on the preview at https://readprompted.org |
+| Email template from the same issue source | **Built, tested** (structure and text parity). Not yet checked in real inboxes from the domain |
 | Pre-send QA | **Built, tested** |
 | Subscriber database, CRM, suppression, audit log | **Built, tested** with synthetic data. No real data loaded |
 | Signup with attribution, double opt-in, unsubscribe | **Built, tested** |
 | CSV import, export, backup and restore | **Built, tested** |
 | Publishing pipeline (prepare, test, approve, schedule, send, verify) | **Built, tested** in dry-run mode |
-| Delivery adapters: Brevo, Resend, Gmail API | Gmail **run against the real account** (3 test emails, all to Spam). Brevo and Resend tested with mocked HTTP only |
-| Email DNS for `readprompted.org` | **In place and checked** (Brevo ownership code, DKIM, DMARC, Email Routing MX and SPF). Brevo's own Authenticate click and API key are the owner's next steps |
-| Analytics dashboard, beehiiv-era metrics import | **Built, tested** with synthetic figures |
-| Preview deployment | **Deployed and verified:** https://readprompted.org (dry-run sending, noindex, synthetic data only) |
-| Gmail sending connection | **Connected** (dedicated Prompted Google account). Fallback only. Sign-in expires November 18 unless the Google app is published |
+| Amazon SES adapter (single and bulk), status panel, signed SNS reports | **Read-only calls verified live.** Sending and SNS tested with simulated answers only |
 | Brevo | **Connected and ready** for an owner-approved test send (free plan, 300 a day) |
-| Amazon SES | **Adapter built, tested with simulated answers.** AWS account open, domain records in DNS. Waiting for Amazon's verification, production access and an access key |
-| Real sending | **Blocked:** needs inbox placement proven by owner-approved seed tests, and an approved postal address |
-| Real data migration | **Not started:** needs the deployed private database and owner approval |
-| Production cutover | **Not started.** NO-GO until the tests in `CUTOVER-MANIFEST.md` pass |
+| Gmail sending connection | Connected; fallback only; expires about November 18 |
+| Email DNS for `readprompted.org` | **In place and verified** by Brevo and Amazon SES |
+| Analytics dashboard, beehiiv-era metrics import | **Built, tested** with synthetic figures |
+| Real sending | **Blocked:** SES production access, SNS subscription, bulk permission, owner-approved seed tests, cross-group inbox placement, approved postal address |
+| Real data migration | **Not started:** needs owner approval |
+| Production cutover | **NO-GO** until the tests in `CUTOVER-MANIFEST.md` pass |
 
 ## Verified in this session
 
@@ -150,36 +176,6 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   address and no file keeps the old one.
 - The pending `prompted.eu.org` entry in Cloudflare can stay or be removed by the owner; it costs nothing.
 
-## Domain application in progress (November 11)
-
-- The owner created and confirmed an eu.org contact handle. `prompted.eu.org` was unused when checked.
-- Cloudflare must issue the two name servers first. Claude's token is refused for adding a domain
-  (missing the zone-create permission), so the owner adds `prompted.eu.org` in the Cloudflare dashboard
-  and reports the two name servers. Then the owner submits the eu.org request (`OWNER-SETUP.md` 6a, 6b).
-- After approval: `OWNER-SETUP.md` 6c. The site moves onto the domain by uncommenting one `routes` line in
-  `wrangler.toml` and changing `SITE_URL`.
-- Update: Cloudflare accepted `prompted.eu.org` (pending) and assigned `alfred.ns.cloudflare.com` and
-  `olga.ns.cloudflare.com`. The owner has the eu.org request form instructions (check option: "server
-  names"). Waiting for the owner to submit and for eu.org to approve. One forum post from April 2026 claims
-  eu.org had stopped approving names; unconfirmed. Revisit the options if nothing arrives in two to
-  three weeks.
-- Update 2: the owner submitted the eu.org form twice (iPhone, then Brave on Windows). Neither showed a
-  visible confirmation; the iPhone produced a downloaded `document.txt`, Windows returned a blank form.
-  Reading eu.org's published source shows what each outcome means (`OWNER-SETUP.md`, section 6b-notes).
-  **Whether a request is pending is still unknown.** Next owner step: open `document.txt` and report its
-  last lines. Alternatives to eu.org have not been evaluated in depth and nothing has been switched.
-- Nothing here guarantees approval or good inbox placement. Both are tested before anything depends on them.
-- New dashboard tool: **Publish, Check a new issue before publishing**. Paste approved text, get the same
-  QA a send must pass, the subject and preview line, the exact email preview, and the issue file to
-  download. Nothing is published or sent. Verified live with synthetic text.
-- The confirm and unsubscribe screens now carry the site's header, footer and typography.
-
-Added this session, deployed and verified live with no email sent: inbox placement log with the
-three-in-a-row gate, stricter security headers, a fuller subscribe page, corrected confirmation-email
-wording, a hand-set "bounced" status for senders that give no bounce reports, and "tag everyone shown"
-in Audience (optionally only the first N longest-standing subscribers) for building a pilot group.
-`WEEKLY-RUNBOOK.md` describes the publishing week end to end.
-
 ## Deliverability is the open problem (read `DELIVERABILITY.md`)
 
 The owner found all three test messages in Spam and marked them "Not spam". The plain message's headers
@@ -243,15 +239,17 @@ health check with a dashboard warning.
 - Authorised test inbox stored as the `TEST_RECIPIENTS` secret. Postal address still a placeholder by the
   owner's instruction.
 
-## Open blockers and owner actions
+## Open blockers and owner actions (in order)
 
-1. Create the dedicated Google sending account and OAuth client, add two secrets in Cloudflare, click
-   "Connect Gmail" (`OWNER-SETUP.md` step 3).
-2. Name the inboxes that may receive test emails (step 5).
-3. Approve or change the postal address shown in the footer preview (step 4). The preview currently uses
-   a clearly fake placeholder address; QA flags it.
-4. Apply for a free `eu.org` name (optional now, better From address later).
-5. Decide whether issue 31's "fla ws" should be corrected (see `MIGRATION-REPORT.md`).
+1. Add the HTTPS subscription on the SNS topic, and untick Amazon's open and click tracking
+   (`OWNER-SETUP.md` 6f). Can be done now.
+2. Wait for Amazon's production-access answer (up to 96 hours from November 12). Answer any follow-up
+   truthfully (draft in 6e).
+3. Before cutover: add `ses:SendBulkEmail` to the IAM policy (6g).
+4. Approve each seed test send individually, and the postal address for the footer (step 4).
+5. Continue the Miami delivery investigation privately; decide on outreach and any Miami IT trace.
+6. Decide whether issue 31's "fla ws" should be corrected (see `MIGRATION-REPORT.md`).
+7. Before February 9, 2027: replace the Cloudflare token (it expires then and is broader than needed).
 
 ## State of the preview database
 
@@ -264,21 +262,21 @@ npx wrangler d1 execute DB --remote --command "DELETE FROM send_recipients; DELE
 
 ## Next steps for the next session, in order
 
-1. When the owner has connected Gmail and named test inboxes: store `TEST_RECIPIENTS` as a secret, set
-   `SEND_MODE = "live"` in `wrangler.toml` for the preview (it can still only reach test inboxes), deploy,
-   send a test issue from the dashboard, and compare with the beehiiv email in Gmail, Outlook and Apple
-   Mail. Fix the template where it differs.
-2. Set the approved `POSTAL_ADDRESS` secret.
-3. After owner approval: empty the preview database, import the full beehiiv export and the CRM, reconcile
-   counts by status against beehiiv, load per-issue statistics and the growth series.
-4. Weekly workflow: approved issue text -> `npm run new-issue` -> build -> QA -> test -> approve.
-   Run one shadow week next to beehiiv without sending to subscribers.
-5. When a domain is approved: Brevo and Resend with DKIM, provider webhooks, then the cutover checklist.
+1. After the owner's SNS subscription: confirm in the dashboard that reports are connected and that the
+   handshake was recorded (`ses.reports_connected` in the audit log).
+2. After production access: read the real limits in the dashboard, recompute the pace table, set
+   `SES_BULK = "on"` once the IAM permission exists, and propose seed tests (owner approves each).
+3. Seed tests across groups (Gmail, Outlook, iCloud, Miami and another university) from
+   `brief@readprompted.org`; record each in the placement log.
+4. After owner approval: empty the preview database, import the full beehiiv export and the CRM,
+   reconcile counts by status against beehiiv.
+5. Shadow week next to beehiiv without sending to subscribers; then the staged warm-up.
 
 ## Known gaps (honest list)
 
 - No DOCX reader. New issues come in through the text form in `src/lib/import-text.mjs`.
-- Provider adapters are untested against live APIs. Expect small fixes on first contact.
+- Sending through SES and real SNS messages are untested against the live service. Expect small fixes on
+  first contact. Read-only SES calls are verified.
 - Gmail sending gives no bounce webhooks; bounces arrive as mail in the sending account's inbox.
 - Open and click tracking is basic and affected by privacy features and link scanners.
 - The Index copy at `/index/` gets a small "← Prompted" link added at build time by text replacement;

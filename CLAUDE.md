@@ -2,8 +2,8 @@
 
 Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, and what is next.
 `docs/platform/WEEKLY-RUNBOOK.md` describes how an issue is published and sent.
-Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the planned main sender; the owner opened the AWS
-account on November 12 and production access is the next step) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
+Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the main sender: set up and verified read-only,
+production access under review, SNS subscription is the owner's next step) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
 sent, even to the test inbox, without the owner's approval for that send.
 
 ## What this repository is
@@ -53,7 +53,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 43 tests, in-memory SQLite behind the D1 interface
+npm test               # 45 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -88,8 +88,9 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
 - Personal details and credentials are Worker secrets, never in `wrangler.toml`: `ADMIN_PASSWORD_HASH`,
   `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS` (still a fake placeholder: the owner has not approved
   a real one), `TEST_RECIPIENTS` (set: the owner's one authorised inbox), `GMAIL_CLIENT_ID`,
-  `GMAIL_CLIENT_SECRET`, `BREVO_API_KEY` (set by the owner on November 12), later `AWS_ACCESS_KEY_ID`,
-  `AWS_SECRET_ACCESS_KEY`, `RESEND_API_KEY`, `REPLY_TO`.
+  `GMAIL_CLIENT_SECRET`, `BREVO_API_KEY`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` (IAM user
+  `prompted-ses-sender`, restricted policy), `SES_TOPIC_ARN` (the SNS topic; only it is accepted), later
+  `RESEND_API_KEY`, `REPLY_TO`.
 - The Gmail refresh token is stored in the private database by the dashboard's "Connect Gmail" button.
 - New migrations must be applied to the preview: `npx wrangler d1 migrations apply DB --remote`.
 - Remote database access: `npx wrangler d1 execute DB --remote --command "..."`.
@@ -101,6 +102,11 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
   Amazon SES) DNS-only (grey cloud). Amazon's own SPF record lives on `bounce.readprompted.org` only.
 - Amazon reports sends it chose not to make (Auto Validation, its own suppression list) as "Permanent
   bounces". `ses.mjs` turns those into `held`, which never suppresses a subscriber. Do not undo that.
+- SES reports: `/api/hooks/ses` has no secret in its address. It trusts only Amazon-signed SNS messages
+  for `SES_TOPIC_ARN` (`src/worker/sns.mjs`), recent, once each (`webhook_messages`). Do not add a URL
+  key to it and do not weaken the signature check. Brevo's hook keeps its `?key=` secret.
+- SES stays out of the sending chain until Amazon grants production access (read from the account every
+  30 minutes). Bulk mode (`SES_BULK`) needs `ses:SendBulkEmail` on the IAM policy first.
 - `FROM_EMAIL` is a plain setting in `wrangler.toml` (`brief@readprompted.org`), not a secret.
 - Signup confirmations on the preview never leave the platform unless `PREVIEW_CONFIRMATIONS = "live"`.
 - A new cron schedule takes a few minutes to start firing after the first deploy.
