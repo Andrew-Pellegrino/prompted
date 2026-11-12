@@ -83,9 +83,14 @@ export async function sesStatus(env) {
   const from = env.FROM_EMAIL || null, region = regionOf(env);
   if (!ready(env)) return { configured: false, from, region, next: 'Store the AWS access key in Cloudflare as the Worker secrets AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.' };
   const domain = domainOf(from);
-  const [account, identity] = await Promise.all([sesCall(env, 'GET', '/v2/email/account'), domain ? sesCall(env, 'GET', '/v2/email/identities/' + amzEncode(domain)) : null]);
+  const [account, identity, cset] = await Promise.all([sesCall(env, 'GET', '/v2/email/account'), domain ? sesCall(env, 'GET', '/v2/email/identities/' + amzEncode(domain)) : null,
+    env.SES_CONFIGURATION_SET ? sesCall(env, 'GET', '/v2/email/configuration-sets/' + amzEncode(env.SES_CONFIGURATION_SET)) : null]);
   if (!account.ok) return { configured: true, key_valid: false, from, region, next: `Amazon refused the request (${account.status} ${account.errorType}). Check the access key, its permissions and the region.` };
   const q = account.data?.SendQuota || {}, id = identity?.ok ? identity.data : null;
+  // Auto Validation: set for the whole account, and optionally overridden by the configuration set we send with.
+  const threshold = (o) => (o?.ConditionThreshold ? { enabled: o.ConditionThreshold.ConditionThresholdEnabled === 'ENABLED', level: o.ConditionThreshold.OverallConfidenceThreshold?.ConfidenceVerdictThreshold || null } : null);
+  const avAccount = threshold(account.data?.SuppressionAttributes?.ValidationAttributes), avSet = cset?.ok ? threshold(cset.data?.SuppressionOptions?.ValidationOptions) : null;
+  const avEffective = avSet || avAccount; // the configuration set wins when it has its own setting
   const out = {
     configured: true, key_valid: true, from, region,
     production_access: !!account.data?.ProductionAccessEnabled,
@@ -95,6 +100,9 @@ export async function sesStatus(env) {
     platform_daily_limit: ses.dailyLimit(env), platform_per_minute: ses.maxPerTick(env),
     domain: id ? { name: domain, verified: !!id.VerifiedForSendingStatus, dkim: id.DkimAttributes?.Status || null, mail_from: id.MailFromAttributes?.MailFromDomain || null, mail_from_status: id.MailFromAttributes?.MailFromDomainStatus || null } : null,
     reports_configured: !!env.SES_CONFIGURATION_SET,
+    configuration_set_found: env.SES_CONFIGURATION_SET ? !!cset?.ok : null,
+    auto_validation: { account: avAccount, configuration_set: avSet, active: avEffective ? avEffective.enabled : null, level: avEffective?.enabled ? avEffective.level : null },
+    account_suppression_reasons: account.data?.SuppressionAttributes?.SuppressedReasons || null,
   };
   out.next = !from ? 'Set the sender address (FROM_EMAIL).'
     : !out.domain ? `Add ${domain} as a verified identity in Amazon SES (region ${region}).`
@@ -102,10 +110,25 @@ export async function sesStatus(env) {
     : !out.production_access ? 'Request production access in Amazon SES. Until then SES only sends to verified addresses, 200 a day.'
     : !out.sending_enabled ? 'Amazon has paused sending on this account. Open the SES console to see why.'
     : !out.reports_configured ? 'Connect bounce and complaint reports (configuration set and SNS topic).'
+    : out.configuration_set_found === false ? `Amazon has no configuration set named "${env.SES_CONFIGURATION_SET}" in ${region}, or the key may not read it.`
+    : out.auto_validation.active && env.SES_ALLOW_AUTO_VALIDATION !== 'true' ? 'Turn off Auto Validation in Amazon SES (Email Validation, Auto Validation). Our list is confirmed by double opt-in, so Amazon\'s guesses only risk holding back real subscribers, and held messages are still billed.'
     : 'Ready for an approved test send.';
   out.ready = out.next === 'Ready for an approved test send.';
   return out;
 }
+
+// Amazon reports some sends as a "Permanent bounce" although no mailbox ever refused them: Amazon itself
+// decided not to send. Treating those as hard bounces would permanently drop real subscribers, so they
+// become "held": the message is marked not delivered, the person stays subscribed, the owner reviews.
+//  - EmailValidationSuppressed: Amazon's Auto Validation guessed the address is unlikely to deliver.
+//  - OnAccountSuppressionList / Suppressed / OnTenantSuppressionList: the address is on Amazon's own
+//    do-not-send list from an earlier bounce or complaint.
+const HELD = {
+  EmailValidationSuppressed: 'Held back by Amazon\'s address check (Auto Validation). Not delivered; no mailbox refused it. The subscriber is unchanged.',
+  OnAccountSuppressionList: 'Not sent: the address is on the AWS account\'s own suppression list from an earlier bounce or complaint. The subscriber is unchanged here.',
+  Suppressed: 'Not sent: Amazon suppressed this address because of a recent bounce history. The subscriber is unchanged here.',
+  OnTenantSuppressionList: 'Not sent: the address is on an Amazon tenant suppression list. The subscriber is unchanged here.',
+};
 
 /**
  * Amazon delivers SES bounce, complaint and delivery reports through its notification service (SNS),
@@ -125,8 +148,17 @@ export function readSesNotification(payload, env) {
   let m = null;
   try { m = typeof payload.Message === 'string' ? JSON.parse(payload.Message) : payload.Message; } catch { return { events: [] }; }
   const kind = m?.eventType || m?.notificationType, msgId = m?.mail?.messageId || null, events = [];
-  if (kind === 'Bounce') for (const r of m.bounce?.bouncedRecipients || []) events.push({ type: m.bounce.bounceType === 'Permanent' ? 'bounce_hard' : 'bounce_soft', email: r.emailAddress, msgId, reason: r.diagnosticCode || `${m.bounce.bounceType || ''} ${m.bounce.bounceSubType || ''}`.trim() });
-  if (kind === 'Complaint') for (const r of m.complaint?.complainedRecipients || []) events.push({ type: 'complaint', email: r.emailAddress, msgId, reason: m.complaint.complaintFeedbackType || null });
+  if (kind === 'Bounce') {
+    const held = HELD[m.bounce?.bounceSubType];
+    for (const r of m.bounce?.bouncedRecipients || []) events.push(held
+      ? { type: 'held', email: r.emailAddress, msgId, reason: held }
+      : { type: m.bounce.bounceType === 'Permanent' ? 'bounce_hard' : 'bounce_soft', email: r.emailAddress, msgId, reason: r.diagnosticCode || `${m.bounce.bounceType || ''} ${m.bounce.bounceSubType || ''}`.trim() });
+  }
+  if (kind === 'Complaint') {
+    // With this subtype nobody complained just now: Amazon declined to send because of an earlier complaint.
+    const held = HELD[m.complaint?.complaintSubType];
+    for (const r of m.complaint?.complainedRecipients || []) events.push(held ? { type: 'held', email: r.emailAddress, msgId, reason: held } : { type: 'complaint', email: r.emailAddress, msgId, reason: m.complaint.complaintFeedbackType || null });
+  }
   if (kind === 'Delivery') for (const email of m.delivery?.recipients || []) events.push({ type: 'delivered', email, msgId, reason: null });
   return { events };
 }

@@ -26,7 +26,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 | Preview deployment | **Deployed and verified:** https://readprompted.org (dry-run sending, noindex, synthetic data only) |
 | Gmail sending connection | **Connected** (dedicated Prompted Google account). Fallback only. Sign-in expires November 18 unless the Google app is published |
 | Brevo | **Connected and ready** for an owner-approved test send (free plan, 300 a day) |
-| Amazon SES | **Adapter built, tested with simulated answers.** Waiting for the owner's approval to open an AWS account |
+| Amazon SES | **Adapter built, tested with simulated answers.** AWS account open, domain records in DNS. Waiting for Amazon's verification, production access and an access key |
 | Real sending | **Blocked:** needs inbox placement proven by owner-approved seed tests, and an approved postal address |
 | Real data migration | **Not started:** needs the deployed private database and owner approval |
 | Production cutover | **Not started.** NO-GO until the tests in `CUTOVER-MANIFEST.md` pass |
@@ -104,7 +104,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   even to the test inbox, unless `PREVIEW_CONFIRMATIONS = "live"`. Reason: the signup form is public, and
   the owner asked that no real email go out without approval for that send.
 - The owner authenticated the domain in Brevo and stored the API key; "Finish Brevo setup" has been run.
-  **Next owner step:** approve Amazon SES and create the AWS account (`OWNER-SETUP.md` 6e).
+  SES was approved the same day; see the sending provider section below.
 
 ## Sending provider (November 12): Brevo connected; Amazon SES recommended as the main sender
 
@@ -117,6 +117,22 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   `SENDING-PROVIDER.md`. **Waiting for the owner's approval; no AWS account exists yet.**
 - Built ahead of approval (costs nothing): `platform/src/worker/ses.mjs` (signed requests, send adapter,
   status panel, bounce and complaint reader at `/api/hooks/ses`). Tested with simulated Amazon answers only.
+- **November 12, later:** the owner approved SES, opened the AWS account and created the
+  `readprompted.org` identity in `us-east-1` with MAIL FROM `bounce.readprompted.org`. Claude added the
+  three SES DKIM records (DNS only), the MX and the SPF record on `bounce.readprompted.org`, and checked
+  them on two public DNS services. The DMARC line in Amazon's CSV was deliberately not applied (one DMARC
+  record already exists). Brevo's records, Email Routing and the website records are unchanged.
+  **Claude cannot see inside AWS** (no key is stored yet), so whether Amazon shows the identity as
+  Verified must be read by the owner in the SES console, or by the dashboard once keys exist.
+- **Auto Validation issue (must hold before any real SES send).** Amazon can decide not to send to an
+  address it guesses is undeliverable, bills for it anyway, and reports it as a "Permanent bounce"
+  (`EmailValidationSuppressed`). The same shape is used for Amazon's own suppression list. The platform
+  maps these to `held`: the message is marked not delivered, the subscriber is never suppressed. The SES
+  panel shows the setting and is not "ready" while it is on. The owner should keep it off. Details:
+  `SENDING-PROVIDER.md`. Tested with simulated reports only.
+- **Next owner step:** confirm the identity shows Verified, keep Auto Validation off, request production
+  access (`OWNER-SETUP.md` 6e, with draft text). Before submitting, the owner must confirm how the existing
+  subscribers joined, because Amazon asks for an acknowledgement that everyone explicitly asked for the mail.
 - Sending pace: a provider can set its own per-minute pace (`maxPerTick`). SES is 30 a minute on the free
   Cloudflare plan. Before the list passes roughly 1,000, build SES bulk requests (50 people per request)
   or move to Workers Paid.

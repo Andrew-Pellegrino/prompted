@@ -135,6 +135,9 @@ DMARC record, and the two DKIM records are "DNS only" (grey cloud), as Brevo req
 | MX (3) | `readprompted.org` | `route1/2/3.mx.cloudflare.net` | Receives mail for the domain (Cloudflare Email Routing) |
 | TXT | `readprompted.org` | `v=spf1 include:_spf.mx.cloudflare.net ~all` | SPF for forwarded mail (added by Email Routing) |
 | TXT | `cf2024-1._domainkey` | (Cloudflare's key) | Signs forwarded mail (added by Email Routing) |
+| CNAME (3) | `<token>._domainkey` | `<token>.dkim.amazonses.com` | DKIM: lets Amazon SES sign our mail as the domain (DNS only) |
+| MX | `bounce` | `10 feedback-smtp.us-east-1.amazonses.com` | Amazon SES "MAIL FROM": bounce notices go back to Amazon |
+| TXT | `bounce` | `v=spf1 include:amazonses.com ~all` | SPF for Amazon SES mail, on the `bounce` subdomain only |
 
 Brevo sends from its own bounce address, so Brevo mail passes SPF on Brevo's side and passes DMARC through
 the DKIM records above. Do not add a second SPF record for Brevo: two SPF records break both.
@@ -166,19 +169,39 @@ send".
 
 No test email is sent until the owner approves that specific send.
 
-### 6e. Main sender: Amazon SES (needs the owner's approval first)
+### 6e. Main sender: Amazon SES
 
-Why, what it costs and what could go wrong: `SENDING-PROVIDER.md`. In short: about $0.16 per 1,000
-emails, no monthly fee, under $2 a month at 2,500 subscribers. A payment card is required to open the
-account.
+Why, what it costs and what could go wrong: `SENDING-PROVIDER.md`.
 
-1. **Owner:** create an AWS account at https://aws.amazon.com (button **Create account**), using the
-   Prompted Google account's address, account name "Prompted". Choose the **Paid** account plan when asked
-   (the Free plan closes the account after six months; the sign-up credits apply to both). Choose the free
-   **Basic** support plan.
-2. **Owner:** turn on two-step sign-in for the account (top right menu, **Security credentials**,
-   **Assign MFA device**).
-3. Then tell Claude. The following steps are in `SENDING-PROVIDER.md` and will be given one at a time.
+1. AWS account created by the owner. DONE (November 12).
+2. `readprompted.org` added in SES, region US East (N. Virginia), with the custom MAIL FROM subdomain
+   `bounce.readprompted.org`. DONE by the owner.
+3. Amazon's five DNS records added by Claude and checked on two public DNS services. DONE. The CSV also
+   suggested a DMARC record; it was **not** applied, because the domain already has one DMARC record
+   (which also sends reports to Brevo) and a second would break both.
+4. **Owner:** in the SES console, open **Configuration**, **Identities**, `readprompted.org`. It should
+   show Identity status **Verified**, DKIM **Successful** and MAIL FROM **Successful**. Usually minutes,
+   sometimes a few hours.
+5. **Owner:** in the SES console, open **Email Validation**, **Auto Validation**, and make sure
+   **Enabled** is **not** ticked. (Why: see `SENDING-PROVIDER.md`, "Auto Validation".)
+6. **Owner:** request production access (SES console, **Account dashboard**, **Request production
+   access**). Mail type **Marketing**, website `https://readprompted.org`. Text to paste where the form or
+   the support reply asks for the use case (edit anything that is not exactly true):
+
+   > Prompted is a free weekly newsletter about AI, published every Monday morning. It currently has a few
+   > hundred subscribers and sends one email per subscriber per week, so volume is small and predictable.
+   > People subscribe through the signup form on https://readprompted.org, which uses confirmed
+   > (double) opt-in: nobody is added until they click a confirmation link. We do not buy, rent or scrape
+   > addresses. Every email carries a visible unsubscribe link and the one-click List-Unsubscribe header,
+   > and unsubscribes take effect immediately. Bounces and complaints are received through Amazon SNS and
+   > processed automatically: hard bounces and complaints are suppressed permanently and never mailed
+   > again. The domain is authenticated with DKIM, a custom MAIL FROM domain and DMARC.
+
+   Important: only claim what is true about how the existing subscribers joined. If some were added
+   from a roster rather than signing up themselves, say so to Claude first so the wording is honest.
+7. After approval: a send-only access key stored as the secrets `AWS_ACCESS_KEY_ID` and
+   `AWS_SECRET_ACCESS_KEY`, then the configuration set and SNS topic for bounce and complaint reports.
+   Steps will be given one at a time.
 
 ## 7. Private data migration (only after tests pass and you approve)
 

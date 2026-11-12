@@ -2,8 +2,8 @@
 
 Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, and what is next.
 `docs/platform/WEEKLY-RUNBOOK.md` describes how an issue is published and sent.
-Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the planned main sender; needs the owner's approval
-before any AWS account or billing) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
+Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the planned main sender; the owner opened the AWS
+account on November 12 and production access is the next step) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
 sent, even to the test inbox, without the owner's approval for that send.
 
 ## What this repository is
@@ -97,7 +97,10 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
   email forwarding for `readprompted.org` are managed through the Cloudflare API with
   `curl -H "Authorization: Bearer x" https://api.cloudflare.com/client/v4/...` (the proxy swaps the real
   token in). Current records are listed in `docs/platform/OWNER-SETUP.md`, section 6c. Keep exactly one
-  SPF record and one DMARC record, and keep the two Brevo DKIM records DNS-only (grey cloud).
+  SPF record on the bare domain and one DMARC record, and keep every DKIM record (two for Brevo, three for
+  Amazon SES) DNS-only (grey cloud). Amazon's own SPF record lives on `bounce.readprompted.org` only.
+- Amazon reports sends it chose not to make (Auto Validation, its own suppression list) as "Permanent
+  bounces". `ses.mjs` turns those into `held`, which never suppresses a subscriber. Do not undo that.
 - `FROM_EMAIL` is a plain setting in `wrangler.toml` (`brief@readprompted.org`), not a secret.
 - Signup confirmations on the preview never leave the platform unless `PREVIEW_CONFIRMATIONS = "live"`.
 - A new cron schedule takes a few minutes to start firing after the first deploy.

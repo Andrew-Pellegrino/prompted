@@ -145,6 +145,9 @@ async function webhookRoute(request, env, provider) {
       || await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE email_norm = ? ORDER BY send_id DESC LIMIT 1', email);
     await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, String(ev.reason || '').slice(0, 300) || null, now());
     if (rec && type === 'delivered') await run(env.DB, "UPDATE send_recipients SET status = 'delivered', delivered_at = ? WHERE send_id = ? AND email_norm = ? AND status = 'sent'", now(), rec.send_id, email);
+    // "held": the provider chose not to send (its own address check or its own do-not-send list). No mailbox
+    // refused the message, so the person is not suppressed here. The owner sees it under "not delivered".
+    if (rec && type === 'held') await run(env.DB, "UPDATE send_recipients SET status = 'failed', last_error = ? WHERE send_id = ? AND email_norm = ? AND status IN ('sent','delivered')", String(ev.reason || 'held by the provider').slice(0, 300), rec.send_id, email);
     if (type === 'bounce_hard' || type === 'complaint' || type === 'unsubscribe') {
       const to = type === 'bounce_hard' ? 'bounced' : type === 'complaint' ? 'complained' : 'unsubscribed';
       if (rec && to !== 'unsubscribed') await run(env.DB, 'UPDATE send_recipients SET status = ? WHERE send_id = ? AND email_norm = ?', to, rec.send_id, email);

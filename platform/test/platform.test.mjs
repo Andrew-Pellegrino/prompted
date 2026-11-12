@@ -773,7 +773,8 @@ test('Amazon SES reports: status endpoint names the next step; bounces and compl
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.host + u.pathname);
     const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
-    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
+    if (u.pathname === '/v2/email/configuration-sets/prompted') return j({ ConfigurationSetName: 'prompted', SuppressionOptions: state.setOverride ? { ValidationOptions: { ConditionThreshold: { ConditionThresholdEnabled: state.setOverride } } } : {} });
+    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: state.autoValidation ? { ConditionThreshold: { ConditionThresholdEnabled: 'ENABLED', OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } : { ConditionThreshold: { ConditionThresholdEnabled: 'DISABLED' } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
     if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, DkimAttributes: { Status: state.verified ? 'SUCCESS' : 'PENDING' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
     if (u.host === 'sns.us-east-1.amazonaws.com') return new Response('<ok/>');
     return j({}, 404);
@@ -788,7 +789,16 @@ test('Amazon SES reports: status endpoint names the next step; bounces and compl
     assert.match((await c.get('/api/admin/ses/status')).data.next, /bounce and complaint reports/);
     env.SES_CONFIGURATION_SET = 'prompted';
     st = (await c.get('/api/admin/ses/status')).data;
-    assert.deepEqual([st.ready, st.quota.per_day, st.quota.per_second], [true, 50000, 14]);
+    assert.deepEqual([st.ready, st.quota.per_day, st.quota.per_second, st.auto_validation.active], [true, 50000, 14, false]);
+    // Auto Validation switched on at Amazon: not ready, and the panel says what to do
+    state.autoValidation = true;
+    st = (await c.get('/api/admin/ses/status')).data;
+    assert.deepEqual([st.ready, st.auto_validation.active, st.auto_validation.level], [false, true, 'MANAGED']);
+    assert.match(st.next, /Turn off Auto Validation/);
+    state.setOverride = 'DISABLED'; // the configuration set we send with overrides the account setting
+    st = (await c.get('/api/admin/ses/status')).data;
+    assert.deepEqual([st.ready, st.auto_validation.active, st.auto_validation.account.enabled], [true, false, true]);
+    state.autoValidation = false; state.setOverride = null;
     assert.ok(!calls.some((x) => x.includes('outbound-emails')), 'reading status sends no email');
 
     // reports arrive through Amazon's notification service
@@ -812,6 +822,20 @@ test('Amazon SES reports: status endpoint names the next step; bounces and compl
     assert.deepEqual([status('gone@example.com'), status('full@example.com'), status('angry@example.com')], ['bounced', 'active', 'complained'], 'a full mailbox is not a reason to drop someone');
     assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('gone@example.com','angry@example.com')").n, 2, 'both can never be mailed again');
     assert.match(one(env, "SELECT detail FROM delivery_events WHERE email_norm = 'gone@example.com' AND type = 'bounce_hard'").detail, /user unknown/);
+    // Amazon chose not to send (its address check, or its own suppression list). That is not a bounce:
+    // the message is marked not delivered and the subscriber is left exactly as they were.
+    for (const e of ['checked@example.com', 'listed@example.com', 'earlier@example.com']) await c.post('/api/admin/people', { email: e, status: 'active', consent_attested: true });
+    env.DB.sqlite.exec("INSERT INTO sends (id, issue_slug, kind, status, subject, content_sha256, created_by, created_at) VALUES (900, 'week-of-august-9-16-2026', 'issue', 'sent', 's', 'x', 'test', '2026-11-12T00:00:00Z')");
+    for (const [e, id] of [['checked@example.com', 'h1'], ['listed@example.com', 'h2'], ['earlier@example.com', 'h3']]) env.DB.sqlite.prepare("INSERT INTO send_recipients (send_id, person_id, email_norm, token, status, provider, provider_message_id) VALUES (900, (SELECT id FROM people WHERE email_norm = ?), ?, ?, 'sent', 'ses', ?)").run(e, e, 'tok-' + id, id);
+    assert.equal((await note({ eventType: 'Bounce', mail: { messageId: 'h1' }, bounce: { bounceType: 'Permanent', bounceSubType: 'EmailValidationSuppressed', bouncedRecipients: [{ emailAddress: 'checked@example.com' }] } })).data.handled, 1);
+    await note({ eventType: 'Bounce', mail: { messageId: 'h2' }, bounce: { bounceType: 'Permanent', bounceSubType: 'OnAccountSuppressionList', bouncedRecipients: [{ emailAddress: 'listed@example.com' }] } });
+    await note({ eventType: 'Complaint', mail: { messageId: 'h3' }, complaint: { complaintSubType: 'OnAccountSuppressionList', complainedRecipients: [{ emailAddress: 'earlier@example.com' }] } });
+    assert.deepEqual(['checked@example.com', 'listed@example.com', 'earlier@example.com'].map(status), ['active', 'active', 'active'], 'a hold by Amazon never unsubscribes or suppresses anyone');
+    assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('checked@example.com','listed@example.com','earlier@example.com')").n, 0);
+    const heldRows = many(env, "SELECT email_norm, status, last_error FROM send_recipients WHERE send_id = 900 ORDER BY email_norm");
+    assert.deepEqual(heldRows.map((r) => r.status), ['failed', 'failed', 'failed'], 'but the message is shown as not delivered');
+    assert.match(heldRows[0].last_error, /Auto Validation/);
+    assert.equal(one(env, "SELECT COUNT(*) n FROM delivery_events WHERE type = 'held' AND provider = 'ses'").n, 3);
     env.SES_TOPIC_ARN = 'arn:aws:sns:us-east-1:111122223333:prompted';
     assert.equal((await hook({ Type: 'Notification', TopicArn: 'arn:aws:sns:us-east-1:999:other', Message: '{}' })).status, 400, 'reports from another topic are refused once the topic is pinned');
   } finally { globalThis.fetch = realFetch; }

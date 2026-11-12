@@ -1,8 +1,8 @@
 # Which service sends the newsletter (decision record, November 12, 2026)
 
-**Recommendation: Amazon SES as the main sender, Brevo's free plan for tests and as the fallback, Gmail as
-the last resort.** Waiting for the owner's approval before an AWS account is opened. Nothing paid has
-been activated.
+**Decision: Amazon SES as the main sender, Brevo's free plan for tests and as the fallback, Gmail as
+the last resort.** The owner approved it and opened the AWS account on November 12. The domain's SES
+records are in DNS. Next: production access (`OWNER-SETUP.md` 6e).
 
 ## Why the plan changed
 
@@ -39,6 +39,33 @@ must get the issue on Monday morning. The owner is willing to pay a small recurr
   account, and the platform's own daily limit (`SES_DAILY_LIMIT`) stays at 190 until then.
 - Amazon reviews or pauses accounts with high bounce or complaint rates, so the platform suppresses hard
   bounces and complaints automatically (already built).
+
+## Auto Validation (must be off, or overridden, before any real send)
+
+Amazon SES has a feature called Auto Validation (launched December 2025). When it is on, Amazon guesses
+before each send whether the address is likely to deliver, and silently does not send to addresses below
+its threshold. From Amazon's documentation:
+
+- The held message is reported as a **Bounce** with type `Permanent` and subtype
+  `EmailValidationSuppressed`, although no mailbox refused anything.
+- "Suppressed sends still count towards your daily send quota and you will still be charged the standard
+  outgoing message fee for suppressed sends in addition to the fee for auto validation."
+
+Why it matters for us: software that treats every "Permanent bounce" as a dead address would permanently
+remove a real, confirmed subscriber because of a guess. The same shape is used when an address is on
+Amazon's own account suppression list (`OnAccountSuppressionList`, `Suppressed`).
+
+What the platform does (built and tested with simulated reports):
+
+- These reports become `held`, not `bounce_hard`. The message is shown as not delivered with the reason;
+  **the subscriber is not unsubscribed, not suppressed and not changed.** The owner reviews them.
+- Real hard bounces (`General`, `NoEmail`) and real complaints still suppress permanently.
+- The dashboard's SES panel reads the Auto Validation setting from the account and from the configuration
+  set, shows it, and does not report "ready" while it is on. Setting `SES_ALLOW_AUTO_VALIDATION = "true"`
+  overrides that if the owner ever wants the feature.
+
+Recommended setting: **off**. Every new subscriber confirms by double opt-in, so the list is already
+checked by a real delivery; the feature would add cost and the risk of wrongly held subscribers.
 
 ## How fast a Monday send goes out
 
@@ -79,12 +106,11 @@ suppression list and the warm-up cap work the same with every provider.
 
 ## Setup once approved (owner steps marked)
 
-1. **Owner:** create the AWS account (paid plan, so it is not closed after six months; credits still
-   apply) and protect it with two-step sign-in.
-2. **Owner:** in SES, region US East (N. Virginia), add `readprompted.org` as an identity with a custom
-   "MAIL FROM" subdomain. Amazon shows three DKIM records and two MAIL FROM records. They are not secret.
-3. Claude adds those records to DNS. They sit on their own names, so the existing SPF and DMARC records
-   stay single.
+1. DONE. Owner created the AWS account.
+2. DONE. Owner added `readprompted.org` as an identity in US East (N. Virginia) with the MAIL FROM
+   subdomain `bounce.readprompted.org`.
+3. DONE. Claude added the three DKIM records and the two MAIL FROM records. They sit on their own names,
+   so the existing SPF and DMARC records stay single. Amazon's suggested DMARC record was not applied.
 4. **Owner:** request production access with the text Claude drafts.
 5. **Owner:** create a restricted access key (send-only) and store it in Cloudflare as the secrets
    `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`.
