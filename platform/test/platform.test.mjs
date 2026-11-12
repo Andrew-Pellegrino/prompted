@@ -940,7 +940,7 @@ test('Amazon SES status: reads the real account state, names the single next ste
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.pathname);
     const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
-    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: { ConditionThreshold: { ConditionThresholdEnabled: state.autoValidation, OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
+    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', VdmAttributes: { VdmEnabled: 'ENABLED', DashboardAttributes: { EngagementMetrics: state.vdmEngagement || 'DISABLED' } }, SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: { ConditionThreshold: { ConditionThresholdEnabled: state.autoValidation, OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
     if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, ConfigurationSetName: 'prompted-newsletter', DkimAttributes: { Status: 'SUCCESS' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
     if (u.pathname === '/v2/email/configuration-sets/prompted-newsletter') return state.setExists ? j({ ConfigurationSetName: 'prompted-newsletter', SuppressionOptions: state.setOverride ? { ValidationOptions: { ConditionThreshold: { ConditionThresholdEnabled: state.setOverride } } } : {} }) : j({ message: 'not found' }, 404);
     return j({}, 404);
@@ -974,6 +974,10 @@ test('Amazon SES status: reads the real account state, names the single next ste
     assert.deepEqual([s.ready, s.used_by_platform, s.platform_daily_limit, s.pace.mode], [true, true, 45000, 'one request per person']);
     assert.equal(s.pace.per_minute, 10);
     assert.ok(s.warnings.some((w) => /Bulk sending is off/.test(w)));
+    assert.equal(s.vdm_engagement_tracking, 'DISABLED');
+    state.vdmEngagement = 'ENABLED';
+    assert.ok((await st()).warnings.some((w) => /VDM engagement tracking is on/.test(w)));
+    state.vdmEngagement = 'DISABLED';
     env.SES_BULK = 'on';
     s = await st();
     assert.deepEqual([s.pace.mode, s.pace.per_minute, s.pace.minutes_for['2500']], ['bulk', 56, 45]);

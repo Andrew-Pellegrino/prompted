@@ -345,6 +345,7 @@
           '<tr><td>Configuration set</td><td>' + esc(sv.configuration_set || 'not set') + ' ' + (sv.configuration_set ? yn(sv.configuration_set_found) : '') + '</td></tr>' +
           '<tr><td>Delivery reports (SNS)</td><td>' + yn(sv.reports_connected) + ' <span class="muted">' + esc(sv.reports.received + ' received' + (sv.reports.last_received_at ? ', last ' + when(sv.reports.last_received_at) : '') + (sv.reports.topic_pinned ? '' : ', topic not pinned')) + '</span></td></tr>' +
           '<tr><td>Auto Validation (Amazon\'s address guessing)</td><td>' + (sv.auto_validation.active === null ? '<span class="muted">not reported by Amazon</span>' : sv.auto_validation.active ? '<span class="warn">ON (' + esc(sv.auto_validation.level || 'level unknown') + ')</span>' : '<span class="ok">off</span>') + '</td></tr>' +
+          '<tr><td>Amazon\'s own open and click tracking (VDM)</td><td>' + (sv.vdm_engagement_tracking === 'ENABLED' ? '<span class="warn">on</span>' : sv.vdm_engagement_tracking === 'DISABLED' ? '<span class="ok">off</span>' : '<span class="muted">not reported</span>') + '</td></tr>' +
           '<tr><td>Amazon\'s own suppression list</td><td>' + esc((sv.account_suppression_reasons || []).join(' and ').toLowerCase() || 'off') + '</td></tr>' +
           '</table>' + (sv.warnings && sv.warnings.length ? '<ul>' + sv.warnings.map(function (w) { return '<li class="warn">' + esc(w) + '</li>'; }).join('') + '</ul>' : '') +
           '<p><b>Next:</b> ' + esc(sv.next) + '</p>') +

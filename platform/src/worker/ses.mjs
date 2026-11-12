@@ -188,11 +188,14 @@ export async function sesStatus(env, site) {
     reports: { address: hook, topic_pinned: !!env.SES_TOPIC_ARN, subscribed_at: reports.subscribed_at || null, unsubscribed_at: reports.unsubscribed_at || null, received: lastReport[0]?.n || 0, last_received_at: lastReport[0]?.at || null, tracking_seen_at: reports.tracking_seen_at || null },
     auto_validation: { account: avAccount, configuration_set: avSet, active: avEffective ? avEffective.enabled : null, level: avEffective?.enabled ? avEffective.level : null },
     account_suppression_reasons: account.data?.SuppressionAttributes?.SuppressedReasons || null,
+    // Amazon's own open and click tracking for VDM. Prompted measures engagement itself, so this should be off.
+    vdm_engagement_tracking: account.data?.VdmAttributes?.DashboardAttributes?.EngagementMetrics ?? null,
   };
   out.reports_connected = !!out.reports.subscribed_at && !out.reports.unsubscribed_at;
   const warnings = [];
   if (out.reports.tracking_seen_at) warnings.push('Amazon is reporting opens or clicks, which means Amazon is adding its own tracking pixel and rewriting links in our emails. Untick Opens and Clicks in the event destination to stop that.');
   if (out.account_suppression_reasons && !['BOUNCE', 'COMPLAINT'].every((r) => out.account_suppression_reasons.includes(r))) warnings.push('Amazon\'s own account suppression list is not covering both bounces and complaints. Keep both switched on.');
+  if (out.vdm_engagement_tracking === 'ENABLED') warnings.push('Amazon VDM engagement tracking is on, so Amazon adds its own tracking pixel and rewrites links. Prompted measures engagement itself; turn it off in SES, Virtual Deliverability Manager, Settings.');
   if (!bulk) warnings.push('Bulk sending is off, so the platform sends one request per person. That is fine for tests but too slow for the whole list.');
   if (out.domain && out.configuration_set && out.domain.default_configuration_set && out.domain.default_configuration_set !== out.configuration_set) warnings.push(`The domain's default configuration set at Amazon is "${out.domain.default_configuration_set}", not "${out.configuration_set}".`);
   out.warnings = warnings;
