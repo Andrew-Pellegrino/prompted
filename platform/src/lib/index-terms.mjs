@@ -29,3 +29,19 @@ export function termsInIssue(issue, indexData, limit = 14) {
   }
   return hits.sort((a, b) => b.count - a.count || a.term.localeCompare(b.term)).slice(0, limit);
 }
+
+/**
+ * A short selection for the optional email block: terms the issue mentions more than once (if there are
+ * enough of those), favouring terms that are distinctive to this issue over ones that appear in almost
+ * every issue. At most `max` terms, ordered by that score. Returns [{ term, anchor, url, count }].
+ */
+export function selectIndexTerms(issue, indexData, indexUrl, max = 5) {
+  const hits = termsInIssue(issue, indexData, 60);
+  const repeated = hits.filter((h) => h.count >= 2);
+  const pool = repeated.length >= 3 ? repeated : hits;
+  const score = (h) => h.count / Math.sqrt(Math.max(1, Number(h.issues) || 1));
+  return pool.map((h) => ({ ...h, score: score(h) }))
+    .sort((a, b) => b.score - a.score || b.count - a.count || a.term.localeCompare(b.term))
+    .slice(0, max)
+    .map((h) => ({ term: h.term, anchor: h.anchor, url: `${indexUrl.replace(/#.*$/, '')}#${h.anchor}`, count: h.count }));
+}

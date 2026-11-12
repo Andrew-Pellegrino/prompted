@@ -2,7 +2,7 @@
 // The masthead and week line are live text; only the institutional lockup is an image.
 //
 // Per-recipient values are left as placeholders so one rendered body can be sent to everyone:
-//   {{UNSUBSCRIBE_URL}}  {{WEB_URL}}  {{OPEN_PIXEL}}  {{TOKEN}} (inside tracked link URLs)
+//   {{UNSUBSCRIBE_URL}}  {{WEB_URL}}  {{OPEN_PIXEL}}  {{TOKEN}}  {{TRACK}} (the per-send tracking id inside tracked URLs)
 // fillRecipient() substitutes them. Editorial wording is never altered.
 import { esc, renderRuns } from './html.mjs';
 import { blockText, runsText } from './issue-model.mjs';
@@ -36,6 +36,20 @@ function block(b, link) {
   }
 }
 
+/**
+ * Optional "In the Prompted Index" block: a few term names, each linking to its Index entry. It only
+ * names terms; it does not add, change or reorder any editorial text. Off unless a send asks for it.
+ */
+function indexTermsBlock(terms, tl) {
+  const links = terms.map((t) => `<a href="${esc(tl(t.url))}" style="color:${C.link};text-decoration:underline;">${esc(t.term)}</a>`).join(`<span style="color:${C.muted};"> &middot; </span>`);
+  return `<tr><td class="pad" style="padding:8px 24px 0 24px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr><td style="border-top:1px solid ${C.rule};padding:12px 0 2px 0;">
+<p style="margin:0 0 4px 0;font-family:${FONT};font-size:12px;line-height:1.4;font-weight:bold;letter-spacing:0.06em;text-transform:uppercase;color:${C.sub};">In the Prompted Index</p>
+<p style="margin:0;font-family:${FONT};font-size:15px;line-height:1.6;color:${C.ink};">${links}</p>
+</td></tr></table>
+</td></tr>`;
+}
+
 /** Subject and preview text derive from the issue; both can be overridden per send. */
 // Matches the established subject line: "Prompted | Your Weekly AI Brief | Week of November 1–8".
 export const emailSubject = (issue, site) => `${site.name} | ${site.tagline} | ${mastheadWeek(issue.week)}`;
@@ -46,6 +60,8 @@ export function renderIssueEmail(issue, site, opts = {}) {
   const preview = opts.preview ?? emailPreview(issue);
   // opts.trackLink(href) may return a redirect URL (click tracking); visible text is never changed.
   const link = makeLink(opts.trackLink);
+  const tl = (href) => (opts.trackLink ? opts.trackLink(href) : href); // template links are tracked the same way
+  const terms = opts.indexTerms || [];
   const assets = site.asset_base_url.replace(/\/$/, '');
   const cell = `padding:0 24px;`;
   const centre = (style, text) => `<tr><td align="center" style="${cell}font-family:${FONT};${style}">${text}</td></tr>`;
@@ -85,9 +101,10 @@ ${centre(`font-size:15px;line-height:1.4;color:${C.sub};padding-bottom:18px;`, e
 <tr><td class="pad" style="padding:22px 24px 8px 24px;">
 ${issue.blocks.map((b) => block(b, link)).join('\n')}
 </td></tr>
+${terms.length ? indexTermsBlock(terms, tl) : ''}
 <tr><td class="pad" style="padding:18px 24px 0 24px;">
-<p style="margin:0 0 10px 0;font-family:${FONT};font-size:14px;line-height:1.5;font-style:italic;color:${C.ink};">Forwarded this by a friend? ${esc(site.name)} is free and arrives every Monday morning. <a href="${esc(site.forward_subscribe_url)}" style="color:${C.link};">Subscribe here</a>.</p>
-<p style="margin:0 0 10px 0;font-family:${FONT};font-size:14px;line-height:1.5;color:${C.ink};">Look up any term in the <a href="${esc(site.index_url)}" style="color:${C.link};">Prompted Index</a>. Read this issue <a href="{{WEB_URL}}" style="color:${C.link};">on the web</a>.</p>
+<p style="margin:0 0 10px 0;font-family:${FONT};font-size:14px;line-height:1.5;font-style:italic;color:${C.ink};">Forwarded this by a friend? ${esc(site.name)} is free and arrives every Monday morning. <a href="${esc(tl(site.forward_subscribe_url))}" style="color:${C.link};">Subscribe here</a>.</p>
+<p style="margin:0 0 10px 0;font-family:${FONT};font-size:14px;line-height:1.5;color:${C.ink};">Look up any term in the <a href="${esc(tl(site.index_url))}" style="color:${C.link};">Prompted Index</a>. Read this issue <a href="{{WEB_URL}}" style="color:${C.link};">on the web</a>.</p>
 </td></tr>
 <tr><td class="pad" style="padding:18px 24px 28px 24px;border-top:1px solid #e3e1da;">
 <p style="margin:0 0 6px 0;font-family:${FONT};font-size:12px;line-height:1.5;color:${C.muted};">You are receiving this because you subscribed to ${esc(site.name)}. <a href="{{UNSUBSCRIBE_URL}}" style="color:${C.muted};text-decoration:underline;">Unsubscribe</a> at any time.</p>
@@ -100,11 +117,11 @@ ${issue.blocks.map((b) => block(b, link)).join('\n')}
 {{OPEN_PIXEL}}
 </body>
 </html>`;
-  return { subject, preview, html, text: renderIssueText(issue, site) };
+  return { subject, preview, html, text: renderIssueText(issue, site, terms) };
 }
 
 /** Plain-text alternative part. */
-export function renderIssueText(issue, site) {
+export function renderIssueText(issue, site, terms = []) {
   const out = [site.name, site.tagline, mastheadWeek(issue.week), site.attribution, '='.repeat(40), ''];
   for (const b of issue.blocks) {
     if (b.type === 'heading') {
@@ -118,17 +135,35 @@ export function renderIssueText(issue, site) {
       out.push(blockText(b) + (links.length ? `\n(${links.join(' | ')})` : ''), '');
     }
   }
+  if (terms.length) out.push('In the Prompted Index:', ...terms.map((t) => `- ${t.term}: ${t.url}`), '');
   out.push('-'.repeat(40), `Forwarded this by a friend? Subscribe: ${site.forward_subscribe_url}`, `Prompted Index: ${site.index_url}`, 'Read on the web: {{WEB_URL}}', '',
     `Unsubscribe: {{UNSUBSCRIBE_URL}}`, `${site.name} · ${site.postal_address}`);
   return out.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 
 /** Substitute per-recipient placeholders. Pass html=false for the plain-text part. */
-export function fillRecipient(body, { unsubscribeUrl, webUrl, openPixelUrl, token = '' }, html = true) {
+export function fillRecipient(body, { unsubscribeUrl, webUrl, openPixelUrl, token = '', track = '' }, html = true) {
   const e = html ? esc : (x) => x;
   return body
     .replaceAll('{{TOKEN}}', e(token))
     .replaceAll('{{UNSUBSCRIBE_URL}}', e(unsubscribeUrl))
     .replaceAll('{{WEB_URL}}', e(webUrl))
-    .replaceAll('{{OPEN_PIXEL}}', openPixelUrl ? `<img src="${esc(openPixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;">` : '');
+    .replaceAll('{{OPEN_PIXEL}}', openPixelUrl ? `<img src="${esc(openPixelUrl)}" width="1" height="1" alt="" style="display:block;border:0;width:1px;height:1px;">` : '')
+    .replaceAll('{{TRACK}}', e(track)); // last, so tracked URLs placed above are filled too
+}
+
+/**
+ * Every link a send may track, in a stable order: links in the issue text (labelled with their visible
+ * words), then the template's links, then any Index terms. The unsubscribe link is never tracked.
+ */
+export function emailLinks(issue, site, webUrl, indexTerms = []) {
+  const out = [], seen = new Set();
+  const add = (url, label, kind) => { if (!url || seen.has(url) || !/^https?:\/\//.test(url)) return; seen.add(url); out.push({ url, label, kind }); };
+  const runs = issue.blocks.flatMap((b) => (b.type === 'list' ? b.items.flat() : b.children || []));
+  for (const r of runs) if (r.href) add(r.href, String(r.text || '').trim().slice(0, 120) || r.href, 'body');
+  add(webUrl, 'Read on the web', 'template');
+  add(site.index_url, 'Prompted Index (footer)', 'template');
+  add(site.forward_subscribe_url, 'Subscribe link for forwarded copies', 'template');
+  for (const t of indexTerms) add(t.url, t.term, 'index_term');
+  return out;
 }

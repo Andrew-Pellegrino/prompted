@@ -56,7 +56,15 @@
   $('#tabs').addEventListener('click', function (e) { if (e.target.dataset.tab) go(e.target.dataset.tab); });
 
   // ---------- dashboard ----------
+  function trendHtml(t) {
+    if (!t.rows.length) return '<p class="muted">No issues sent from this platform yet. beehiiv-era figures are in the table above.</p>';
+    return '<table><tr><th>Issue</th><th>Sent</th><th class="n">Recipients</th><th class="n">Open rate (raw)</th><th class="n">Open rate (est. human)</th><th class="n">Click rate (raw)</th><th class="n">Click rate (est. human)</th></tr>' +
+      t.rows.map(function (x) { return '<tr><td>' + esc(x.issue_slug) + '</td><td>' + when(x.sent_at) + '</td><td class="n">' + fmt(x.sent) + '</td><td class="n">' + rateCell(x.raw_open_rate) + '</td><td class="n">' + rateCell(x.human_open_rate) + '</td><td class="n">' + rateCell(x.raw_click_rate) + '</td><td class="n">' + rateCell(x.human_click_rate) + '</td></tr>'; }).join('') +
+      '</table><p class="note">' + esc(ENG_NOTE) + '</p>';
+  }
   function dashboard() {
+    // the two requests can finish in either order: wait for the panel before filling it
+    guard(get('engagement/trend')).then(function (t) { var tries = 0; (function fill() { var el = $('#eng-trend'); if (el) el.innerHTML = trendHtml(t); else if (tries++ < 50) setTimeout(fill, 100); })(); });
     guard(get('dashboard')).then(function (d) {
       var a = d.audience, issues = d.issues.slice().reverse();
       var rate = function (i) { var m = i.platform || (i.beehiiv && i.beehiiv.recipients ? i.beehiiv : null); return m && m.recipients ? 100 * (m.unique_opens || 0) / (m.delivered || m.recipients) : 0; };
@@ -81,6 +89,7 @@
           return '<tr><td>' + i.number + '</td><td><a href="/issues/' + esc(i.slug) + '/">' + esc(i.week) + '</a></td><td>' + (m ? 'platform' : b ? 'beehiiv' : '<span class="muted">no data</span>') + '</td>' +
             (x ? '<td class="n">' + fmt(x.recipients) + '</td><td class="n">' + fmt(x.delivered) + '</td><td class="n">' + fmt(x.unique_opens) + '</td><td class="n">' + (x.recipients ? pct(x.unique_opens, x.delivered || x.recipients) : '—') + '</td><td class="n">' + fmt(x.unique_clicks) + '</td><td class="n">' + fmt(x.unsubscribes) + '</td><td class="n">' + fmt(b ? b.web_views : null) + '</td>' : '<td colspan="7" class="muted">not recorded</td>') + '</tr>';
         }).join('') + '</table></div><p class="note">' + esc(d.notes.clicks) + '</p></div>' +
+        '<div class="panel"><h2>Engagement by issue (this platform)</h2><div id="eng-trend" class="scroll"><p class="muted">Loading…</p></div></div>' +
         (d.imports.length ? '<div class="panel"><h2>Recent imports</h2><table><tr><th>When</th><th>File</th><th>Source label</th><th>Added as</th><th>Result</th></tr>' + d.imports.map(function (b) { return '<tr><td>' + when(b.created_at) + '</td><td>' + esc(b.filename || '—') + '</td><td>' + esc(b.source_label) + '</td><td>' + esc(b.target_status) + '</td><td>' + esc(Object.keys(b.totals).map(function (k) { return k + ': ' + b.totals[k]; }).join(', ')) + '</td></tr>'; }).join('') + '</table></div>' : '');
     });
   }
@@ -153,7 +162,7 @@
         '<h3>History</h3><table>' + p.history.map(function (h) { return '<tr><td>' + when(h.at) + '</td><td>' + esc(h.from_status || '—') + ' → ' + esc(h.to_status) + '</td><td>' + esc(h.reason || '') + '</td><td class="muted">' + esc(h.actor) + '</td></tr>'; }).join('') + '</table>' +
         '<h3 style="margin-top:14px">Relationship notes</h3><div class="row"><div><select id="i-kind"><option>note</option><option>email</option><option>meeting</option><option>call</option></select></div><div style="flex:1"><input id="i-body" style="width:100%" placeholder="What happened?"></div><div><button class="btn ghost" id="i-add">Add</button></div></div>' +
         '<table>' + p.interactions.map(function (i) { return '<tr><td>' + when(i.at) + '</td><td>' + esc(i.kind) + '</td><td>' + esc(i.body) + '</td></tr>'; }).join('') + '</table>' +
-        (p.deliveries.length ? '<h3 style="margin-top:14px">Issues received</h3><table><tr><th>Issue</th><th>Status</th><th class="n">Opens</th><th class="n">Clicks</th></tr>' + p.deliveries.map(function (d) { return '<tr><td>' + esc(d.issue_slug) + '</td><td>' + st(d.status) + '</td><td class="n">' + d.opens + '</td><td class="n">' + d.clicks + '</td></tr>'; }).join('') + '</table>' : ''));
+        (p.deliveries.length ? '<h3 style="margin-top:14px">Issues received</h3><table><tr><th>Issue</th><th>Status</th><th class="n" title="Raw: includes automatic opens by mail apps and scanners">Opens (raw)</th><th class="n" title="Raw: includes automatic clicks by security scanners">Clicks (raw)</th></tr>' + p.deliveries.map(function (d) { return '<tr><td>' + esc(d.issue_slug) + '</td><td>' + st(d.status) + '</td><td class="n">' + d.opens + '</td><td class="n">' + d.clicks + '</td></tr>'; }).join('') + '</table>' : ''));
       $('#p-save').addEventListener('click', function () {
         guard(api('PATCH', 'people/' + id, { first_name: $('#p-first').value || null, last_name: $('#p-last').value || null, email: $('#p-email').value, institution_id: $('#p-inst').value || null, email_verification: $('#p-ver').value, member_loa: $('#p-loa').checked, notes: $('#p-notes').value || null,
           tags: $('#p-tags').value.split(';'), memberships: $('#p-orgs').value.split('\n').map(function (l) { var x = l.split('|'); return { org: (x[0] || '').trim(), role: (x[1] || '').trim() || null }; }).filter(function (m) { return m.org; }) })).then(function () { toast('Saved.'); loadPeople(); person(id); });
@@ -242,11 +251,38 @@
         '<p class="muted">Planned send: ' + when(issue.send.utc) + ' your time (' + esc(issue.send.local.replace('T', ' ')) + ' Eastern).</p></div>' +
         '<div class="panel"><h2>Test email</h2><p class="muted">Goes only to authorised test inboxes: ' + (r.test_recipients.length ? r.test_recipients.map(esc).join(', ') : 'none configured (set TEST_RECIPIENTS)') + '.</p><div class="row"><div style="flex:1"><input id="t-emails" style="width:100%" value="' + esc(r.test_recipients.join(', ')) + '"></div><div><button class="btn ghost" id="t-send">Send test</button></div></div><p class="muted" style="margin:10px 0 0">Not arriving? <button class="link" id="t-diag">Send a plain delivery check</button> (no links or images) to see whether the sending account itself is being filtered.</p></div>' +
         '<div class="panel"><h2>Send to subscribers</h2><div id="send-box"></div></div></div>' +
-        '<div class="panel"><h2>Email preview</h2><p class="muted"><a href="/issues/' + esc(slug) + '/" target="_blank" rel="noopener">Open the web version</a></p><iframe class="preview" title="Email preview" src="/api/admin/issues/' + esc(slug) + '/email"></iframe></div></div>';
+        '<div class="panel"><h2>Email preview</h2><p class="muted"><a href="/issues/' + esc(slug) + '/" target="_blank" rel="noopener">Open the web version</a></p><label class="muted"><input type="checkbox" id="pv-terms"> Preview with the optional "In the Prompted Index" section (not adopted; for review only)</label><iframe class="preview" id="pv-frame" title="Email preview" src="/api/admin/issues/' + esc(slug) + '/email"></iframe></div></div>';
       $('#t-diag').addEventListener('click', function () { guard(post('sends/diagnostic', { email: $('#t-emails').value.split(',')[0].trim() })).then(function (d) { toast(d.ok ? 'Plain check sent via ' + d.provider + '. Look in the inbox and in Spam.' : 'Could not send: ' + d.error, 8000); }); });
       $('#t-send').addEventListener('click', function () { guard(post('sends/test', { issue_slug: slug, emails: $('#t-emails').value.split(',').map(function (s) { return s.trim(); }).filter(Boolean) })).then(function (s) { var real = s.providers.length && s.providers[0] !== 'dryrun'; toast('Test ' + s.status + ' via ' + (s.providers.join(', ') || 'no provider') + ': ' + JSON.stringify(s.recipients) + (real ? '. Check the inbox.' : '. Dry run: no email was actually sent. Connect Gmail under Tools first.'), 9000); }); });
+      $('#pv-terms').addEventListener('change', function () { $('#pv-frame').src = '/api/admin/issues/' + encodeURIComponent(slug) + '/email' + (this.checked ? '?index_terms=1' : ''); });
       sendBox(r, slug, send, qa);
     });
+  }
+  // ---------- engagement ----------
+  var ENG_NOTE = 'Raw figures count every recorded open and click. "Estimated human" leaves out activity that looks automated (Apple Mail preloading, security scanners and link checkers, clicks within seconds of sending, several links opened at once). It is an estimate, not a fact: some real readers block images or are filtered out, and some machines look like people.';
+  function rateCell(v) { return v === null || v === undefined ? '—' : v.toFixed(1) + '%'; }
+  function engagementHtml(e) {
+    if (!e || !e.sent) return '<p class="muted">No engagement figures yet.</p>';
+    var r = e.raw, h = e.estimated_human;
+    var seg = function (title, rows) {
+      if (!rows.length) return '';
+      return '<h4>' + esc(title) + '</h4><table><tr><th>Group</th><th class="n">Recipients</th><th class="n">Opened (raw)</th><th class="n">Opened (est. human)</th><th class="n">Clicked (raw)</th><th class="n">Clicked (est. human)</th></tr>' +
+        rows.map(function (s) { return s.hidden ? '<tr><td>' + esc(s.segment) + '</td><td class="n">' + esc(s.recipients) + '</td><td colspan="4" class="muted">not shown for small groups</td></tr>'
+          : '<tr><td>' + esc(s.segment) + '</td><td class="n">' + fmt(s.recipients) + '</td><td class="n">' + rateCell(s.raw_open_rate) + '</td><td class="n">' + rateCell(s.human_open_rate) + '</td><td class="n">' + rateCell(s.raw_click_rate) + '</td><td class="n">' + rateCell(s.human_click_rate) + '</td></tr>'; }).join('') + '</table>';
+    };
+    var kinds = { body: 'In the issue', template: 'Template', index_term: 'Index term' };
+    return '<h3>Engagement' + (e.from_saved_summary ? ' <span class="muted">(saved summary; detailed events deleted under the retention rule)</span>' : '') + '</h3>' +
+      '<table><tr><th></th><th class="n">Raw</th><th class="n">Estimated human</th></tr>' +
+      '<tr><td>People who opened</td><td class="n">' + fmt(r.unique_opens) + ' (' + rateCell(r.open_rate) + ')</td><td class="n">' + fmt(h.unique_opens) + ' (' + rateCell(h.open_rate) + ')</td></tr>' +
+      '<tr><td>Opens, all</td><td class="n">' + fmt(r.opens) + '</td><td class="n muted">—</td></tr>' +
+      '<tr><td>People who clicked</td><td class="n">' + fmt(r.unique_clicks) + ' (' + rateCell(r.click_rate) + ')</td><td class="n">' + fmt(h.unique_clicks) + ' (' + rateCell(h.click_rate) + ')</td></tr>' +
+      '<tr><td>Clicks, all</td><td class="n">' + fmt(r.clicks) + '</td><td class="n">' + fmt(h.clicks) + '</td></tr>' +
+      '<tr><td>Click-to-open</td><td class="n muted">—</td><td class="n">' + rateCell(h.click_to_open_rate) + '</td></tr></table>' +
+      '<p class="note">Out of ' + fmt(e.sent) + ' sent. ' + esc(ENG_NOTE) + ' Machine signals: ' + fmt(e.machine_signals.apple_privacy_opens) + ' Apple preload opens, ' + fmt(e.machine_signals.scanner_or_checker_events) + ' scanner or link-checker hits, ' + fmt(e.machine_signals.recipients_with_machine_like_clicks) + ' people with machine-like clicks.</p>' +
+      (e.links.length ? '<h4>Links</h4><table><tr><th>Link</th><th>Where</th><th class="n">Clicks (raw)</th><th class="n">People (raw)</th><th class="n">People (est. human)</th></tr>' +
+        e.links.map(function (l) { return '<tr><td title="' + esc(l.url) + '">' + esc(l.label || l.url) + '</td><td>' + esc(kinds[l.kind] || l.kind) + '</td><td class="n">' + fmt(l.raw_clicks) + '</td><td class="n">' + fmt(l.raw_unique) + '</td><td class="n">' + fmt(l.human_unique) + '</td></tr>'; }).join('') + '</table>' : '') +
+      seg('By type of address', e.segments.by_address_type) + seg('By tag', e.segments.by_tag) + seg('By organization', e.segments.by_organization) +
+      '<p class="note">Groups with fewer than ' + e.segments.min_size + ' recipients are not broken out. Figures are aggregates; no individual reader\'s activity is shown here.</p>';
   }
   function sendBox(r, slug, send, qa) {
     var box = $('#send-box'), again = function () { guard(get('issues')).then(function (nr) { showIssue(nr, slug); }); };
@@ -260,7 +296,7 @@
       (send.scheduled_at ? '<p>Scheduled for ' + when(send.scheduled_at) + (send.audience && send.audience.tag ? ', only to people tagged <b>' + esc(send.audience.tag) + '</b>' : '') + '.</p>' : '') +
       (total ? '<p>' + Object.keys(rc).map(function (k) { return '<span class="tag st-' + k + '">' + k + ': ' + rc[k] + '</span>'; }).join('') + ' · opened by ' + fmt(send.opened) + ' · clicked by ' + fmt(send.clicked) + '</p>' : '') +
       (send.failures && send.failures.length ? '<details><summary>' + send.failures.length + ' not delivered</summary><table>' + send.failures.map(function (f) { return '<tr><td>' + esc(f.email_norm) + '</td><td>' + st(f.status) + '</td><td>' + esc(f.last_error || '') + '</td></tr>'; }).join('') + '</table></details>' : '') +
-      (send.links && send.links.some(function (l) { return l.clicks; }) ? '<h3>Most clicked links</h3><table>' + send.links.filter(function (l) { return l.clicks; }).slice(0, 8).map(function (l) { return '<tr><td class="n">' + l.clicks + '</td><td>' + esc(l.url) + '</td></tr>'; }).join('') + '</table>' : '') +
+      '<div id="engagement"></div>' +
       '<p style="margin-top:12px">' +
       (send.status === 'draft' ? '<button class="btn" id="s-approve">I approve this issue for sending</button> ' : '') +
       (send.status === 'approved' || send.status === 'scheduled' ? '<input id="s-at" type="datetime-local"> <input id="s-tag" placeholder="only people tagged… (optional)" value="' + esc((send.audience && send.audience.tag) || '') + '"> <button class="btn" id="s-schedule">' + (send.status === 'scheduled' ? 'Reschedule' : 'Schedule') + '</button> <span class="muted">Leave the time empty for the next Monday 8:45 a.m. Eastern slot. A tag sends to that group first; everyone else can be added afterwards.</span> ' : '') +
@@ -269,6 +305,7 @@
       (rc.failed ? '<button class="btn ghost" id="s-retry">Retry failed (check the provider log first)</button>' : '') + '</p>';
     var act = function (id, path, body) { var b = $(id); if (b) b.addEventListener('click', function () { guard(post('sends/' + send.id + '/' + path, body ? body() : {})).then(again); }); };
     act('#s-approve', 'approve'); act('#s-cancel', 'cancel'); act('#s-retry', 'retry-failed');
+    if (send.status === 'sending' || send.status === 'sent') guard(get('sends/' + send.id + '/engagement')).then(function (e) { var el = $('#engagement'); if (el) el.innerHTML = engagementHtml(e); });
     act('#s-schedule', 'schedule', function () { var v = $('#s-at').value; return { at: v ? new Date(v).toISOString() : null, audience_tag: $('#s-tag').value.trim() || null }; });
     act('#s-extend', 'extend');
   }

@@ -43,6 +43,7 @@ sent, even to the test inbox, without the owner's approval for that send.
 | Database | `migrations/0001_init.sql` | Cloudflare D1. Private; reachable only through the authenticated admin API. |
 | Delivery | `src/worker/providers.mjs` | Replaceable adapters: Amazon SES (`ses.mjs`), Brevo, Resend, Gmail API, dry run. `brevo.mjs` and `ses.mjs` also feed the dashboard's status panels. Decision record: `docs/platform/SENDING-PROVIDER.md`. |
 | Static serving | `src/worker/assets.mjs`, `entry.embedded.mjs` | The built site is packaged inside the Worker script (see "Deploying"). |
+| Analytics | `src/worker/engagement.mjs` | First-party opens and clicks, raw and estimated human, per link and group; retention. See `docs/platform/ANALYTICS.md`. |
 | Admin UI | `admin/` | Plain JS; contains no data. |
 | Migration | `scripts/extract-beehiiv.mjs` | Public beehiiv pages -> issue JSON, with a verbatim-text check. |
 
@@ -53,7 +54,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 45 tests, in-memory SQLite behind the D1 interface
+npm test               # 49 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -107,6 +108,10 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
   key to it and do not weaken the signature check. Brevo's hook keeps its `?key=` secret.
 - SES stays out of the sending chain until Amazon grants production access (read from the account every
   30 minutes). Bulk mode (`SES_BULK`) needs `ses:SendBulkEmail` on the IAM policy first.
+- Engagement tracking is first-party only and **off** (`TRACK_OPENS`, `TRACK_CLICKS`) until the owner
+  authorises inbox-placement tests. Tracking URLs carry a random per-send `track_id`, never the subscriber
+  token. Keep click redirects limited to stored `http(s)` links and keep them working when recording fails.
+  Amazon's own open and click tracking stays off. The Index terms email block (`INDEX_TERMS_EMAIL`) is not adopted.
 - `FROM_EMAIL` is a plain setting in `wrangler.toml` (`brief@readprompted.org`), not a secret.
 - Signup confirmations on the preview never leave the platform unless `PREVIEW_CONFIRMATIONS = "live"`.
 - A new cron schedule takes a few minutes to start firing after the first deploy.

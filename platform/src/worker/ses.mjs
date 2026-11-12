@@ -61,8 +61,9 @@ function callFailure(r) {
 // One request carries the issue once plus a short entry per person. Each person's own values go in through
 // Amazon's template feature, so the only thing that differs per person is their private token.
 export const BULK_TOKEN = '{{TOKEN}}';
+export const BULK_TRACK = '{{TRACK}}'; // the per-send tracking id (only present when tracking is on)
 /** True when the text can go through Amazon's template engine untouched: no other "{{" or "}}" in it. */
-export const bulkSafe = (...texts) => texts.every((t) => !/\{\{|\}\}/.test(String(t || '').split(BULK_TOKEN).join('')));
+export const bulkSafe = (...texts) => texts.every((t) => !/\{\{|\}\}/.test(String(t || '').split(BULK_TOKEN).join('').split(BULK_TRACK).join('')));
 
 export function buildBulkBody(env, batch) {
   noBreaks([['Subject', batch.subject], ...batch.recipients.flatMap((r) => [['To', r.to], ...Object.entries(r.headers || {})])]);
@@ -70,10 +71,10 @@ export function buildBulkBody(env, batch) {
     FromEmailAddress: `${displayName(batch.from.name)} <${batch.from.email}>`,
     ReplyToAddresses: batch.replyTo ? [batch.replyTo] : undefined,
     ConfigurationSetName: env.SES_CONFIGURATION_SET || undefined,
-    DefaultContent: { Template: { TemplateContent: { Subject: batch.subject, Html: batch.html, Text: batch.text || '' }, TemplateData: '{"TOKEN":""}' } },
+    DefaultContent: { Template: { TemplateContent: { Subject: batch.subject, Html: batch.html, Text: batch.text || '' }, TemplateData: '{"TOKEN":"","TRACK":""}' } },
     BulkEmailEntries: batch.recipients.map((r) => ({
       Destination: { ToAddresses: [r.to] },
-      ReplacementEmailContent: { ReplacementTemplate: { ReplacementTemplateData: JSON.stringify({ TOKEN: r.token }) } },
+      ReplacementEmailContent: { ReplacementTemplate: { ReplacementTemplateData: JSON.stringify({ TOKEN: r.token, TRACK: r.track || '' }) } },
       ReplacementHeaders: Object.entries(r.headers || {}).map(([Name, Value]) => ({ Name, Value })),
     })),
   };
@@ -235,7 +236,8 @@ const HELD = {
  */
 export function sesEvents(message) {
   let m = message;
-  if (typeof m === 'string') { try { m = JSON.parse(m); } catch { return { kind: 'unreadable', events: [], ignored: true }; } }
+  // Amazon also sends plain-text notices through the topic (for example when an event destination is set up).
+  if (typeof m === 'string') { try { m = JSON.parse(m); } catch { return { kind: 'text notice', events: [], ignored: true }; } }
   const kind = m?.eventType || m?.notificationType || 'unknown', msgId = m?.mail?.messageId || null, to = m?.mail?.destination || [], events = [];
   if (kind === 'Bounce') {
     const held = HELD[m.bounce?.bounceSubType];

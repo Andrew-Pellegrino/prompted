@@ -205,8 +205,8 @@ test('publishing pipeline: QA gate, owner approval, schedule, send once, no dupl
   assert.equal((await c.post('/api/admin/sends', { issue_slug: SLUG })).status, 409, 'a sent issue cannot be sent again');
   assert.equal((await c.post(`/api/admin/sends/${send.data.id}/cancel`)).status, 409);
   // open + click tracking and the dashboard
-  const r = one(env, 'SELECT token FROM send_recipients LIMIT 1');
-  assert.equal((await c.get(`/o/${send.data.id}/${r.token}.gif`)).headers.get('content-type'), 'image/gif');
+  const r = one(env, 'SELECT track_id FROM send_recipients LIMIT 1');
+  assert.equal((await c.get(`/o/${r.track_id}.gif`)).headers.get('content-type'), 'image/gif');
   const dash = (await c.get('/api/admin/dashboard')).data;
   assert.equal(dash.audience.active, 60);
   const row = dash.issues.find((i) => i.slug === SLUG);
@@ -526,16 +526,20 @@ test('test sends to a test inbox that is also a subscriber carry real unsubscrib
     const person = one(env, "SELECT id, token FROM people WHERE email_norm = 'owner-test@example.com'");
     await c.login();
     const t = await c.post('/api/admin/sends/test', { issue_slug: 'week-of-august-9-16-2026', emails: ['owner-test@example.com'] });
-    assert.deepEqual([t.data.recipients.sent, t.data.providers, t.data.links.length], [1, ['gmail'], 1], 'four links in the issue, one distinct address');
+    assert.deepEqual([t.data.recipients.sent, t.data.providers], [1, ['gmail']]);
+    assert.deepEqual(t.data.links.map((l) => l.kind).sort(), ['body', 'template', 'template', 'template'], 'one distinct link in the issue plus the template\'s web, Index and forward links');
+    const trackId = one(env, 'SELECT track_id FROM send_recipients WHERE send_id = ?', t.data.id).track_id;
+    const bodyIdx = t.data.links.find((l) => l.kind === 'body').idx;
     const mime = sent[1], html = Buffer.from(mime.split('Content-Transfer-Encoding: base64\r\n\r\n')[2].split('\r\n--')[0].replace(/\r\n/g, ''), 'base64').toString();
     assert.ok(mime.includes(`List-Unsubscribe: <https://preview.example/u/${person.token}>`) && mime.includes('List-Unsubscribe-Post: List-Unsubscribe=One-Click'));
-    assert.ok(html.includes(`https://preview.example/u/${person.token}`) && html.includes(`/r/${t.data.id}/0/${person.token}`) && html.includes(`/o/${t.data.id}/${person.token}.gif`));
+    assert.ok(html.includes(`https://preview.example/u/${person.token}`) && html.includes(`/r/${trackId}/${bodyIdx}`) && html.includes(`/o/${trackId}.gif`));
+    assert.ok(!html.replace(`/u/${person.token}`, '').includes(person.token), 'the subscriber token appears only in the unsubscribe link, never in tracking URLs');
     assert.ok(mime.startsWith('From: Prompted <sender@gmail.test>\r\nTo: <owner-test@example.com>\r\nSubject: =?UTF-8?B?'));
     // a tracked link forwards to the original address and is counted; unsubscribe really unsubscribes
-    const click = await c.get(`/r/${t.data.id}/0/${person.token}`);
+    const click = await c.get(`/r/${trackId}/${bodyIdx}`);
     assert.equal(click.status, 302);
-    assert.equal(click.headers.get('location'), new URL(one(env, 'SELECT url FROM send_links WHERE send_id = ? AND idx = 0', t.data.id).url).href);
-    await c.get(`/o/${t.data.id}/${person.token}.gif`);
+    assert.equal(click.headers.get('location'), new URL(one(env, 'SELECT url FROM send_links WHERE send_id = ? AND idx = ?', t.data.id, bodyIdx).url).href);
+    await c.get(`/o/${trackId}.gif`);
     const after = (await c.get(`/api/admin/sends/${t.data.id}`)).data;
     assert.deepEqual([after.opened, after.clicked, after.links[0].clicks], [1, 1, 1]);
     await c.post(`/u/${person.token}`);
@@ -975,4 +979,187 @@ test('Amazon SES status: reads the real account state, names the single next ste
     assert.deepEqual([s.pace.mode, s.pace.per_minute, s.pace.minutes_for['2500']], ['bulk', 56, 45]);
     assert.ok(!calls.some((x) => /outbound/.test(x)), 'reading status sends no email');
   } finally { globalThis.fetch = realFetch; }
+});
+
+// ---------- first-party engagement tracking ----------
+import { classifyAgent, pruneEngagement, engagementReport } from '../src/worker/engagement.mjs';
+import { selectIndexTerms } from '../src/lib/index-terms.mjs';
+import { renderIssueEmail as renderEmailForTest } from '../src/lib/render-email.mjs';
+import workerForTest from '../src/worker/index.mjs';
+
+const hit = (env, path, { ua = 'Mozilla/5.0 (Macintosh) AppleWebKit Safari', method = 'GET', asn } = {}) => {
+  const req = new Request('https://preview.example' + path, { method, headers: { 'user-agent': ua }, redirect: 'manual' });
+  if (asn) Object.defineProperty(req, 'cf', { value: { asn } });
+  return workerForTest.fetch(req, env);
+};
+
+test('tracking is off by default; when on, tracking URLs carry only a random per-send id, template links are tracked, the plain-text part is untouched', async () => {
+  const run = async (extra) => {
+    const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', QUOTA_RESERVE: '0', ...extra });
+    const c = await audience(env, 3);
+    const bodies = [], realFetch = globalThis.fetch;
+    globalThis.fetch = async (url, init) => { bodies.push(JSON.parse(init.body)); return new Response('{"messageId":"m"}', { status: 201 }); };
+    try {
+      const send = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+      await c.post(`/api/admin/sends/${send.data.id}/approve`);
+      await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+      env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+      await tick(env);
+    } finally { globalThis.fetch = realFetch; }
+    return { env, bodies };
+  };
+  const off = await run({});
+  assert.ok(off.bodies.length === 3 && off.bodies.every((b) => !/\/r\/|\/o\/|\{\{/.test(b.htmlContent)), 'off by default: no tracking URLs and no leftover placeholders');
+  const on = await run({ TRACK_CLICKS: 'true', TRACK_OPENS: 'true' });
+  const people = many(on.env, 'SELECT r.email_norm, r.track_id, p.token FROM send_recipients r JOIN people p ON p.id = r.person_id');
+  for (const b of on.bodies) {
+    const me = people.find((p) => p.email_norm === b.to[0].email), html = b.htmlContent;
+    const tracking = [...html.matchAll(/https:\/\/preview\.example\/(r|o)\/([^"'\s<]+)/g)].map((m) => m[0]);
+    assert.ok(tracking.length >= 4, 'body, web, Index and forward links plus the image');
+    assert.ok(tracking.every((u) => u.includes(`/${me.track_id}`) && /\/(r\/[a-f0-9]{24}\/\d+|o\/[a-f0-9]{24}\.gif)$/.test(u)), 'only the random tracking id');
+    assert.equal(html.split(me.token).length - 1, 1, 'the subscriber token appears once: in the unsubscribe link');
+    assert.ok(html.includes(`/u/${me.token}`) && b.headers['List-Unsubscribe'] === `<https://preview.example/u/${me.token}>`, 'unsubscribe is never routed through tracking');
+    assert.ok(!/\/r\/|\/o\//.test(b.textContent), 'the plain-text part has no tracking');
+    assert.ok(!/\{\{/.test(html), 'no placeholder left');
+  }
+  assert.equal(new Set(people.map((p) => p.track_id)).size, 3, 'a different id for each reader');
+  const labels = many(on.env, 'SELECT label, kind FROM send_links ORDER BY idx').map((l) => `${l.kind}:${l.label}`);
+  assert.ok(labels.includes('template:Prompted Index (footer)') && labels.includes('template:Read on the web') && labels.some((l) => l.startsWith('body:')));
+  assert.ok(!labels.some((l) => l.startsWith('index_term:')), 'the Index block is off unless asked for');
+});
+
+test('click links always work and never become an open redirect; recording failures never break a link or the image', async () => {
+  const env = await makeEnv(), c = client(env);
+  env.DB.sqlite.exec("INSERT INTO sends (id, issue_slug, kind, status, subject, content_sha256, created_by, created_at) VALUES (7, 'week-of-august-9-16-2026', 'issue', 'sent', 's', 'x', 't', '2026-11-12T00:00:00Z')");
+  env.DB.sqlite.exec("INSERT INTO send_links (send_id, idx, url, label, kind) VALUES (7, 0, 'https://news.example.org/story', 'the story', 'body'), (7, 1, 'javascript:alert(1)', 'bad', 'body')");
+  const TRK = 'a'.repeat(24);
+  env.DB.sqlite.exec(`INSERT INTO send_recipients (send_id, email_norm, token, status, track_id, sent_at) VALUES (7, 'r@example.com', '${'b'.repeat(40)}', 'sent', '${TRK}', '2026-11-12T00:00:00Z')`);
+  const loc = (r) => r.headers.get('location');
+  let r = await hit(env, `/r/${TRK}/0`);
+  assert.deepEqual([r.status, loc(r)], [302, 'https://news.example.org/story']);
+  assert.equal(loc(await hit(env, `/r/${TRK}/0?url=https://evil.example`)), 'https://news.example.org/story', 'a query string cannot choose the destination');
+  assert.equal(loc(await hit(env, `/r/${TRK}/9`)), 'https://preview.example/', 'an unknown link goes home');
+  assert.equal(loc(await hit(env, `/r/${'c'.repeat(24)}/0`)), 'https://preview.example/', 'an unknown id goes home');
+  assert.equal(loc(await hit(env, `/r/${TRK}/1`)), 'https://preview.example/', 'a stored non-web address is never followed');
+  assert.equal((await hit(env, '/r/https%3A%2F%2Fevil.example/0')).status, 404);
+  assert.equal(one(env, "SELECT COUNT(*) n FROM engagement_events WHERE kind = 'click'").n, 2, 'only real clicks on real links are recorded');
+  // recording fails: link and image still work
+  const realBatch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async () => { throw new Error('D1 is down'); };
+  r = await hit(env, `/r/${TRK}/0`);
+  assert.deepEqual([r.status, loc(r)], [302, 'https://news.example.org/story']);
+  const img = await hit(env, `/o/${TRK}.gif`);
+  assert.deepEqual([img.status, img.headers.get('content-type')], [200, 'image/gif']);
+  env.DB.batch = realBatch;
+  // the database cannot even be read: the reader lands on the archive, not an error
+  const realPrepare = env.DB.prepare.bind(env.DB);
+  env.DB.prepare = () => { throw new Error('D1 is down'); };
+  r = await hit(env, `/r/${TRK}/0`);
+  assert.deepEqual([r.status, loc(r)], [302, 'https://preview.example/issues/']);
+  assert.equal((await hit(env, `/o/${TRK}.gif`)).status, 200);
+  env.DB.prepare = realPrepare;
+  // links in emails sent before tracking ids still forward, and record nothing
+  r = await hit(env, `/r/7/0/${'b'.repeat(40)}`);
+  assert.deepEqual([r.status, loc(r)], [302, 'https://news.example.org/story']);
+  assert.equal((await hit(env, `/o/7/${'b'.repeat(40)}.gif`)).status, 200);
+  assert.equal(one(env, 'SELECT COUNT(*) n FROM engagement_events').n, 2);
+  // unsubscribe never depends on tracking
+  assert.equal((await c.get('/api/admin/sends/7/engagement')).status, 401, 'reports are private');
+});
+
+test('engagement report: raw activity next to an estimate of human activity, per link and per audience group, with no reader identifiers', async () => {
+  assert.deepEqual(['browser', 'gmail_proxy', 'scanner', 'scanner', 'head', 'apple_privacy', 'browser', 'microsoft_network'].map((x) => x),
+    [classifyAgent(new Request('https://x/', { headers: { 'user-agent': 'Mozilla/5.0 Safari' } }), 'open'),
+     classifyAgent(new Request('https://x/', { headers: { 'user-agent': 'Mozilla/5.0 (via ggpht.com GoogleImageProxy)' } }), 'open'),
+     classifyAgent(new Request('https://x/', { headers: { 'user-agent': '' } }), 'click'),
+     classifyAgent(new Request('https://x/', { headers: { 'user-agent': 'python-requests/2.31' } }), 'click'),
+     classifyAgent(new Request('https://x/', { method: 'HEAD', headers: { 'user-agent': 'Mozilla/5.0' } }), 'click'),
+     (() => { const q = new Request('https://x/', { headers: { 'user-agent': 'Mozilla/5.0' } }); Object.defineProperty(q, 'cf', { value: { asn: 714 } }); return classifyAgent(q, 'open'); })(),
+     (() => { const q = new Request('https://x/', { headers: { 'user-agent': 'Mozilla/5.0' } }); Object.defineProperty(q, 'cf', { value: { asn: 714 } }); return classifyAgent(q, 'click'); })(),
+     (() => { const q = new Request('https://x/', { headers: { 'user-agent': 'Mozilla/5.0' } }); Object.defineProperty(q, 'cf', { value: { asn: 8075 } }); return classifyAgent(q, 'click'); })()]);
+
+  const env = await makeEnv(), c = client(env);
+  await c.login();
+  env.DB.sqlite.exec("INSERT INTO sends (id, issue_slug, kind, status, subject, content_sha256, created_by, created_at, started_at) VALUES (5, 'week-of-august-9-16-2026', 'issue', 'sent', 's', 'x', 't', '2026-11-09T13:45:00Z', '2026-11-09T13:45:00Z')");
+  env.DB.sqlite.exec("INSERT INTO send_links (send_id, idx, url, label, kind) VALUES (5, 0, 'https://a.example/', 'Story A', 'body'), (5, 1, 'https://b.example/', 'Story B', 'body'), (5, 2, 'https://preview.example/index/#data-center', 'Data center', 'index_term'), (5, 3, 'https://preview.example/index/', 'Prompted Index (footer)', 'template')");
+  const people = [...Array.from({ length: 6 }, (_, i) => `m${i}@miamioh.edu`), ...Array.from({ length: 6 }, (_, i) => `g${i}@gmail.com`), 'x0@other.edu', 'x1@other.edu'];
+  const ids = {};
+  people.forEach((e, i) => {
+    env.DB.sqlite.prepare("INSERT INTO people (email, email_norm, status, token, source, created_at, updated_at) VALUES (?, ?, 'active', ?, 'test', '2026-01-01', '2026-01-01')").run(e, e, (i + 10).toString(16).padStart(40, '0'));
+    ids[e] = (i + 1).toString(16).padStart(24, '0');
+    env.DB.sqlite.prepare("INSERT INTO send_recipients (send_id, person_id, email_norm, token, status, track_id, sent_at) VALUES (5, (SELECT id FROM people WHERE email_norm = ?), ?, 't', 'sent', ?, '2026-11-09T13:45:00Z')").run(e, e, ids[e]);
+  });
+  for (const e of people.slice(0, 6)) env.DB.sqlite.prepare("INSERT INTO person_tags (person_id, tag) SELECT id, 'sepi-oct' FROM people WHERE email_norm = ?").run(e);
+  const ua = { browser: 'Mozilla/5.0 (Windows NT 10.0) Chrome/130', gmail: 'Mozilla/5.0 (Windows NT 5.1; rv:11.0) Gecko Firefox/11.0 (via ggpht.com GoogleImageProxy)', scan: 'Barracuda Sentinel' };
+  // m0: human open + human click on the Index term; m1: a scanner clicks all four links at once; m2: Apple preload only
+  await hit(env, `/o/${ids['m0@miamioh.edu']}.gif`, { ua: ua.gmail });
+  await hit(env, `/r/${ids['m0@miamioh.edu']}/2`, { ua: ua.browser });
+  for (const i of [0, 1, 2, 3]) await hit(env, `/r/${ids['m1@miamioh.edu']}/${i}`, { ua: ua.browser });
+  await hit(env, `/o/${ids['m2@miamioh.edu']}.gif`, { ua: 'Mozilla/5.0', asn: 714 });
+  await hit(env, `/r/${ids['m3@miamioh.edu']}/0`, { method: 'HEAD', ua: ua.browser });
+  await hit(env, `/r/${ids['m4@miamioh.edu']}/1`, { ua: ua.scan });
+  // g0: opens twice in a browser and clicks story A; g1: a click arriving within seconds of sending is suspect
+  await hit(env, `/o/${ids['g0@gmail.com']}.gif`, { ua: ua.browser });
+  await hit(env, `/o/${ids['g0@gmail.com']}.gif`, { ua: ua.browser });
+  await hit(env, `/r/${ids['g0@gmail.com']}/0`, { ua: ua.browser });
+  env.DB.sqlite.prepare('UPDATE send_recipients SET sent_at = ? WHERE email_norm = ?').run(new Date().toISOString(), 'g1@gmail.com');
+  await hit(env, `/r/${ids['g1@gmail.com']}/1`, { ua: ua.browser });
+  await hit(env, `/o/${ids['x0@other.edu']}.gif`, { ua: ua.browser });
+
+  const rep = (await c.get('/api/admin/sends/5/engagement')).data;
+  assert.equal(rep.sent, 14);
+  assert.deepEqual(rep.raw, { opens: 5, unique_opens: 4, open_rate: 28.6, clicks: 9, unique_clicks: 6, click_rate: 42.9 });
+  assert.deepEqual(rep.estimated_human, { unique_opens: 3, open_rate: 21.4, clicks: 2, unique_clicks: 2, click_rate: 14.3, click_to_open_rate: 66.7 }, 'm0, g0 and x0 look human; the click implies the open');
+  assert.deepEqual(rep.machine_signals, { apple_privacy_opens: 1, scanner_or_checker_events: 2, recipients_with_machine_like_clicks: 4 });
+  const link = Object.fromEntries(rep.links.map((l) => [l.label, l]));
+  assert.deepEqual([link['Data center'].kind, link['Data center'].raw_clicks, link['Data center'].human_unique], ['index_term', 2, 1], 'per-term clicks, scanner click excluded from the estimate');
+  assert.deepEqual([link['Story A'].raw_clicks, link['Story A'].human_unique], [3, 1]);
+  const seg = Object.fromEntries(rep.segments.by_address_type.map((s) => [s.segment, s]));
+  assert.deepEqual([seg['Miami University addresses'].recipients, seg['Miami University addresses'].human_open_rate, seg['Miami University addresses'].raw_click_rate], [6, 16.7, 66.7]);
+  assert.equal(seg['Personal email (Gmail, Outlook, iCloud, Yahoo and similar)'].human_click_rate, 16.7);
+  assert.deepEqual(seg['Other university addresses'], { segment: 'Other university addresses', recipients: 'fewer than 5', hidden: true }, 'small groups are not broken out');
+  assert.deepEqual(rep.segments.by_tag.map((s) => [s.segment, s.recipients]), [['sepi-oct', 6]]);
+  const text = JSON.stringify(rep);
+  assert.ok(!people.some((e) => text.includes(e)) && !Object.values(ids).some((t) => text.includes(t)), 'no addresses or tracking ids in reports');
+  const trend = (await c.get('/api/admin/engagement/trend')).data;
+  assert.deepEqual([trend.rows[0].raw_open_rate, trend.rows[0].human_open_rate], [28.6, 21.4]);
+
+  // retention: old events are summarised, then deleted; the issue's figures survive
+  // move everything 400 days into the past, keeping the timing between sending and activity
+  env.DB.sqlite.exec("UPDATE engagement_events SET at = strftime('%Y-%m-%dT%H:%M:%fZ', julianday(at) - 400)");
+  env.DB.sqlite.exec("UPDATE send_recipients SET sent_at = strftime('%Y-%m-%dT%H:%M:%fZ', julianday(sent_at) - 400)");
+  env.DB.sqlite.exec("UPDATE sends SET started_at = '2025-01-01T00:00:00Z'");
+  await pruneEngagement(env);
+  assert.equal(one(env, 'SELECT COUNT(*) n FROM engagement_events').n, 0);
+  const kept = await engagementReport(env.DB, 5);
+  assert.deepEqual([kept.from_saved_summary, kept.estimated_human.unique_opens, kept.links.length], [true, 3, 4]);
+  assert.equal(one(env, 'SELECT SUM(opens) + SUM(clicks) AS n FROM send_recipients').n, 0, 'per-reader counters cleared after the longer limit');
+});
+
+test('optional "In the Prompted Index" block: a few distinctive terms, off by default, editorial text untouched, per-term clicks', async () => {
+  const idx = JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../../index/data.json', import.meta.url), 'utf8'));
+  const issue = JSON.parse(await (await import('node:fs/promises')).readFile(new URL('../content/issues/031-week-of-november-1-8-2026.json', import.meta.url), 'utf8'));
+  const terms = selectIndexTerms(issue, idx, 'https://preview.example/index/', 5);
+  assert.ok(terms.length >= 1 && terms.length <= 5 && new Set(terms.map((t) => t.term)).size === terms.length);
+  assert.ok(terms.every((t) => t.url.startsWith('https://preview.example/index/#')));
+  const site = { name: 'Prompted', tagline: 'Your Weekly AI Brief', attribution: 'x', url: 'https://preview.example', asset_base_url: 'https://preview.example', index_url: 'https://preview.example/index/', forward_subscribe_url: 'https://preview.example/s/forward/', postal_address: 'p' };
+  const plain = renderEmailForTest(issue, site), withTerms = renderEmailForTest(issue, site, { indexTerms: terms });
+  assert.ok(!plain.html.includes('In the Prompted Index') && withTerms.html.includes('In the Prompted Index'));
+  const body = (h) => h.slice(h.indexOf('padding:22px 24px 8px 24px;'), h.indexOf('</td></tr>', h.indexOf('padding:22px 24px 8px 24px;')));
+  assert.equal(body(withTerms.html), body(plain.html), 'the issue text is byte-for-byte the same');
+  assert.ok(withTerms.text.includes('In the Prompted Index:') && withTerms.text.startsWith(plain.text.split('-'.repeat(40))[0].slice(0, 200)));
+
+  // a real send leaves it out unless switched on; test sends can preview it
+  const env = await makeEnv({ INDEX_TERMS_EMAIL: 'preview' }), c = client(env);
+  await c.login();
+  assert.match((await c.get('/api/admin/issues/week-of-november-1-8-2026/email?index_terms=1')).data, /In the Prompted Index/);
+  assert.doesNotMatch((await c.get('/api/admin/issues/week-of-november-1-8-2026/email')).data, /In the Prompted Index/);
+  const t = await c.post('/api/admin/sends/test', { issue_slug: 'week-of-november-1-8-2026', emails: ['owner-test@example.com'] });
+  assert.ok(t.data.links.some((l) => l.kind === 'index_term'), 'test sends include it in preview mode');
+  const s = await c.post('/api/admin/sends', { issue_slug: 'week-of-november-1-8-2026' });
+  await c.post(`/api/admin/sends/${s.data.id}/approve`);
+  await c.post(`/api/admin/sends/${s.data.id}/schedule`, {});
+  env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z' WHERE id = ?").run(s.data.id);
+  await tick(env);
+  assert.equal(one(env, "SELECT COUNT(*) n FROM send_links WHERE send_id = ? AND kind = 'index_term'", s.data.id).n, 0, 'not in a real send unless INDEX_TERMS_EMAIL is "on"');
 });

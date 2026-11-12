@@ -39,6 +39,10 @@ What follows from this:
   Monday send. All outreach and any test email need the owner's approval.
 - The cutover acceptance list (`CUTOVER-MANIFEST.md`) now includes cross-group inbox placement.
 
+Tracking and Miami: first-party open and click tracking (on `readprompted.org`, see `ANALYTICS.md`) stays
+off for the first seed round, which gives a clean placement baseline; the same seed is then repeated with
+tracking on, including Miami addresses. Tracking stays on only if placement holds.
+
 What the platform contributes once SES sends: per-recipient delivery, delay, bounce and complaint
 reports from Amazon, kept per send and per address, so a group's results can be compared without relying
 on open pixels (Amazon's own open and click tracking should stay off).

@@ -14,7 +14,7 @@ the last resort.** Approved by the owner on November 12.
 | Configuration set `prompted-newsletter` | Exists; it is the domain's default | SES API, live |
 | Auto Validation | **Off** at account level, no override on the configuration set | SES API, live |
 | Amazon's own suppression list | Bounces and complaints | SES API, live |
-| SNS topic `prompted-ses-events` | Pinned in the Worker (secret `SES_TOPIC_ARN`); **no subscription yet** | Owner; dashboard |
+| SNS topic `prompted-ses-events` | Pinned in the Worker (secret `SES_TOPIC_ARN`). HTTPS subscription created by the owner and **confirmed automatically at 19:54 UTC on November 12** after the platform verified Amazon's real signature. One signed plain-text setup notice received since | Dashboard, audit log |
 | Platform use of SES | **None.** SES stays out of the sender chain until production access is granted | Code and live check |
 | Real emails sent by the platform through SES | None | Usage counters |
 
@@ -149,8 +149,9 @@ suppression list and the warm-up cap work the same with every provider.
 5. DONE. Configuration set `prompted-newsletter` (domain default), event destination to SNS topic
    `prompted-ses-events`, all ten event types. Auto Validation off.
 6. DONE by Claude. Topic pinned in the Worker (`SES_TOPIC_ARN`); signed-report endpoint deployed.
-7. **Owner:** add the HTTPS subscription on the topic (`OWNER-SETUP.md` 6f). The platform confirms it.
-8. **Owner (recommended):** stop Amazon's own open and click tracking (`OWNER-SETUP.md` 6f).
+7. DONE. HTTPS subscription added by the owner; confirmed automatically by the platform.
+8. **Owner (decided, in progress):** stop Amazon's own open and click tracking; Prompted uses its own
+   (`ANALYTICS.md`).
 9. **Owner, before cutover:** add `ses:SendBulkEmail` to the IAM policy; then Claude turns `SES_BULK` on.
 10. After production access: seed tests, each approved by the owner, then the staged warm-up in
     `DELIVERABILITY.md`.
@@ -184,5 +185,7 @@ calling Amazon's own SNS host. Brevo's address and its shared secret are unchang
 - Tested with simulated Amazon answers only: single and bulk sending, per-person unsubscribe links and
   headers in bulk, throttling and rejection handling, SNS signature checking (with a locally generated
   certificate), every event type.
-- Not proven: a real send through SES, a real signed SNS message, Amazon's real production limits, inbox
-  placement.
+- Verified live: a real Amazon-signed SNS message (the subscription confirmation) passed the signature,
+  topic and certificate checks.
+- Not proven: a real send through SES, a real bounce or complaint report, Amazon's real production limits,
+  inbox placement.

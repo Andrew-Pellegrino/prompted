@@ -20,7 +20,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
   of the sending chain entirely.
 - **Delivery reports:** `/api/hooks/ses` accepts only Amazon-signed SNS messages for the pinned topic
   (`SES_TOPIC_ARN` secret), recent, each once. No secret in that address. Live check: unsigned and
-  forged messages are refused (403). **No SNS subscription exists yet** (owner step, `OWNER-SETUP.md` 6f).
+  forged messages are refused (403). The owner's subscription is confirmed (see below).
 - **Bulk sending** built (up to one second of recipients per request, per-person unsubscribe link and
   header, spacing at 90% of Amazon's rate). Off until the IAM key may call `ses:SendBulkEmail`
   (`OWNER-SETUP.md` 6g). Measured pace: 2,500 people in about 45 minutes on the free Cloudflare plan;
@@ -33,7 +33,14 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Open deliverability concern:** two October SEPi members report never seeing Prompted although
   beehiiv records delivery. Cross-group inbox placement is now a cutover gate (`DELIVERABILITY.md`,
   `CUTOVER-MANIFEST.md`). Investigation is the owner's (private CRM); no contact or emails without approval.
-- **Tests:** 45 passing. **Production systems untouched:** `main`, beehiiv, the Index, the CRM, the
+- **Analytics (November 12, late):** first-party opens and clicks built and deployed, **switched off**:
+  raw and estimated-human figures, per-link (labelled, including template links and Index terms), by
+  address type, tag and organization, trend by issue, 90-day event retention, private random tracking ids.
+  Amazon's own open and click tracking is being turned off by the owner. Optional "In the Prompted Index"
+  email block built and shown to the owner, not adopted. Details: `ANALYTICS.md`.
+- **SNS subscription:** created by the owner and confirmed automatically at 19:54 UTC on November 12
+  (real Amazon signature verified). Reports are connected.
+- **Tests:** 49 passing. **Production systems untouched:** `main`, beehiiv, the Index, the CRM, the
   automations. **No real email** has been sent by the platform since the three Gmail tests on November 11.
 
 ## Status at a glance
@@ -84,6 +91,8 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 - `DELIVERY-VERDICT.md` — why independent sending is possible at $0, what it needs, why self-hosted SMTP is not viable.
 - `OWNER-SETUP.md` — exact owner steps (Cloudflare, sending identity, postal address, test inboxes).
+- `SENDING-PROVIDER.md` — Amazon SES: state, limits, throughput, event handling.
+- `ANALYTICS.md` — first-party opens and clicks, the human estimate, privacy and retention.
 - `MIGRATION-REPORT.md` — what was migrated, counts, gaps, source anomalies.
 - `CUTOVER-MANIFEST.md` — every link and automation, the planned change, test and rollback.
 
@@ -241,12 +250,13 @@ health check with a dashboard warning.
 
 ## Open blockers and owner actions (in order)
 
-1. Add the HTTPS subscription on the SNS topic, and untick Amazon's open and click tracking
-   (`OWNER-SETUP.md` 6f). Can be done now.
+1. Untick Amazon's Opens and Clicks on the event destination and turn off VDM engagement tracking
+   (`OWNER-SETUP.md` 6f; the SNS subscription itself is done).
 2. Wait for Amazon's production-access answer (up to 96 hours from November 12). Answer any follow-up
    truthfully (draft in 6e).
 3. Before cutover: add `ses:SendBulkEmail` to the IAM policy (6g).
-4. Approve each seed test send individually, and the postal address for the footer (step 4).
+4. Approve each seed test send individually, and the postal address for the footer (step 4). Decide
+   when tracking may be switched on (`ANALYTICS.md`) and whether to adopt the Index terms block.
 5. Continue the Miami delivery investigation privately; decide on outreach and any Miami IT trace.
 6. Decide whether issue 31's "fla ws" should be corrected (see `MIGRATION-REPORT.md`).
 7. Before February 9, 2027: replace the Cloudflare token (it expires then and is broader than needed).

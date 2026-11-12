@@ -47,8 +47,16 @@ SEND_CHUNK = "20"
 QUOTA_RESERVE = "10"
 # Off by default: tracking pixels and redirect links make mail from a new sender look like bulk mail.
 # Turn on only once the sender has an established reputation.
+# First-party open and click tracking (engagement.mjs). Off until the owner authorises the inbox-placement
+# tests: the plan is a seed round without tracking, then the same seed with it, and only then real use.
 TRACK_OPENS = "false"
 TRACK_CLICKS = "false"
+# Optional "In the Prompted Index" block in the email: "" (off), "preview" (dashboard preview and test
+# sends only) or "on" (every send). Not adopted yet; the owner decides after seeing it.
+INDEX_TERMS_EMAIL = ""
+# Retention: detailed open and click events (days), then per-reader counters (days). Issue totals are kept.
+EVENT_RETENTION_DAYS = "90"
+RECIPIENT_ENGAGEMENT_DAYS = "400"
 # Warm-up: cap real sends per day and raise the cap gradually. Empty = no warm-up cap.
 # Format: start date, first-day cap, daily growth factor. Example: "2026-12-01,20,1.25"
 WARMUP = ""

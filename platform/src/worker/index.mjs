@@ -7,7 +7,10 @@ import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
 import { sesStatus, sesEvents, refreshSesAccount } from './ses.mjs';
 import { verifySnsMessage, isAmazonSnsUrl } from './sns.mjs';
-import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth } from './sending.mjs';
+import { openRoute, clickRoute, legacyClickRoute, legacyOpenRoute, engagementReport, engagementTrend, pruneEngagement, HUMAN_RULES } from './engagement.mjs';
+// The site address for safe fallbacks, without reading the database or the built site.
+const siteUrlOf = (env, url) => String(env.SITE_URL || url.origin).replace(/\/$/, '');
+import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth, indexTermsFor } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
 import { runQA } from '../lib/qa.mjs';
@@ -18,7 +21,6 @@ import { renderIssueEmail, fillRecipient } from '../lib/render-email.mjs';
 import { esc } from '../lib/html.mjs';
 
 const SESSION_HOURS = 12;
-const GIF = Uint8Array.from(atob('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'), (c) => c.charCodeAt(0));
 const page = (title, body, status = 200) => new Response(`<!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
 <title>${esc(title)} — Prompted</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet"><link rel="stylesheet" href="/assets/styles.css"><link rel="icon" type="image/svg+xml" href="/favicon.svg"></head>
@@ -100,20 +102,6 @@ async function unsubscribeRoute(request, env, token) {
   const last = await first(db, "SELECT send_id FROM send_recipients WHERE person_id = ? AND status IN ('sent','delivered') ORDER BY send_id DESC LIMIT 1", person.id);
   await run(db, "INSERT INTO delivery_events (send_id, email_norm, type, provider, at) VALUES (?, ?, 'unsubscribe', 'platform', ?)", last?.send_id ?? null, person.email_norm, now());
   return Response.redirect(new URL('/unsubscribed/', request.url), 303);
-}
-
-async function openRoute(env, sendId, token) {
-  if (token !== 'test') await run(env.DB, 'UPDATE send_recipients SET opens = opens + 1, first_opened_at = COALESCE(first_opened_at, ?) WHERE send_id = ? AND token = ?', now(), sendId, token);
-  return new Response(GIF, { headers: { 'content-type': 'image/gif', 'cache-control': 'no-store, private' } });
-}
-async function clickRoute(env, sendId, idx, token) {
-  const link = await first(env.DB, 'SELECT url FROM send_links WHERE send_id = ? AND idx = ?', sendId, idx);
-  if (!link) return Response.redirect((await siteConfig(env)).url + '/', 302);
-  await env.DB.batch([
-    env.DB.prepare('UPDATE send_links SET clicks = clicks + 1 WHERE send_id = ? AND idx = ?').bind(sendId, idx),
-    env.DB.prepare('UPDATE send_recipients SET clicks = clicks + 1, first_clicked_at = COALESCE(first_clicked_at, ?) WHERE send_id = ? AND token = ?').bind(now(), sendId, token),
-  ]);
-  return Response.redirect(link.url, 302); // only ever to a URL stored from the approved issue: not an open redirect
 }
 
 // Provider webhooks (delivery, bounce, complaint). Authenticated by a shared secret in the URL.
@@ -282,6 +270,11 @@ async function adminApi(request, env, path, url) {
   if (path === 'logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': 'prompted_admin=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0' });
   if (path === 'me') return json({ ok: true, actor, env: env.SITE_ENV || 'preview', send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun' });
   if (path === 'dashboard') return json(await dashboard(env));
+  const engM = /^sends\/(\d+)\/engagement$/.exec(path);
+  if (engM) return json(await engagementReport(db, Number(engM[1])));
+  if (path === 'engagement/trend') return json({ rows: await engagementTrend(db), rules: HUMAN_RULES });
+  const termsM = /^issues\/([a-z0-9-]+)\/index-terms$/.exec(path);
+  if (termsM) { const issue = await loadIssue(env, termsM[1]); return json({ terms: await indexTermsFor(env, issue, await siteConfig(env)), setting: env.INDEX_TERMS_EMAIL || 'off' }); }
 
   const q = Object.fromEntries(url.searchParams);
   let m;
@@ -409,7 +402,10 @@ async function adminApi(request, env, path, url) {
   }
   if ((m = /^issues\/([a-z0-9-]+)\/qa$/.exec(path))) { const issue = await loadIssue(env, m[1]); return json(runQA(issue, await siteConfig(env), { strict: true })); }
   if ((m = /^issues\/([a-z0-9-]+)\/email$/.exec(path))) {
-    const issue = await loadIssue(env, m[1]), site = await siteConfig(env), email = renderIssueEmail(issue, site);
+    // ?index_terms=1 shows the optional "In the Prompted Index" block, for review only.
+    const issue = await loadIssue(env, m[1]), site = await siteConfig(env);
+    const terms = url.searchParams.get('index_terms') === '1' ? await indexTermsFor(env, issue, site) : [];
+    const email = renderIssueEmail(issue, site, { indexTerms: terms });
     return new Response(fillRecipient(email.html, { unsubscribeUrl: site.url + '/unsubscribed/', webUrl: `${site.url}/issues/${issue.slug}/`, openPixelUrl: null }), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
   }
   if (path === 'sends' && method === 'POST') return json(await prepareSend(env, (await body(request, 2000)).issue_slug, actor), 201);
@@ -474,8 +470,11 @@ async function route(request, env) {
   if (p === '/api/subscribe' && request.method === 'POST') return apiSubscribe(request, env);
   if ((m = /^\/confirm\/([a-f0-9]{20,64})$/.exec(p))) return confirmRoute(request, env, m[1]);
   if ((m = /^\/u\/([a-f0-9]{20,64})$/.exec(p))) return unsubscribeRoute(request, env, m[1]);
-  if ((m = /^\/o\/(\d+)\/([a-f0-9]{20,64}|test)\.gif$/.exec(p))) return openRoute(env, Number(m[1]), m[2]);
-  if ((m = /^\/r\/(\d+)\/(\d+)\/([a-f0-9]{20,64}|test)$/.exec(p))) return clickRoute(env, Number(m[1]), Number(m[2]), m[3]);
+  // Tracking: /o/<tracking id>.gif and /r/<tracking id>/<link number>. Older URLs still work but are not recorded.
+  if ((m = /^\/o\/([a-f0-9]{24})\.gif$/.exec(p))) return openRoute(request, env, m[1]);
+  if ((m = /^\/r\/([a-f0-9]{24})\/(\d{1,4})$/.exec(p))) return clickRoute(request, env, m[1], Number(m[2]), siteUrlOf(env, url));
+  if ((m = /^\/o\/\d+\/([a-f0-9]{20,64}|test)\.gif$/.exec(p))) return legacyOpenRoute();
+  if ((m = /^\/r\/(\d+)\/(\d+)\/([a-f0-9]{20,64}|test)$/.exec(p))) return legacyClickRoute(env, Number(m[1]), Number(m[2]), siteUrlOf(env, url));
   if ((m = /^\/api\/hooks\/([a-z]+)$/.exec(p)) && request.method === 'POST') return webhookRoute(request, env, m[1]);
   if (p.startsWith('/api/admin/')) return adminApi(request, env, p.slice('/api/admin/'.length), url);
   if (p.startsWith('/api/')) return fail(404, 'Unknown endpoint.');
@@ -506,6 +505,7 @@ export default {
         const t = new Date();
         if (t.getUTCMinutes() === 0) await pruneRateLimits(env.DB);
         if (t.getUTCMinutes() === 7 && t.getUTCHours() % 6 === 0) await checkGmailHealth(env); // four times a day; sends nothing
+        if (t.getUTCHours() === 4 && t.getUTCMinutes() === 33) await pruneEngagement(env); // retention: see engagement.mjs
         if (t.getUTCMinutes() % 30 === 13) await refreshSesAccount(env); // Amazon's current limits, read-only; sends nothing
         if (t.getUTCHours() === 4 && t.getUTCMinutes() === 21) await env.DB.prepare("DELETE FROM webhook_messages WHERE received_at < ?").bind(new Date(Date.now() - 30 * 86400000).toISOString()).run();
       }

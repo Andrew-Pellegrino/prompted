@@ -196,7 +196,7 @@ If Amazon writes back asking for more detail, answer truthfully. Suggested wordi
 Only keep sentences that are exactly true. In particular, do not describe the existing list as all
 double opt-in.
 
-### 6f. Connect Amazon's delivery reports (owner, about five minutes; can be done now)
+### 6f. Connect Amazon's delivery reports — subscription DONE (November 12); tracking switch-off pending
 
 The IAM key cannot change SNS, by design, so this one step is the owner's.
 

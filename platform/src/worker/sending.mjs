@@ -2,10 +2,11 @@
 // Quota-aware and duplicate-safe. Runs from the cron trigger in small chunks.
 import { all, first, run, stmt, now, audit, HttpError, siteConfig, loadIssue } from './core.mjs';
 import { providerChain, senderFor } from './providers.mjs';
-import { BULK_TOKEN, bulkSafe } from './ses.mjs';
+import { BULK_TOKEN, BULK_TRACK, bulkSafe } from './ses.mjs';
+import { selectIndexTerms } from '../lib/index-terms.mjs';
 import { normalizeEmail, validEmail } from './people.mjs';
 import { runQA } from '../lib/qa.mjs';
-import { renderIssueEmail, fillRecipient } from '../lib/render-email.mjs';
+import { renderIssueEmail, fillRecipient, emailLinks } from '../lib/render-email.mjs';
 import { blocksText } from '../lib/issue-model.mjs';
 import { scheduledSendFor, nextSendSlot } from '../lib/weeks.mjs';
 import { sha256 } from './core.mjs';
@@ -30,6 +31,25 @@ export async function withMailSettings(env) {
   return { ...env, _mailSettings: true, SES_ACCOUNT: sesAccount,
     GMAIL_REFRESH_TOKEN: env.GMAIL_REFRESH_TOKEN || (env.GMAIL_CLIENT_ID ? m.gmail_refresh_token : undefined),
     GMAIL_FROM_EMAIL: env.GMAIL_FROM_EMAIL || m.gmail_from_email };
+}
+
+export const webUrlFor = (site, issue) => `${site.url}/issues/${issue.slug}/?utm_source=newsletter&utm_medium=email&utm_campaign=${issue.slug}`;
+
+/** The Index terms block is off unless INDEX_TERMS_EMAIL is "on" (every send) or "preview" (test sends and previews only). */
+export const indexTermsWanted = (env, forTest) => env.INDEX_TERMS_EMAIL === 'on' || (forTest && env.INDEX_TERMS_EMAIL === 'preview');
+export async function loadIndexData(env) {
+  try { const r = await env.ASSETS.fetch(new Request('https://assets.local/index/data.json')); return r.ok ? await r.json() : null; } catch { return null; }
+}
+export async function indexTermsFor(env, issue, site) {
+  const data = await loadIndexData(env);
+  return data ? selectIndexTerms(issue, data, site.index_url, Number(env.INDEX_TERMS_MAX || 5)) : [];
+}
+
+/** Every link this send may track, stored with a label so reports can name them. */
+async function linkStatements(env, sendId, issue, site, forTest) {
+  const terms = indexTermsWanted(env, forTest) ? await indexTermsFor(env, issue, site) : [];
+  return emailLinks(issue, site, webUrlFor(site, issue), terms)
+    .map((l, i) => stmt(env.DB, 'INSERT OR IGNORE INTO send_links (send_id, idx, url, label, kind) VALUES (?, ?, ?, ?, ?)', sendId, i, l.url, l.label, l.kind));
 }
 
 /** How many recipients one cron run may hand to this provider. */
@@ -60,7 +80,7 @@ export async function getSend(db, id) {
   const send = await first(db, 'SELECT * FROM sends WHERE id = ?', id);
   if (!send) throw new HttpError(404, 'No such send.');
   const counts = await all(db, 'SELECT status, COUNT(*) AS n, SUM(opens > 0) AS opened, SUM(clicks > 0) AS clicked FROM send_recipients WHERE send_id = ? GROUP BY status', id);
-  const links = await all(db, 'SELECT idx, url, clicks FROM send_links WHERE send_id = ? ORDER BY clicks DESC, idx', id);
+  const links = await all(db, 'SELECT idx, url, label, kind, clicks FROM send_links WHERE send_id = ? ORDER BY clicks DESC, idx', id);
   const remaining = send.kind === 'issue' ? (await first(db, `SELECT COUNT(*) AS n FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions) AND email_norm NOT IN (SELECT email_norm FROM send_recipients WHERE send_id = ?)`, id)).n : 0;
   const via = (await all(db, 'SELECT DISTINCT provider FROM send_recipients WHERE send_id = ? AND provider IS NOT NULL', id)).map((r) => r.provider);
   return { ...send, audience: JSON.parse(send.audience || '{}'), not_yet_included: remaining, providers: via, qa: JSON.parse(send.qa), totals: JSON.parse(send.totals), recipients: Object.fromEntries(counts.map((c) => [c.status, c.n])), opened: counts.reduce((a, c) => a + (c.opened || 0), 0), clicked: counts.reduce((a, c) => a + (c.clicked || 0), 0), links };
@@ -122,10 +142,9 @@ export async function testSend(env, slug, emails, actor) {
   // If a test inbox is also a subscriber record, the test carries that record's own unsubscribe and
   // tracking links, so the whole reader journey can be exercised. Otherwise it gets inert "test" links.
   const known = new Map((await all(db, `SELECT id, email_norm, token FROM people WHERE email_norm IN (${list.map(() => '?').join(',')})`, ...list)).map((p) => [p.email_norm, p]));
-  const urls = [...new Set(issue.blocks.flatMap((b) => (b.type === 'list' ? b.items.flat() : b.children || [])).filter((r) => /^https?:\/\//.test(r.href || '')).map((r) => r.href))];
   await db.batch([
-    ...list.map((e) => stmt(db, "INSERT INTO send_recipients (send_id, person_id, email_norm, token, status) VALUES (?, ?, ?, ?, 'queued')", id, known.get(e)?.id ?? null, e, known.get(e)?.token ?? 'test')),
-    ...urls.map((u, i) => stmt(db, 'INSERT OR IGNORE INTO send_links (send_id, idx, url) VALUES (?, ?, ?)', id, i, u)),
+    ...(await linkStatements(env, id, issue, site, true)),
+    ...list.map((e) => stmt(db, "INSERT INTO send_recipients (send_id, person_id, email_norm, token, status, track_id) VALUES (?, ?, ?, ?, 'queued', lower(hex(randomblob(12))))", id, known.get(e)?.id ?? null, e, known.get(e)?.token ?? 'test')),
   ]);
   await audit(db, actor, 'send.test', 'send', id, { slug, recipients: list.length });
   await processSend(env, await first(db, 'SELECT * FROM sends WHERE id = ?', id));
@@ -170,16 +189,20 @@ export async function processSend(env, send) {
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
   const pick = await pickProvider(env, reserve, send.kind === 'test');
-  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, perTick(pick.provider, env, send, chunkSize))) : [];
+  const queued = pick ? await all(db, "SELECT email_norm, token, track_id, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, perTick(pick.provider, env, send, chunkSize))) : [];
   if (queued.length) {
     const { provider } = pick;
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
-    const links = await all(db, 'SELECT idx, url FROM send_links WHERE send_id = ?', send.id);
+    const links = await all(db, 'SELECT idx, url, label, kind FROM send_links WHERE send_id = ?', send.id);
     const linkIdx = new Map(links.map((l) => [l.url, l.idx]));
-    const track = env.TRACK_CLICKS === 'true';
-    const email = renderIssueEmail(issue, site, { subject: send.subject, preview: send.preview, trackLink: track ? (href) => (linkIdx.has(href) ? `${site.url}/r/${send.id}/${linkIdx.get(href)}/{{TOKEN}}` : href) : null });
+    // First-party tracking, off unless switched on. URLs carry only the per-send tracking id.
+    const track = env.TRACK_CLICKS === 'true', trackOpens = env.TRACK_OPENS === 'true';
+    const tracked = (href) => (linkIdx.has(href) ? `${site.url}/r/{{TRACK}}/${linkIdx.get(href)}` : href);
+    const indexTerms = links.filter((l) => l.kind === 'index_term').map((l) => ({ term: l.label, url: l.url }));
+    const email = renderIssueEmail(issue, site, { subject: send.subject, preview: send.preview, indexTerms, trackLink: track ? tracked : null });
     const { from, replyTo } = senderFor(env, provider);
-    const webUrl = `${site.url}/issues/${issue.slug}/?utm_source=newsletter&utm_medium=email&utm_campaign=${issue.slug}`;
+    const plainWebUrl = webUrlFor(site, issue), webUrl = track ? tracked(plainWebUrl) : plainWebUrl;
+    const pixelUrl = trackOpens ? `${site.url}/o/{{TRACK}}.gif` : null;
     // 2. Claim before sending so a crash cannot produce a duplicate.
     const claimedAt = now();
     await db.batch(queued.map((r) => stmt(db, "UPDATE send_recipients SET status = 'sending', claimed_at = ?, attempts = attempts + 1, provider = ? WHERE send_id = ? AND email_norm = ? AND status = 'queued'", claimedAt, provider.name, send.id, r.email_norm)));
@@ -190,8 +213,8 @@ export async function processSend(env, send) {
     // private token is filled in by the provider. Only for the real issue send, and only if nothing else in
     // the email looks like a template placeholder (the editorial text is never altered to make it fit).
     const bulkHtml = send.kind !== 'test' && provider.sendBatch && provider.bulkEnabled?.(env)
-      ? fillRecipient(email.html, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${BULK_TOKEN}.gif` : null }) : null;
-    const bulkText = bulkHtml && fillRecipient(email.text, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, openPixelUrl: null }, false);
+      ? fillRecipient(email.html, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, track: BULK_TRACK, openPixelUrl: pixelUrl }) : null;
+    const bulkText = bulkHtml && fillRecipient(email.text, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl: plainWebUrl, token: BULK_TOKEN, track: BULK_TRACK, openPixelUrl: null }, false);
     const useBulk = !!bulkHtml && bulkSafe(bulkHtml, bulkText, send.subject);
     const eligible = [];
     for (const r of queued) {
@@ -208,7 +231,7 @@ export async function processSend(env, send) {
         let out;
         try {
           out = await provider.sendBatch(env, { from, replyTo, subject: send.subject, html: bulkHtml, text: bulkText,
-            recipients: chunk.map((r) => ({ to: r.email_norm, token: r.token, headers: listHeaders(`${site.url}/u/${r.token}`) })) });
+            recipients: chunk.map((r) => ({ to: r.email_norm, token: r.token, track: r.track_id, headers: listHeaders(`${site.url}/u/${r.token}`) })) });
         } catch (e) { out = chunk.map(() => ({ ok: false, error: String(e.message || e).slice(0, 300), retryable: true })); }
         chunk.forEach((r, k) => {
           let res = out[k];
@@ -220,10 +243,10 @@ export async function processSend(env, send) {
       for (const r of eligible) {
         if (paused) { results.push({ r, res: { ok: false, deferred: true } }); continue; }
         const unsub = r.token === 'test' ? `${site.url}/unsubscribed/` : `${site.url}/u/${r.token}`;
-        const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, openPixelUrl: env.TRACK_OPENS === 'true' ? `${site.url}/o/${send.id}/${r.token}.gif` : null };
+        const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, track: r.track_id, openPixelUrl: pixelUrl };
         let res;
         try {
-          res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, vars, false), headers: listHeaders(unsub) });
+          res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, { ...vars, webUrl: plainWebUrl, openPixelUrl: null }, false), headers: listHeaders(unsub) });
         } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
         if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
         results.push({ r, res });
@@ -277,13 +300,13 @@ export async function tick(env) {
       continue;
     }
     const aud = audienceFilter(JSON.parse(send.audience || '{}'));
-    const urls = [...new Set(issue.blocks.flatMap((b) => (b.type === 'list' ? b.items.flat() : b.children || [])).filter((r) => /^https?:\/\//.test(r.href || '')).map((r) => r.href))];
+    const links = await linkStatements(env, send.id, issue, await siteConfig(env), false);
     await db.batch([
       stmt(db, "UPDATE sends SET status = 'sending', started_at = ? WHERE id = ? AND status = 'scheduled'", now(), send.id),
       // Audience snapshot: active people who are not suppressed. One statement, so it cannot half-run.
-      stmt(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status)
-        SELECT ?, id, email_norm, token, 'queued' FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)${aud.sql}`, send.id, ...aud.args),
-      ...urls.map((u, i) => stmt(db, 'INSERT OR IGNORE INTO send_links (send_id, idx, url) VALUES (?, ?, ?)', send.id, i, u)),
+      stmt(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status, track_id)
+        SELECT ?, id, email_norm, token, 'queued', lower(hex(randomblob(12))) FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)${aud.sql}`, send.id, ...aud.args),
+      ...links,
     ]);
     await audit(db, 'cron', 'send.start', 'send', send.id, { slug: send.issue_slug });
   }
@@ -300,8 +323,8 @@ export async function extendSend(env, id, actor) {
   if (!send || send.kind !== 'issue') throw new HttpError(404, 'No such send.');
   if (!['sending', 'sent'].includes(send.status)) throw new HttpError(409, 'Only a send that has started can be extended to the rest of the audience.');
   await requireFresh(env, send);
-  const res = await run(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status)
-    SELECT ?, id, email_norm, token, 'queued' FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)`, id);
+  const res = await run(db, `INSERT OR IGNORE INTO send_recipients (send_id, person_id, email_norm, token, status, track_id)
+    SELECT ?, id, email_norm, token, 'queued', lower(hex(randomblob(12))) FROM people WHERE status = 'active' AND email_norm NOT IN (SELECT email_norm FROM suppressions)`, id);
   await run(db, "UPDATE sends SET status = 'sending', finished_at = NULL, audience = '{}' WHERE id = ?", id);
   await audit(db, actor, 'send.extend', 'send', id, { added: res.meta.changes });
   return getSend(db, id);
