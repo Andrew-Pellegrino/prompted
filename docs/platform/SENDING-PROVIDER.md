@@ -150,7 +150,9 @@ suppression list and the warm-up cap work the same with every provider.
    `prompted-ses-events`, all ten event types. Auto Validation off.
 6. DONE by Claude. Topic pinned in the Worker (`SES_TOPIC_ARN`); signed-report endpoint deployed.
 7. DONE. HTTPS subscription added by the owner; confirmed automatically by the platform.
-8. **Owner (decided, in progress):** stop Amazon's own open and click tracking; Prompted uses its own
+8. DONE. Amazon's own open and click tracking is off: VDM engagement tracking confirmed **off** through
+   the SES API (November 12); Opens and Clicks unticked on the event destination by the owner (not readable
+   with the key, but the dashboard warns if Amazon ever reports opens or clicks). Prompted uses its own
    (`ANALYTICS.md`).
 9. **Owner, before cutover:** add `ses:SendBulkEmail` to the IAM policy; then Claude turns `SES_BULK` on.
 10. After production access: seed tests, each approved by the owner, then the staged warm-up in
