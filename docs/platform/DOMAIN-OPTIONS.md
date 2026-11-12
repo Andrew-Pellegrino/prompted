@@ -1,6 +1,10 @@
 # Domain options and recommendation
 
-Written November 2026. **Nothing has been bought and the domain strategy has not been changed.** The owner
+**Decision made: the owner bought `readprompted.org` at Cloudflare Registrar and it is now the permanent
+domain. eu.org is abandoned.** The rest of this page is the comparison as written before the purchase,
+kept for the record.
+
+Written November 2026, before the purchase. The owner
 has said a small domain cost (roughly $5, a little more for a good reason) is now acceptable, and that any
 purchase needs explicit approval first.
 

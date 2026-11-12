@@ -150,11 +150,11 @@ async function webhookRoute(request, env, provider) {
 // Google, and Google sends a one-time code back here. The Worker exchanges it for a refresh token and
 // stores it in the private database. Only the "send email" permission is requested.
 const GMAIL_SCOPES = 'https://www.googleapis.com/auth/gmail.send openid email';
-const gmailRedirect = async (env) => (await siteConfig(env)).url + '/api/admin/gmail/callback';
-async function gmailConnect(env) {
+const gmailRedirect = (url) => url.origin + '/api/admin/gmail/callback';
+async function gmailConnect(env, url) {
   if (!env.GMAIL_CLIENT_ID || !env.GMAIL_CLIENT_SECRET) return page('Gmail is not set up yet', '<p>Add GMAIL_CLIENT_ID and GMAIL_CLIENT_SECRET as Worker secrets first.</p>', 503);
   const exp = Date.now() + 10 * 60 * 1000, state = `${exp}.${await hmac(env.SESSION_SECRET, 'gmail-connect.' + exp)}`;
-  const q = new URLSearchParams({ client_id: env.GMAIL_CLIENT_ID, redirect_uri: await gmailRedirect(env), response_type: 'code', scope: GMAIL_SCOPES, access_type: 'offline', prompt: 'consent', state });
+  const q = new URLSearchParams({ client_id: env.GMAIL_CLIENT_ID, redirect_uri: gmailRedirect(url), response_type: 'code', scope: GMAIL_SCOPES, access_type: 'offline', prompt: 'consent', state });
   return Response.redirect('https://accounts.google.com/o/oauth2/v2/auth?' + q, 302);
 }
 async function gmailCallback(env, url) {
@@ -164,7 +164,7 @@ async function gmailCallback(env, url) {
   if (!exp || Number(exp) < Date.now() || !safeEqual(sig || '', await hmac(env.SESSION_SECRET, 'gmail-connect.' + exp))) return page('Connection expired', '<p>Start again from the dashboard: Tools, Connect Gmail.</p>', 400);
   if (url.searchParams.get('error')) return page('Gmail was not connected', `<p>Google reported: ${esc(url.searchParams.get('error'))}. <a href="/admin/#tools">Back to the dashboard</a></p>`, 400);
   const res = await fetch('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({ code: url.searchParams.get('code') || '', client_id: env.GMAIL_CLIENT_ID, client_secret: env.GMAIL_CLIENT_SECRET, redirect_uri: await gmailRedirect(env), grant_type: 'authorization_code' }) });
+    body: new URLSearchParams({ code: url.searchParams.get('code') || '', client_id: env.GMAIL_CLIENT_ID, client_secret: env.GMAIL_CLIENT_SECRET, redirect_uri: gmailRedirect(url), grant_type: 'authorization_code' }) });
   const tok = await res.json().catch(() => ({}));
   if (!res.ok || !tok.refresh_token) return page('Gmail was not connected', `<p>Google did not return a long-lived sign-in (${esc(tok.error || res.status)}). <a href="/admin/#tools">Try again</a>.</p>`, 400);
   if (!String(tok.scope || '').includes('gmail.send')) return page('Permission missing', '<p>The "send email" box was not ticked on Google\'s screen. <a href="/admin/#tools">Try again</a> and leave it ticked.</p>', 400);
@@ -196,7 +196,7 @@ async function adminApi(request, env, path, url) {
   if (path === 'gmail/callback' && method === 'GET') return gmailCallback(env, url);
   const actor = await sessionActor(env, request);
   if (!actor) return fail(401, 'Sign in required.');
-  if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env);
+  if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env, url);
   if (path === 'deliverability/domain' && method === 'GET') { try { return json(await checkDomain(url.searchParams.get('domain'))); } catch (e) { return fail(400, String(e.message || e)); } }
   if (path === 'gmail/check' && method === 'POST') return json({ ok: true, health: await checkGmailHealth(env) });
   if (path === 'gmail/disconnect' && method === 'POST') { await run(db, "DELETE FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email','gmail_health')"); await audit(db, actor, 'gmail.disconnect'); return json({ ok: true }); }
@@ -362,7 +362,7 @@ async function adminApi(request, env, path, url) {
     return json({ send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun', quotas: await quotas(env), test_quotas: await quotas(env, true), from: env.FROM_EMAIL || null, test_recipients: String(env.TEST_RECIPIENTS || '').split(',').filter(Boolean).length,
       last_problem: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'delivery_last_problem'"))?.value || 'null'),
       gmail_health: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'gmail_health'"))?.value || 'null'),
-      gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: await gmailRedirect(env) },
+      gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: gmailRedirect(url) },
       configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO|not a real address|preview only/i.test((await siteConfig(env)).postal_address) } });
   }
   if (path === 'metrics/beehiiv' && method === 'POST') return json(await importBeehiivMetrics(env, await body(request), actor));
@@ -391,6 +391,8 @@ const SECURITY = { 'x-content-type-options': 'nosniff', 'referrer-policy': 'stri
 async function route(request, env) {
   const url = new URL(request.url), p = url.pathname;
   let m;
+  // One address for readers: www goes to the bare domain.
+  if (url.hostname.startsWith('www.')) return Response.redirect(`${url.protocol}//${url.hostname.slice(4)}${p}${url.search}`, 301);
   if (p === '/api/subscribe' && request.method === 'POST') return apiSubscribe(request, env);
   if ((m = /^\/confirm\/([a-f0-9]{20,64})$/.exec(p))) return confirmRoute(request, env, m[1]);
   if ((m = /^\/u\/([a-f0-9]{20,64})$/.exec(p))) return unsubscribeRoute(request, env, m[1]);

@@ -30,7 +30,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 
 ## Verified in this session
 
-- `npm test`: 38 of 38 pass.
+- `npm test`: 39 of 39 pass.
 - **Live preview, 27 of 27 checks pass** (browser-driven, synthetic data): all 31 issue pages serve the full
   text and correct week; old-permalink forwarders; archive full-text search; Index copy (201 terms) and
   links to live anchors; mobile layout and reading gate; every admin endpoint refuses anonymous, forged
@@ -72,7 +72,23 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
 
-## Domain decision pending with the owner (read `DOMAIN-OPTIONS.md`)
+## Domain: `readprompted.org` (owner's, active) — site moved onto it, email not yet set up
+
+- The owner bought `readprompted.org` at Cloudflare Registrar and told Claude to use it as the permanent
+  domain and to abandon eu.org.
+- Done and verified live (11 of 11 checks, synthetic data, no email sent): the Worker is attached to
+  `readprompted.org` and `www.readprompted.org` (www redirects), `SITE_URL` is the domain, every page's
+  canonical address uses it, the original `workers.dev` address still works, dashboard sign-in works on the
+  new address, anonymous access to the dashboard API is refused, and the site is still hidden from search
+  engines with the preview banner. This is not a cutover: beehiiv, `main` and the automations are untouched.
+- The Gmail sign-in now returns to whichever address the owner is using. To reconnect Gmail from the new
+  address the owner must first add `https://readprompted.org/api/admin/gmail/callback` as a second redirect
+  address in the Google Cloud client. The existing connection keeps working until it expires.
+- Not done: no DNS records for email exist yet (the domain check reports SPF, DKIM and DMARC missing, as
+  expected). The token is refused for DNS and email routing. **Next owner step: widen the token**
+  (`OWNER-SETUP.md` 6b). Then Claude sets up forwarding and DMARC (6c), then Brevo (6d).
+
+## Domain decision (history; read `DOMAIN-OPTIONS.md`)
 
 - eu.org: the iPhone's `document.txt` turned out to be the blank form, not a result page. Two submissions
   on two devices produced no confirmation and there is no way to see pending requests. Assessed as not

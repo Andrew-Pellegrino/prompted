@@ -3,9 +3,9 @@
 Nothing in this file has been changed in production. Every row is a planned change that needs the owner's
 approval. Until cutover, beehiiv keeps sending and every existing link keeps working.
 
-`NEW` below stands for the platform's production address. It does not exist yet: the preview address is
-`https://prompted-platform-dev.readprompted.workers.dev`, and the production address will be either the
-free `eu.org` domain or a `workers.dev` address.
+`NEW` below is **https://readprompted.org**, the owner's domain. The platform already answers there in
+preview mode (hidden from search engines, dry-run sending). Cutover means switching it to production mode
+and pointing everything in this table at it, not moving the site again.
 
 ## Go / no-go: current answer is NO-GO
 

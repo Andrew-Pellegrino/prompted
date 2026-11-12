@@ -1,14 +1,18 @@
 # Prompted platform: development preview on Cloudflare Workers (free plan).
-# Deploys to https://prompted-platform-dev.readprompted.workers.dev, never to the live site.
+# Serves https://readprompted.org (still in preview mode: noindex, dry-run sending) and keeps the
+# original address https://prompted-platform-dev.readprompted.workers.dev working as well.
 name = "prompted-platform-dev"
 main = "src/worker/entry.embedded.mjs" # the Worker with the built site packaged inside (see src/worker/assets.mjs)
 compatibility_date = "2026-06-01"
 workers_dev = true
 preview_urls = false   # no extra per-version public addresses
 
-# When the dedicated domain is active in Cloudflare, serve the site from it as well, so the links in an
-# email and the sender address share one domain. Uncomment, set SITE_URL below to match, and deploy.
-# routes = [{ pattern = "YOUR-DOMAIN", custom_domain = true }]   # the domain chosen in docs/platform/DOMAIN-OPTIONS.md
+# The owner's domain (registered at Cloudflare Registrar, November 2026). Email links and the sender
+# address share this one domain.
+routes = [
+  { pattern = "readprompted.org", custom_domain = true },
+  { pattern = "www.readprompted.org", custom_domain = true },   # redirected to the bare domain by the Worker
+]
 
 [[d1_databases]]
 binding = "DB"
@@ -21,7 +25,7 @@ crons = ["* * * * *"] # advances scheduled sends in small chunks; idle runs do a
 
 [vars]
 SITE_ENV = "preview"            # "production" only after an approved cutover
-SITE_URL = "https://prompted-platform-dev.readprompted.workers.dev"
+SITE_URL = "https://readprompted.org"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"
 EMAIL_PROVIDERS = "brevo,resend,gmail"

@@ -658,3 +658,15 @@ test('draft check: pasted approved text becomes an issue with QA, a file to down
   assert.equal(dup.already_published, true);
   assert.equal((await c.get('/api/admin/issues')).data.issues.length, 31);
 });
+
+test('www is redirected to the bare domain; the Gmail sign-in returns to the address in use', async () => {
+  const worker = (await import('../src/worker/index.mjs')).default;
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs' });
+  const r = await worker.fetch(new Request('https://www.readprompted.example/issues/?q=1'), env);
+  assert.deepEqual([r.status, r.headers.get('location')], [301, 'https://readprompted.example/issues/?q=1']);
+  const c = client(env);
+  await c.login();
+  const go = await c.get('/api/admin/gmail/connect');
+  assert.equal(new URL(go.headers.get('location')).searchParams.get('redirect_uri'), 'https://preview.example/api/admin/gmail/callback');
+  assert.equal((await c.get('/api/admin/providers')).data.gmail.redirect_uri, 'https://preview.example/api/admin/gmail/callback');
+});

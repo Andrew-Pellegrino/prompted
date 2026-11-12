@@ -4,8 +4,9 @@ Everything here is free and none of it involves Miami University or beehiiv. Nev
 token into a chat or into a file in this repository. Where a step needs a secret, you type it straight into
 Cloudflare's own settings page.
 
-Preview site: https://prompted-platform-dev.readprompted.workers.dev
-Dashboard: https://prompted-platform-dev.readprompted.workers.dev/admin/
+Site (still in preview mode): https://readprompted.org
+Dashboard: https://readprompted.org/admin/
+The original address https://prompted-platform-dev.readprompted.workers.dev keeps working too.
 
 ## 1. Cloudflare — DONE
 
@@ -100,92 +101,60 @@ Tell Claude which of your own addresses may receive test emails. One Gmail, one 
 one Apple iCloud address give the best rendering coverage; one address is enough to start.
 Claude stores them as the Worker secret `TEST_RECIPIENTS`.
 
-## 6. The dedicated domain: `prompted.eu.org`
+## 6. The domain: `readprompted.org`
 
-Why: mail from the Gmail account authenticated correctly but landed in Spam (see `DELIVERABILITY.md`).
-A domain of our own lets Prompted build a reputation that belongs to it and can move between providers.
-It is free, and it is not a guarantee: a new domain starts with no reputation and has to be warmed up.
+**Bought by the owner at Cloudflare Registrar, November 2026.** It is active in the same Cloudflare account
+that runs the platform. The eu.org route is abandoned (two submissions produced no confirmation; details in
+`DOMAIN-OPTIONS.md`). The leftover `prompted.eu.org` entry in Cloudflare can be deleted by the owner at any
+time; it costs nothing and does nothing.
 
-Status: eu.org contact handle created and confirmed by the owner (personal iCloud address).
-`prompted.eu.org`, `readprompted.eu.org` and `promptedbrief.eu.org` were all unused on November 11.
-`prompted.eu.org` is the first choice; `readprompted.eu.org` is the fallback if it is refused.
+### 6a. Website on the domain — DONE
 
-eu.org's rules that matter here (from its policy page): the service is meant for individuals and
-non-profits, small commercial sites are tolerated, and holders must not send unsolicited bulk mail.
-Prompted mails only people who subscribed, with one-click unsubscribe, so it fits. eu.org gives no support
-and no promised approval time.
+The platform is served at https://readprompted.org, `www` redirects to it, and the original
+`workers.dev` address still works. It is still in preview mode (hidden from search engines, banner shown,
+dry-run sending). Verified live: all 31 issues, archive search, the Index copy, mobile layout, tracked
+signup, dashboard sign-in, and refusal of anonymous access to the dashboard API.
 
-### 6a. Add the domain to Cloudflare (owner) — DONE November 11
+Dashboard: https://readprompted.org/admin/ (same password).
 
-Cloudflare accepted `prompted.eu.org` on the Free plan with no DNS records. It is "pending" there until
-eu.org approves the name. Assigned name servers (not secret): `alfred.ns.cloudflare.com` and
-`olga.ns.cloudflare.com`. If Cloudflare ever drops the pending domain and it has to be added again, the
-name servers may change, and the eu.org record must then be updated to match.
+### 6b. Let Claude manage the domain's DNS and email forwarding (owner, about two minutes)
 
-Claude's access token may not add domains, so this is an owner step.
+The current access token can run the site but is refused for DNS records and email forwarding.
 
-1. https://dash.cloudflare.com, account home, **Add a domain** (or **Onboard a domain**).
-2. Enter `prompted.eu.org`. If offered, choose **Manually enter DNS records**. Continue.
-3. Choose the **Free** plan. Skip the DNS records page.
-4. Cloudflare shows two name servers ending in `.ns.cloudflare.com`. Give both names to Claude.
-   If Cloudflare refuses the name, give Claude the exact message.
+1. Go to https://dash.cloudflare.com/profile/api-tokens
+2. Find the token made for Claude, click the three dots on its row, then **Edit**.
+3. Under **Permissions**, click **Add more** and add these three rows:
+   - **Zone** / **DNS** / **Edit**
+   - **Zone** / **Email Routing Rules** / **Edit**
+   - **Account** / **Email Routing Addresses** / **Edit**
+4. Under **Zone Resources** leave it as it is if it already says "All zones"; otherwise choose
+   **Include / Specific zone / readprompted.org**.
+5. **Continue to summary**, then **Update token**. The token's value does not change, so nothing needs
+   to be re-entered anywhere.
 
-### 6b. Request the name at eu.org (owner) — only after 6a
+### 6c. What Claude does next (once 6b is done)
 
-1. Sign in at https://nic.eu.org/arf/ and choose **New domain**.
-2. Complete domain name: `prompted.eu.org`.
-3. Organization: `Prompted`. Leave the contact as your handle. Fill the address fields with the same
-   details as your contact.
-4. Under "Check for correctness of", choose **server names** (the lightest check; Cloudflare does not
-   answer for the name until eu.org has approved it).
-5. In "Name servers", put the first Cloudflare name in **Name1** and the second in **Name2**. Leave the IP
-   boxes empty.
-6. Submit. A page of green "OK" lines means the request is queued. Approval arrives by email and can take
-   days or longer.
+1. Turn on Cloudflare's free email forwarding for the domain, so mail sent to addresses at
+   `readprompted.org` (replies, bounce notices, reports) reaches the owner's own inbox. Cloudflare emails
+   the owner one confirmation link for the destination inbox.
+2. Add a DMARC record in monitoring mode, so mailbox providers send reports about mail claiming to be
+   from the domain.
+3. Confirm the result with the dashboard's **Check a sending domain**.
 
-### 6b-notes. What eu.org's software actually does on Submit (read from its published source)
+### 6d. Sending provider (owner, after 6c)
 
-eu.org runs the open-source "autoreg" software (github.com/pbeyssac/autoreg, `autoreg/arf/webdns/views.py`).
+1. Create a free account at https://www.brevo.com using the Prompted Google account. Do not enter a
+   payment card; the free plan does not need one.
+2. In Brevo: **Senders, Domains & Dedicated IPs**, **Domains**, **Add a domain**, enter `readprompted.org`.
+   Brevo shows a short list of DNS records (a verification code and two DKIM records). They are not
+   secret. Give them to Claude, who adds them and tells the owner when to click **Authenticate** in Brevo.
+3. Ask Brevo support to enable sending through the API, saying plainly that it is a weekly newsletter to
+   people who subscribed, sent from our own software. (Brevo's own page says activation is requested from
+   support and the purpose must be stated.)
+4. Create an API key in Brevo and store it in Cloudflare as the Worker secret `BREVO_API_KEY`. Store the
+   sender address the same way as `FROM_EMAIL` (for example `brief@readprompted.org`).
 
-- **A submission that passes form validation never returns a web page.** It returns a plain-text page
-  that streams the name-server checks and ends with either `Saved as request <id>` or the errors.
-  On an iPhone, Safari saves a plain-text response as a file called `document.txt` instead of showing it.
-  So a downloaded `document.txt` is the result page of that submission, and reading it is the direct
-  way to learn whether the request was saved.
-- **Coming back to a form is the "not accepted" path** (a field error, a failed "I'm not a robot" check,
-  or a sign-in problem). In the published code that path re-shows what was typed with an error message;
-  a blank form with contacts shown as "None" matches neither path exactly, so the live site may differ
-  from the published code. Either way it is not a confirmation.
-- **The "I'm not a robot" check is only added when the account already has open requests or domains above
-  a threshold.** If it appears on the form now and did not before, that itself suggests an earlier
-  request is open. Privacy shields in a browser can hide or break it.
-- **Ordinary users have no page listing pending requests.** The Domains page lists approved domains only;
-  the request lists are for eu.org's administrators. An empty Domains list says nothing either way.
-- **Submitting again is harmless.** If a request for the name is already open, the result page says
-  `IGNORED: you already have a pending request <id> for that domain` and nothing is duplicated.
-- No email is sent when a request is created, only when it is accepted or refused.
-
-Order of diagnostics, least effort first: (1) read `document.txt` from the iPhone; (2) if it is gone or
-shows errors, submit once more from a browser with no content blocking and read the plain-text result.
-
-### 6c. After approval (Claude, with two small owner steps)
-
-1. Cloudflare shows the domain as **Active**.
-2. Owner widens the API token so Claude can manage the domain's records: Cloudflare, **My Profile**,
-   **API Tokens**, edit the existing token, add **Zone / DNS / Edit**, **Zone / Zone / Read** and
-   **Zone / Email Routing Rules / Edit** for the zone `prompted.eu.org`. Nothing else changes.
-3. Claude moves the site onto the domain (one setting in `wrangler.toml`), so email links and the sender
-   address share one domain.
-4. Owner creates a free Brevo account at https://www.brevo.com with the Prompted Google account, adds
-   `prompted.eu.org` as a sending domain, and asks Brevo support to enable sending through the API,
-   saying plainly that it is a weekly newsletter to people who subscribed, sent from our own software.
-   (Brevo's own page says activation is requested from support and that the purpose must be stated.)
-5. Claude adds the DNS records Brevo shows (a verification code, two DKIM records, a DMARC record) and
-   turns on Cloudflare's free email forwarding so replies to the domain reach the owner.
-6. The dashboard's **Check a sending domain** must say Ready before any test is sent.
-7. Owner stores the Brevo API key in Cloudflare as the secret `BREVO_API_KEY`, and `FROM_EMAIL`
-   (for example `brief@prompted.eu.org`) the same way.
-8. Seed tests, each one approved by the owner, recorded under **Where test emails landed**.
+No test email is sent until the owner approves that specific send.
 
 ## 7. Private data migration (only after tests pass and you approve)
 
