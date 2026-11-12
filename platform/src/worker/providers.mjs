@@ -27,7 +27,7 @@ export const dryrun = {
 // Brevo transactional API. Free plan: 300 emails/day (verified from Brevo's pricing page, Nov 2026).
 export const brevo = {
   name: 'brevo',
-  configured: (env) => !!env.BREVO_API_KEY,
+  configured: (env) => !!(env.BREVO_API_KEY && env.FROM_EMAIL),
   dailyLimit: (env) => num(env.BREVO_DAILY_LIMIT, 290),
   async send(env, msg) {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {
@@ -46,7 +46,7 @@ export const brevo = {
 // Resend API. Free plan: 100 emails/day, 3,000/month (Resend docs, Nov 2026).
 export const resend = {
   name: 'resend',
-  configured: (env) => !!env.RESEND_API_KEY,
+  configured: (env) => !!(env.RESEND_API_KEY && env.FROM_EMAIL),
   dailyLimit: (env) => num(env.RESEND_DAILY_LIMIT, 95),
   async send(env, msg) {
     const res = await fetch('https://api.resend.com/emails', {

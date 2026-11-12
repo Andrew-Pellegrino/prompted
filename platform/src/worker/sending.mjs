@@ -276,7 +276,11 @@ export async function retryFailed(env, id, actor) {
 /** One-off transactional message (subscription confirmation). Uses the same providers and quota. */
 export async function sendTransactional(env, to, subject, html, text) {
   env = await withMailSettings(env);
-  const pick = await pickProvider(env, 0, testAllowlist(env).includes(normalizeEmail(to)));
+  // The signup form is public, so on the preview anyone could type the owner's test address into it.
+  // A real confirmation email there needs the owner's switch (PREVIEW_CONFIRMATIONS = "live");
+  // otherwise it is recorded as a dry run and nothing leaves the platform.
+  const realAllowed = isProduction(env) || env.PREVIEW_CONFIRMATIONS === 'live';
+  const pick = await pickProvider(env, 0, realAllowed && testAllowlist(env).includes(normalizeEmail(to)));
   if (!pick) return { ok: false, error: 'no sending quota left today' };
   const { provider } = pick;
   if (provider.name !== 'dryrun' && !isProduction(env) && !testAllowlist(env).includes(normalizeEmail(to))) return { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' };

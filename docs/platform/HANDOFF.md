@@ -20,11 +20,12 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 | Signup with attribution, double opt-in, unsubscribe | **Built, tested** |
 | CSV import, export, backup and restore | **Built, tested** |
 | Publishing pipeline (prepare, test, approve, schedule, send, verify) | **Built, tested** in dry-run mode |
-| Delivery adapters: Brevo, Resend, Gmail API | **Written against documented APIs, tested with mocked HTTP.** Never run against a real account |
+| Delivery adapters: Brevo, Resend, Gmail API | Gmail **run against the real account** (3 test emails, all to Spam). Brevo and Resend tested with mocked HTTP only |
+| Email DNS for `readprompted.org` | **In place and checked** (Brevo ownership code, DKIM, DMARC, Email Routing MX and SPF). Brevo's own Authenticate click and API key are the owner's next steps |
 | Analytics dashboard, beehiiv-era metrics import | **Built, tested** with synthetic figures |
-| Preview deployment | **Deployed and verified:** https://prompted-platform-dev.readprompted.workers.dev (dry-run sending, noindex, synthetic data only) |
-| Gmail sending connection | **Built and tested with mocked Google responses.** Waiting for the owner's Google account and OAuth client |
-| Real sending | **Blocked:** needs the Gmail connection, authorised test inboxes and an approved postal address |
+| Preview deployment | **Deployed and verified:** https://readprompted.org (dry-run sending, noindex, synthetic data only) |
+| Gmail sending connection | **Connected** (dedicated Prompted Google account). Fallback only. Sign-in expires November 18 unless the Google app is published |
+| Real sending | **Blocked:** needs Brevo connected, inbox placement proven by owner-approved seed tests, and an approved postal address |
 | Real data migration | **Not started:** needs the deployed private database and owner approval |
 | Production cutover | **Not started.** NO-GO until the tests in `CUTOVER-MANIFEST.md` pass |
 
@@ -72,7 +73,7 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - **Soft reading gate**, matching what beehiiv actually does (its gate also ships the full text).
 - **Double opt-in on** for web signups. Imported people are Prospective unless the owner attests consent.
 
-## Domain: `readprompted.org` (owner's, active) — site moved onto it, email not yet set up
+## Domain: `readprompted.org` (owner's, active) — site on it, email DNS in place, Brevo being connected
 
 - The owner bought `readprompted.org` at Cloudflare Registrar and told Claude to use it as the permanent
   domain and to abandon eu.org.
@@ -84,9 +85,25 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - The Gmail sign-in now returns to whichever address the owner is using. To reconnect Gmail from the new
   address the owner must first add `https://readprompted.org/api/admin/gmail/callback` as a second redirect
   address in the Google Cloud client. The existing connection keeps working until it expires.
-- Not done: no DNS records for email exist yet (the domain check reports SPF, DKIM and DMARC missing, as
-  expected). The token is refused for DNS and email routing. **Next owner step: widen the token**
-  (`OWNER-SETUP.md` 6b). Then Claude sets up forwarding and DMARC (6c), then Brevo (6d).
+- November 12: the owner widened the Cloudflare token and created a free Brevo account with
+  `readprompted.org` as a sending domain. Claude added Brevo's four records (ownership code, two DKIM
+  records as DNS-only, DMARC in monitoring mode) and switched on Cloudflare Email Routing (three MX
+  records, one SPF record, Cloudflare's forwarding key). Public DNS answers were checked: one SPF, one
+  DMARC, both DKIM records resolve. The full table is in `OWNER-SETUP.md` 6c.
+- Forwarding works end to end on Cloudflare's side: the owner verified the destination (the Prompted
+  Google account) and the catch-all rule is enabled, so mail to any address at `readprompted.org` is
+  forwarded there. Not yet proven with a real incoming message (that would be a real email; ask first).
+- The sender address is `brief@readprompted.org` (`FROM_EMAIL` in `wrangler.toml`).
+- New dashboard panel (Tools, "Brevo"): shows whether the key works, the domain is authenticated, the
+  sender is registered, delivery reports are registered and API sending is enabled, and names the next
+  step. "Finish Brevo setup" registers the sender and the delivery-report webhook from the Worker, so the
+  webhook secret never leaves the server. It sends no email. Tested with mocked Brevo answers only.
+- New safety switch: signup confirmations on the preview are recorded as dry runs and never emailed,
+  even to the test inbox, unless `PREVIEW_CONFIRMATIONS = "live"`. Reason: the signup form is public, and
+  the owner asked that no real email go out without approval for that send.
+- **Next owner steps, in order:** (1) click Authenticate in Brevo; (2) create a Brevo API key and store
+  it as the Worker secret `BREVO_API_KEY`; (3) click "Finish Brevo setup" in the dashboard. Then seed
+  tests, each approved by the owner.
 
 ## Domain decision (history; read `DOMAIN-OPTIONS.md`)
 

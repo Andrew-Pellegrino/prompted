@@ -4,6 +4,7 @@ import { subscribe, confirm, unsubscribe, setStatus, createPerson, updatePerson,
 import { planImport, commitImport, reconcile } from './imports.mjs';
 import { sendTransactional } from './sending.mjs';
 import { checkDomain } from './dnscheck.mjs';
+import { brevoStatus, brevoSetup } from './brevo.mjs';
 import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
@@ -198,6 +199,8 @@ async function adminApi(request, env, path, url) {
   if (!actor) return fail(401, 'Sign in required.');
   if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env, url);
   if (path === 'deliverability/domain' && method === 'GET') { try { return json(await checkDomain(url.searchParams.get('domain'))); } catch (e) { return fail(400, String(e.message || e)); } }
+  if (path === 'brevo/status' && method === 'GET') return json(await brevoStatus(env, await siteConfig(env)));
+  if (path === 'brevo/setup' && method === 'POST') { const r = await brevoSetup(env, await siteConfig(env)); await audit(db, actor, 'brevo.setup', null, null, { ok: r.ok, done: r.done || null }); return json(r, r.ok ? 200 : 400); }
   if (path === 'gmail/check' && method === 'POST') return json({ ok: true, health: await checkGmailHealth(env) });
   if (path === 'gmail/disconnect' && method === 'POST') { await run(db, "DELETE FROM settings WHERE key IN ('gmail_refresh_token','gmail_from_email','gmail_health')"); await audit(db, actor, 'gmail.disconnect'); return json({ ok: true }); }
   if (method !== 'GET' && !sameOrigin(request)) return fail(403, 'Cross-site request blocked.');

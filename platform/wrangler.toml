@@ -30,6 +30,11 @@ SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TE
 DOUBLE_OPT_IN = "true"
 EMAIL_PROVIDERS = "brevo,resend,gmail"
 FROM_NAME = "Prompted"
+# The address issues are sent from once Brevo is connected. Mail sent to it is forwarded to the owner.
+FROM_EMAIL = "brief@readprompted.org"
+# Signup confirmations on the preview are recorded but not emailed. Set to "live" only with the owner's
+# approval; even then they can only reach TEST_RECIPIENTS.
+PREVIEW_CONFIRMATIONS = ""
 SEND_CHUNK = "20"
 QUOTA_RESERVE = "10"
 # Off by default: tracking pixels and redirect links make mail from a new sender look like bulk mail.

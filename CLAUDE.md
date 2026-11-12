@@ -40,7 +40,7 @@ sent, even to the test inbox, without the owner's approval for that send.
 | QA | `src/lib/qa.mjs` | Blocks approval on errors (format, links, rendering drift, footer). |
 | Worker | `src/worker/` | Cloudflare Worker: public signup, confirm/unsubscribe, tracking, webhooks, admin API, cron sender. |
 | Database | `migrations/0001_init.sql` | Cloudflare D1. Private; reachable only through the authenticated admin API. |
-| Delivery | `src/worker/providers.mjs` | Replaceable adapters: Brevo, Resend, Gmail API, dry run. |
+| Delivery | `src/worker/providers.mjs` | Replaceable adapters: Brevo, Resend, Gmail API, dry run. `brevo.mjs` shows Brevo account status in the dashboard and registers the sender and delivery reports. |
 | Static serving | `src/worker/assets.mjs`, `entry.embedded.mjs` | The built site is packaged inside the Worker script (see "Deploying"). |
 | Admin UI | `admin/` | Plain JS; contains no data. |
 | Migration | `scripts/extract-beehiiv.mjs` | Public beehiiv pages -> issue JSON, with a verbatim-text check. |
@@ -52,7 +52,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 39 tests, in-memory SQLite behind the D1 interface
+npm test               # 41 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -87,12 +87,17 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
 - Personal details and credentials are Worker secrets, never in `wrangler.toml`: `ADMIN_PASSWORD_HASH`,
   `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS` (still a fake placeholder: the owner has not approved
   a real one), `TEST_RECIPIENTS` (set: the owner's one authorised inbox), `GMAIL_CLIENT_ID`,
-  `GMAIL_CLIENT_SECRET`, later `BREVO_API_KEY`, `RESEND_API_KEY`, `FROM_EMAIL`, `REPLY_TO`.
+  `GMAIL_CLIENT_SECRET`, later `BREVO_API_KEY`, `RESEND_API_KEY`, `REPLY_TO`.
 - The Gmail refresh token is stored in the private database by the dashboard's "Connect Gmail" button.
 - New migrations must be applied to the preview: `npx wrangler d1 migrations apply DB --remote`.
 - Remote database access: `npx wrangler d1 execute DB --remote --command "..."`.
-- The token can attach the Worker to the domain but cannot read or edit DNS records or email routing
-  until the owner widens it (see `docs/platform/OWNER-SETUP.md`, section 6).
+- The token now has full account and zone access (the owner widened it on November 12). DNS records and
+  email forwarding for `readprompted.org` are managed through the Cloudflare API with
+  `curl -H "Authorization: Bearer x" https://api.cloudflare.com/client/v4/...` (the proxy swaps the real
+  token in). Current records are listed in `docs/platform/OWNER-SETUP.md`, section 6c. Keep exactly one
+  SPF record and one DMARC record, and keep the two Brevo DKIM records DNS-only (grey cloud).
+- `FROM_EMAIL` is a plain setting in `wrangler.toml` (`brief@readprompted.org`), not a secret.
+- Signup confirmations on the preview never leave the platform unless `PREVIEW_CONFIRMATIONS = "live"`.
 - A new cron schedule takes a few minutes to start firing after the first deploy.
 - Cloudflare's management API rate-limits bursts (error 971, wait a few minutes). Do not fire many
   `wrangler d1 execute` calls in a row; read state through the dashboard's own `/api/admin/*` instead.

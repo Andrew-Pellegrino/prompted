@@ -117,42 +117,49 @@ signup, dashboard sign-in, and refusal of anonymous access to the dashboard API.
 
 Dashboard: https://readprompted.org/admin/ (same password).
 
-### 6b. Let Claude manage the domain's DNS and email forwarding (owner, about two minutes)
+### 6b. Let Claude manage the domain's DNS and email forwarding — DONE (November 12)
 
-The current access token can run the site but is refused for DNS records and email forwarding.
+The owner widened the access token. Claude can now read and edit DNS records and email forwarding.
 
-1. Go to https://dash.cloudflare.com/profile/api-tokens
-2. Find the token made for Claude, click the three dots on its row, then **Edit**.
-3. Under **Permissions**, click **Add more** and add these three rows:
-   - **Zone** / **DNS** / **Edit**
-   - **Zone** / **Email Routing Rules** / **Edit**
-   - **Account** / **Email Routing Addresses** / **Edit**
-4. Under **Zone Resources** leave it as it is if it already says "All zones"; otherwise choose
-   **Include / Specific zone / readprompted.org**.
-5. **Continue to summary**, then **Update token**. The token's value does not change, so nothing needs
-   to be re-entered anywhere.
+### 6c. DNS records for email — DONE (November 12)
 
-### 6c. What Claude does next (once 6b is done)
+These records exist on `readprompted.org`. None of them is secret. There is exactly one SPF record and one
+DMARC record, and the two DKIM records are "DNS only" (grey cloud), as Brevo requires.
 
-1. Turn on Cloudflare's free email forwarding for the domain, so mail sent to addresses at
-   `readprompted.org` (replies, bounce notices, reports) reaches the owner's own inbox. Cloudflare emails
-   the owner one confirmation link for the destination inbox.
-2. Add a DMARC record in monitoring mode, so mailbox providers send reports about mail claiming to be
-   from the domain.
-3. Confirm the result with the dashboard's **Check a sending domain**.
+| Type | Name | Value | What it does |
+| --- | --- | --- | --- |
+| TXT | `readprompted.org` | `brevo-code:0fa23a0a352515c0bfb28a230f53a23d` | Proves to Brevo that we own the domain |
+| CNAME | `brevo1._domainkey` | `b1.readprompted-org.dkim.brevo.com` | DKIM: lets Brevo sign our mail as the domain |
+| CNAME | `brevo2._domainkey` | `b2.readprompted-org.dkim.brevo.com` | DKIM, second key |
+| TXT | `_dmarc` | `v=DMARC1; p=none; rua=mailto:rua@dmarc.brevo.com` | DMARC in monitoring mode: asks mailbox providers for reports |
+| MX (3) | `readprompted.org` | `route1/2/3.mx.cloudflare.net` | Receives mail for the domain (Cloudflare Email Routing) |
+| TXT | `readprompted.org` | `v=spf1 include:_spf.mx.cloudflare.net ~all` | SPF for forwarded mail (added by Email Routing) |
+| TXT | `cf2024-1._domainkey` | (Cloudflare's key) | Signs forwarded mail (added by Email Routing) |
 
-### 6d. Sending provider (owner, after 6c)
+Brevo sends from its own bounce address, so Brevo mail passes SPF on Brevo's side and passes DMARC through
+the DKIM records above. Do not add a second SPF record for Brevo: two SPF records break both.
 
-1. Create a free account at https://www.brevo.com using the Prompted Google account. Do not enter a
-   payment card; the free plan does not need one.
-2. In Brevo: **Senders, Domains & Dedicated IPs**, **Domains**, **Add a domain**, enter `readprompted.org`.
-   Brevo shows a short list of DNS records (a verification code and two DKIM records). They are not
-   secret. Give them to Claude, who adds them and tells the owner when to click **Authenticate** in Brevo.
-3. Ask Brevo support to enable sending through the API, saying plainly that it is a weekly newsletter to
-   people who subscribed, sent from our own software. (Brevo's own page says activation is requested from
-   support and the purpose must be stated.)
-4. Create an API key in Brevo and store it in Cloudflare as the Worker secret `BREVO_API_KEY`. Store the
-   sender address the same way as `FROM_EMAIL` (for example `brief@readprompted.org`).
+**Forwarding — DONE (November 12).** Email Routing is on, the owner confirmed the destination inbox (the
+Prompted Google account), and a "catch-all" rule forwards mail sent to any address at `readprompted.org`
+to that inbox. Replies to an issue and bounce notices therefore reach the owner. To forward to a different
+inbox later, add it as a destination in Cloudflare (**Email**, **Email Routing**, **Destination
+addresses**), confirm it, and point the catch-all rule at it.
+
+### 6d. Sending provider: Brevo
+
+1. Free account created by the owner with the Prompted Google account. DONE.
+2. `readprompted.org` added in Brevo as a sending domain; records added to DNS by Claude. DONE.
+3. **Owner:** in Brevo, open **Senders, Domains & Dedicated IPs**, **Domains**, and click
+   **Authenticate** (or **Verify**) next to `readprompted.org`. All records should show green.
+4. **Owner:** create an API key in Brevo (**SMTP & API**, **API Keys**, **Generate a new API key**, name it
+   "Prompted platform") and store it in Cloudflare without showing it to anyone: Cloudflare dashboard,
+   **Workers & Pages**, `prompted-platform-dev`, **Settings**, **Variables and Secrets**, **Add**, type
+   **Secret**, name `BREVO_API_KEY`, paste the key, **Deploy**.
+5. In the platform dashboard, **Tools**, the **Brevo** panel shows what is still missing. Click
+   **Finish Brevo setup**: it registers the sender address `brief@readprompted.org` and asks Brevo to
+   report deliveries, bounces and complaints back to the platform. It sends no email.
+6. If the panel says sending through the API is not enabled, ask Brevo support to enable it, saying
+   plainly that it is a weekly newsletter to people who subscribed, sent from our own software.
 
 No test email is sent until the owner approves that specific send.
 

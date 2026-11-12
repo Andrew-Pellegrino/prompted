@@ -322,7 +322,8 @@ test('historical metrics import keeps beehiiv figures verbatim and separate from
 
 test('provider adapters: chain selection, Gmail MIME, header-injection guard', async () => {
   assert.deepEqual(providerChain({}).map((p) => p.name), ['dryrun'], 'dry-run unless SEND_MODE=live');
-  assert.deepEqual(providerChain({ SEND_MODE: 'live', RESEND_API_KEY: 'x', BREVO_API_KEY: 'y', EMAIL_PROVIDERS: 'resend,brevo,gmail' }).map((p) => p.name), ['resend', 'brevo']);
+  assert.deepEqual(providerChain({ SEND_MODE: 'live', RESEND_API_KEY: 'x', BREVO_API_KEY: 'y', FROM_EMAIL: 'brief@prompted.example', EMAIL_PROVIDERS: 'resend,brevo,gmail' }).map((p) => p.name), ['resend', 'brevo']);
+  assert.deepEqual(providerChain({ SEND_MODE: 'live', BREVO_API_KEY: 'y' }), [], 'a key without a sender address is not ready to send');
   assert.deepEqual(providerChain({ SEND_MODE: 'live' }), [], 'live with nothing configured sends nothing');
   assert.ok(brevo.dailyLimit({}) <= 300 && resend.dailyLimit({}) <= 100);
   const mime = buildMime({ from: { name: 'Prompted', email: 'a@gmail.test' }, to: 'r@example.com', subject: 'Prompted — Week of November 1–8, 2026', html: '<p>hi</p>', text: 'hi', headers: { 'List-Unsubscribe': '<https://x/u/1>' } });
@@ -500,7 +501,7 @@ test('with Gmail connected but audience sending in dry run: tests go out for rea
 });
 
 test('test sends to a test inbox that is also a subscriber carry real unsubscribe and tracking links; Gmail health is recorded', async () => {
-  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-health', GMAIL_FROM_EMAIL: 'sender@gmail.test', TRACK_OPENS: 'true', TRACK_CLICKS: 'true' }), c = client(env);
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-health', GMAIL_FROM_EMAIL: 'sender@gmail.test', TRACK_OPENS: 'true', TRACK_CLICKS: 'true', PREVIEW_CONFIRMATIONS: 'live' }), c = client(env);
   const sent = [], realFetch = globalThis.fetch;
   let tokenBody = { access_token: 'at', expires_in: 3600, refresh_token_expires_in: 500000 };
   globalThis.fetch = async (url, init) => {
@@ -508,7 +509,7 @@ test('test sends to a test inbox that is also a subscriber carry real unsubscrib
     sent.push(Buffer.from(JSON.parse(init.body).raw, 'base64url').toString()); return new Response('{"id":"g"}');
   };
   try {
-    // the owner signs up with the authorised test inbox: the confirmation is a real email even in dry-run mode
+    // with the owner's switch on, a signup with the authorised test inbox gets a real confirmation email
     const r = await signup(c, 'owner-test@example.com', { utm_source: 'owner_test' });
     assert.equal(sent.length, 1);
     assert.match(sent[0], /Subject: Confirm your subscription to Prompted/);
@@ -669,4 +670,60 @@ test('www is redirected to the bare domain; the Gmail sign-in returns to the add
   const go = await c.get('/api/admin/gmail/connect');
   assert.equal(new URL(go.headers.get('location')).searchParams.get('redirect_uri'), 'https://preview.example/api/admin/gmail/callback');
   assert.equal((await c.get('/api/admin/providers')).data.gmail.redirect_uri, 'https://preview.example/api/admin/gmail/callback');
+});
+
+test('Brevo status and one-click setup: reports what is missing, registers the sender and delivery reports once, sends nothing', async () => {
+  const env = await makeEnv(), c = client(env);
+  assert.equal((await c.get('/api/admin/brevo/status')).status, 401);
+  await c.login();
+  assert.equal((await c.get('/api/admin/brevo/status')).data.configured, false);
+  assert.equal((await c.post('/api/admin/brevo/setup')).status, 400);
+  env.BREVO_API_KEY = 'k'; env.FROM_EMAIL = 'brief@prompted.example';
+  const state = { senders: [], webhooks: [], authenticated: false, relay: false }, calls = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url), m = init.method || 'GET'; calls.push(m + ' ' + u.pathname);
+    const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
+    if (init.headers['api-key'] !== 'k') return j({ message: 'Key not found' }, 401);
+    if (u.pathname === '/v3/account') return j({ plan: [{ type: 'free', credits: 300 }], relay: { enabled: state.relay } });
+    if (u.pathname === '/v3/senders/domains') return j({ domains: [{ domain_name: 'prompted.example', authenticated: state.authenticated, verified: true }] });
+    if (u.pathname === '/v3/senders' && m === 'GET') return j({ senders: state.senders });
+    if (u.pathname === '/v3/senders' && m === 'POST') { state.senders.push({ ...JSON.parse(init.body), active: true }); return j({ id: 1 }, 201); }
+    if (u.pathname === '/v3/webhooks' && m === 'GET') return j({ webhooks: state.webhooks });
+    if (u.pathname === '/v3/webhooks' && m === 'POST') { state.webhooks.push(JSON.parse(init.body)); return j({ id: 9 }, 201); }
+    return j({}, 404);
+  };
+  try {
+    let st = (await c.get('/api/admin/brevo/status')).data;
+    assert.deepEqual([st.key_valid, st.domain.authenticated, st.sender, st.delivery_reports, st.ready], [true, false, null, false, false]);
+    assert.match(st.next, /click Authenticate/);
+    state.authenticated = true;
+    assert.match((await c.get('/api/admin/brevo/status')).data.next, /Finish Brevo setup/);
+    const done = (await c.post('/api/admin/brevo/setup')).data;
+    assert.deepEqual(done.done, ['sender added', 'delivery reports registered']);
+    assert.deepEqual([state.senders[0].email, state.senders[0].name], ['brief@prompted.example', 'Prompted']);
+    assert.equal(state.webhooks[0].url, 'https://preview.example/api/hooks/brevo?key=hook-secret');
+    assert.deepEqual([state.webhooks[0].type, state.webhooks[0].events.includes('hardBounce'), state.webhooks[0].events.includes('spam')], ['transactional', true, true]);
+    assert.deepEqual((await c.post('/api/admin/brevo/setup')).data.done, ['sender already present', 'delivery reports already registered'], 'running it twice changes nothing');
+    st = (await c.get('/api/admin/brevo/status')).data;
+    assert.match(st.next, /Ask Brevo support/);
+    state.relay = true;
+    st = (await c.get('/api/admin/brevo/status')).data;
+    assert.deepEqual([st.ready, st.next], [true, 'Ready for an approved test send.']);
+    assert.ok(!calls.some((x) => x.includes('/smtp/email')), 'no email is sent by status or setup');
+    assert.ok(!JSON.stringify(st).includes('hook-secret'), 'the webhook secret is never returned to the browser');
+    env.BREVO_API_KEY = 'wrong';
+    assert.equal((await c.get('/api/admin/brevo/status')).data.key_valid, false);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('on the preview, the public signup form cannot trigger a real email, even for the test inbox, unless the owner switched it on', async () => {
+  const env = await makeEnv({ GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt-guard', GMAIL_FROM_EMAIL: 'sender@gmail.test', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example' }), c = client(env);
+  const calls = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => { calls.push(String(url)); return new Response('{}'); };
+  try {
+    await signup(c, 'owner-test@example.com');
+    await signup(c, 'stranger@example.com');
+    assert.deepEqual(calls, [], 'no provider was contacted');
+    assert.equal(one(env, "SELECT COUNT(*) n FROM delivery_events WHERE type = 'confirmation_sent' AND provider = 'dryrun'").n, 2);
+  } finally { globalThis.fetch = realFetch; }
 });
