@@ -161,7 +161,24 @@ addresses**), confirm it, and point the catch-all rule at it.
 6. If the panel says sending through the API is not enabled, ask Brevo support to enable it, saying
    plainly that it is a weekly newsletter to people who subscribed, sent from our own software.
 
+All six steps are DONE as of November 12: the dashboard's Brevo panel reports "Ready for an approved test
+send".
+
 No test email is sent until the owner approves that specific send.
+
+### 6e. Main sender: Amazon SES (needs the owner's approval first)
+
+Why, what it costs and what could go wrong: `SENDING-PROVIDER.md`. In short: about $0.16 per 1,000
+emails, no monthly fee, under $2 a month at 2,500 subscribers. A payment card is required to open the
+account.
+
+1. **Owner:** create an AWS account at https://aws.amazon.com (button **Create account**), using the
+   Prompted Google account's address, account name "Prompted". Choose the **Paid** account plan when asked
+   (the Free plan closes the account after six months; the sign-up credits apply to both). Choose the free
+   **Basic** support plan.
+2. **Owner:** turn on two-step sign-in for the account (top right menu, **Security credentials**,
+   **Assign MFA device**).
+3. Then tell Claude. The following steps are in `SENDING-PROVIDER.md` and will be given one at a time.
 
 ## 7. Private data migration (only after tests pass and you approve)
 

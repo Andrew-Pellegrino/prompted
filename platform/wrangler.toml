@@ -28,7 +28,10 @@ SITE_ENV = "preview"            # "production" only after an approved cutover
 SITE_URL = "https://readprompted.org"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"
-EMAIL_PROVIDERS = "brevo,resend,gmail"
+# Order of preference. A provider is skipped until its credentials are stored as secrets.
+EMAIL_PROVIDERS = "ses,brevo,resend,gmail"
+# Amazon SES: the AWS region the sending account lives in. Keys are secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
+SES_REGION = "us-east-1"
 FROM_NAME = "Prompted"
 # The address issues are sent from once Brevo is connected. Mail sent to it is forwarded to the owner.
 FROM_EMAIL = "brief@readprompted.org"

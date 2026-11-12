@@ -25,7 +25,9 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 | Analytics dashboard, beehiiv-era metrics import | **Built, tested** with synthetic figures |
 | Preview deployment | **Deployed and verified:** https://readprompted.org (dry-run sending, noindex, synthetic data only) |
 | Gmail sending connection | **Connected** (dedicated Prompted Google account). Fallback only. Sign-in expires November 18 unless the Google app is published |
-| Real sending | **Blocked:** needs Brevo connected, inbox placement proven by owner-approved seed tests, and an approved postal address |
+| Brevo | **Connected and ready** for an owner-approved test send (free plan, 300 a day) |
+| Amazon SES | **Adapter built, tested with simulated answers.** Waiting for the owner's approval to open an AWS account |
+| Real sending | **Blocked:** needs inbox placement proven by owner-approved seed tests, and an approved postal address |
 | Real data migration | **Not started:** needs the deployed private database and owner approval |
 | Production cutover | **Not started.** NO-GO until the tests in `CUTOVER-MANIFEST.md` pass |
 
@@ -101,9 +103,23 @@ at $0. beehiiv keeps running only as a safety net until an owner-approved cutove
 - New safety switch: signup confirmations on the preview are recorded as dry runs and never emailed,
   even to the test inbox, unless `PREVIEW_CONFIRMATIONS = "live"`. Reason: the signup form is public, and
   the owner asked that no real email go out without approval for that send.
-- **Next owner steps, in order:** (1) click Authenticate in Brevo; (2) create a Brevo API key and store
-  it as the Worker secret `BREVO_API_KEY`; (3) click "Finish Brevo setup" in the dashboard. Then seed
-  tests, each approved by the owner.
+- The owner authenticated the domain in Brevo and stored the API key; "Finish Brevo setup" has been run.
+  **Next owner step:** approve Amazon SES and create the AWS account (`OWNER-SETUP.md` 6e).
+
+## Sending provider (November 12): Brevo connected; Amazon SES recommended as the main sender
+
+- **Brevo is fully connected** on the preview: key valid, domain authenticated, sender
+  `brief@readprompted.org` active, API sending enabled, delivery reports registered (checked live through
+  the dashboard; no email sent). The free plan's 300 a day does not cover a growing list, and the owner
+  will pay a small amount for sending.
+- **Recommendation given to the owner: Amazon SES** (about $0.16 per 1,000 emails, under $2 a month at
+  2,500 subscribers), Brevo free for tests and fallback. Full reasoning, prices, limits and alternatives:
+  `SENDING-PROVIDER.md`. **Waiting for the owner's approval; no AWS account exists yet.**
+- Built ahead of approval (costs nothing): `platform/src/worker/ses.mjs` (signed requests, send adapter,
+  status panel, bounce and complaint reader at `/api/hooks/ses`). Tested with simulated Amazon answers only.
+- Sending pace: a provider can set its own per-minute pace (`maxPerTick`). SES is 30 a minute on the free
+  Cloudflare plan. Before the list passes roughly 1,000, build SES bulk requests (50 people per request)
+  or move to Workers Paid.
 
 ## Domain decision (history; read `DOMAIN-OPTIONS.md`)
 

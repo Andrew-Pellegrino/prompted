@@ -158,7 +158,7 @@ export async function processSend(env, send) {
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
   const pick = await pickProvider(env, reserve, send.kind === 'test');
-  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(chunkSize, pick.remaining, pick.provider.maxPerTick ? pick.provider.maxPerTick(env) : chunkSize)) : [];
+  const queued = pick ? await all(db, "SELECT email_norm, token, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, pick.provider.maxPerTick ? pick.provider.maxPerTick(env) : chunkSize)) : [];
   if (queued.length) {
     const { provider } = pick;
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);

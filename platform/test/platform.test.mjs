@@ -1,5 +1,6 @@
 // End-to-end tests of the Worker against an in-memory database. Synthetic identities only.
 import test from 'node:test';
+import { awsSign, ses, readSesNotification } from '../src/worker/ses.mjs';
 import assert from 'node:assert/strict';
 import { makeEnv, client, tickAll } from './helpers.mjs';
 import { build } from '../src/build.mjs';
@@ -725,5 +726,93 @@ test('on the preview, the public signup form cannot trigger a real email, even f
     await signup(c, 'stranger@example.com');
     assert.deepEqual(calls, [], 'no provider was contacted');
     assert.equal(one(env, "SELECT COUNT(*) n FROM delivery_events WHERE type = 'confirmation_sent' AND provider = 'dryrun'").n, 2);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('Amazon SES: request signing matches the published AWS example; the adapter sends one message with unsubscribe headers', async () => {
+  // The "get-vanilla" case from the AWS Signature Version 4 test suite.
+  const signed = await awsSign({ accessKeyId: 'AKIDEXAMPLE', secretAccessKey: 'wJalrXUtnFEMI/K7MDENG+bPxRfiCYEXAMPLEKEY', region: 'us-east-1', service: 'service', method: 'GET', host: 'example.amazonaws.com', path: '/', at: new Date('2015-08-30T12:36:00Z') });
+  assert.equal(signed['x-amz-date'], '20150830T123600Z');
+  assert.equal(signed.authorization, 'AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE/20150830/us-east-1/service/aws4_request, SignedHeaders=host;x-amz-date, Signature=5fa00fa31553b73ebf1942676e86291e8372ff2a2260956d9b8aae1d763fbf31');
+
+  const env = { AWS_ACCESS_KEY_ID: 'AKIDEXAMPLE', AWS_SECRET_ACCESS_KEY: 'secret', SES_REGION: 'us-east-2', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted' };
+  assert.equal(ses.configured({ AWS_ACCESS_KEY_ID: 'a', AWS_SECRET_ACCESS_KEY: 'b' }), false, 'keys without a sender address are not ready');
+  assert.deepEqual([ses.configured(env), ses.dailyLimit(env), ses.dailyLimit({ SES_DAILY_LIMIT: '45000' })], [true, 190, 45000]);
+  assert.deepEqual(providerChain({ ...env, SEND_MODE: 'live', BREVO_API_KEY: 'k' }).map((p) => p.name), ['ses', 'brevo'], 'SES first, Brevo as fallback');
+  const calls = [], realFetch = globalThis.fetch;
+  let answer = () => new Response(JSON.stringify({ MessageId: 'ses-1' }), { status: 200 });
+  globalThis.fetch = async (url, init) => { calls.push({ url: String(url), init }); return answer(); };
+  try {
+    const msg = { from: { name: 'Prompted', email: 'brief@prompted.example' }, replyTo: null, to: 'reader@example.com', subject: 'Prompted | Week of November 1–8', html: '<p>hi</p>', text: 'hi', headers: { 'List-Unsubscribe': '<https://x/u/1>', 'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click' } };
+    assert.deepEqual(await ses.send(env, msg), { ok: true, id: 'ses-1' });
+    const sent = JSON.parse(calls[0].init.body);
+    assert.equal(calls[0].url, 'https://email.us-east-2.amazonaws.com/v2/email/outbound-emails');
+    assert.match(calls[0].init.headers.authorization, /^AWS4-HMAC-SHA256 Credential=AKIDEXAMPLE\/\d{8}\/us-east-2\/ses\/aws4_request, SignedHeaders=host;x-amz-date, Signature=[0-9a-f]{64}$/);
+    assert.ok(!JSON.stringify(calls[0]).includes('"secret"'), 'the secret key is never sent');
+    assert.deepEqual([sent.FromEmailAddress, sent.Destination.ToAddresses, sent.ConfigurationSetName, sent.Content.Simple.Subject.Data], ['"Prompted" <brief@prompted.example>', ['reader@example.com'], 'prompted', msg.subject]);
+    assert.deepEqual(sent.Content.Simple.Headers, [{ Name: 'List-Unsubscribe', Value: '<https://x/u/1>' }, { Name: 'List-Unsubscribe-Post', Value: 'List-Unsubscribe=One-Click' }]);
+    assert.deepEqual([sent.Content.Simple.Body.Html.Data, sent.Content.Simple.Body.Text.Data], ['<p>hi</p>', 'hi']);
+    await assert.rejects(() => ses.send(env, { ...msg, subject: 'x\r\nBcc: evil@example.com' }), /Header injection/);
+    answer = () => new Response(JSON.stringify({ message: 'Maximum sending rate exceeded.' }), { status: 429, headers: { 'x-amzn-errortype': 'TooManyRequestsException' } });
+    assert.equal((await ses.send(env, msg)).rateLimited, true, 'a rate limit pauses the send instead of failing people');
+    answer = () => new Response(JSON.stringify({ message: 'The security token included in the request is invalid.' }), { status: 403, headers: { 'x-amzn-errortype': 'UnrecognizedClientException' } });
+    assert.equal((await ses.send(env, msg)).authError, true);
+    answer = () => new Response(JSON.stringify({ message: 'Email address is not verified.' }), { status: 400, headers: { 'x-amzn-errortype': 'MessageRejected' } });
+    const rejected = await ses.send(env, msg);
+    assert.deepEqual([rejected.ok, rejected.retryable, !!rejected.rateLimited], [false, false, false]);
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('Amazon SES reports: status endpoint names the next step; bounces and complaints suppress people; the handshake only calls Amazon', async () => {
+  const env = await makeEnv(), c = client(env);
+  assert.equal((await c.get('/api/admin/ses/status')).status, 401);
+  await c.login();
+  assert.equal((await c.get('/api/admin/ses/status')).data.configured, false);
+  Object.assign(env, { AWS_ACCESS_KEY_ID: 'AKID', AWS_SECRET_ACCESS_KEY: 's', FROM_EMAIL: 'brief@prompted.example' });
+  const state = { production: false, verified: false }, calls = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init = {}) => {
+    const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.host + u.pathname);
+    const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
+    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
+    if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, DkimAttributes: { Status: state.verified ? 'SUCCESS' : 'PENDING' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
+    if (u.host === 'sns.us-east-1.amazonaws.com') return new Response('<ok/>');
+    return j({}, 404);
+  };
+  try {
+    let st = (await c.get('/api/admin/ses/status')).data;
+    assert.deepEqual([st.key_valid, st.domain.verified, st.production_access, st.quota.per_day], [true, false, false, 200]);
+    assert.match(st.next, /Waiting for Amazon to see the DKIM records/);
+    state.verified = true;
+    assert.match((await c.get('/api/admin/ses/status')).data.next, /Request production access/);
+    state.production = true;
+    assert.match((await c.get('/api/admin/ses/status')).data.next, /bounce and complaint reports/);
+    env.SES_CONFIGURATION_SET = 'prompted';
+    st = (await c.get('/api/admin/ses/status')).data;
+    assert.deepEqual([st.ready, st.quota.per_day, st.quota.per_second], [true, 50000, 14]);
+    assert.ok(!calls.some((x) => x.includes('outbound-emails')), 'reading status sends no email');
+
+    // reports arrive through Amazon's notification service
+    const hook = (payload, key = 'hook-secret') => c.post('/api/hooks/ses?key=' + key, JSON.stringify(payload), { 'content-type': 'text/plain; charset=UTF-8' });
+    assert.equal((await hook({ Type: 'Notification', Message: '{}' }, 'wrong')).status, 401);
+    const before = calls.length;
+    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'https://evil.example/steal' })).status, 400);
+    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'http://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription' })).status, 400);
+    assert.equal(calls.length, before, 'a confirmation address that is not Amazon is never called');
+    assert.equal((await hook({ Type: 'SubscriptionConfirmation', SubscribeURL: 'https://sns.us-east-1.amazonaws.com/?Action=ConfirmSubscription&Token=t' })).data.confirmed, true);
+    assert.equal(calls.at(-1), 'GET sns.us-east-1.amazonaws.com/');
+
+    await c.post('/api/admin/people', { email: 'gone@example.com', status: 'active', consent_attested: true });
+    await c.post('/api/admin/people', { email: 'angry@example.com', status: 'active', consent_attested: true });
+    await c.post('/api/admin/people', { email: 'full@example.com', status: 'active', consent_attested: true });
+    const note = (m) => hook({ Type: 'Notification', Message: JSON.stringify(m) });
+    assert.equal((await note({ eventType: 'Bounce', mail: { messageId: 'm1' }, bounce: { bounceType: 'Permanent', bounceSubType: 'General', bouncedRecipients: [{ emailAddress: 'Gone <gone@example.com>', diagnosticCode: 'smtp; 550 5.1.1 user unknown' }] } })).data.handled, 1);
+    await note({ eventType: 'Bounce', mail: { messageId: 'm2' }, bounce: { bounceType: 'Transient', bounceSubType: 'MailboxFull', bouncedRecipients: [{ emailAddress: 'full@example.com' }] } });
+    await note({ notificationType: 'Complaint', mail: { messageId: 'm3' }, complaint: { complaintFeedbackType: 'abuse', complainedRecipients: [{ emailAddress: 'angry@example.com' }] } });
+    const status = (e) => one(env, 'SELECT status FROM people WHERE email_norm = ?', e).status;
+    assert.deepEqual([status('gone@example.com'), status('full@example.com'), status('angry@example.com')], ['bounced', 'active', 'complained'], 'a full mailbox is not a reason to drop someone');
+    assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('gone@example.com','angry@example.com')").n, 2, 'both can never be mailed again');
+    assert.match(one(env, "SELECT detail FROM delivery_events WHERE email_norm = 'gone@example.com' AND type = 'bounce_hard'").detail, /user unknown/);
+    env.SES_TOPIC_ARN = 'arn:aws:sns:us-east-1:111122223333:prompted';
+    assert.equal((await hook({ Type: 'Notification', TopicArn: 'arn:aws:sns:us-east-1:999:other', Message: '{}' })).status, 400, 'reports from another topic are refused once the topic is pinned');
   } finally { globalThis.fetch = realFetch; }
 });

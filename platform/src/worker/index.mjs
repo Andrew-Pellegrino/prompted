@@ -5,6 +5,7 @@ import { planImport, commitImport, reconcile } from './imports.mjs';
 import { sendTransactional } from './sending.mjs';
 import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
+import { sesStatus, readSesNotification } from './ses.mjs';
 import { prepareSend, getSend, approveSend, scheduleSend, cancelSend, testSend, tick, retryFailed, extendSend, sendConfirmation, quotas, withMailSettings, checkGmailHealth } from './sending.mjs';
 import { dashboard, importBeehiivMetrics, importGrowth, fullBackup, restoreBackup } from './analytics.mjs';
 import { toCsv } from '../lib/csv.mjs';
@@ -121,18 +122,28 @@ const HOOK_TYPES = {
 };
 async function webhookRoute(request, env, provider) {
   if (!env.WEBHOOK_SECRET || !safeEqual(new URL(request.url).searchParams.get('key') || '', env.WEBHOOK_SECRET)) return fail(401, 'Bad webhook key.');
-  if (!HOOK_TYPES[provider]) return fail(404, 'Unknown provider.');
+  if (!HOOK_TYPES[provider] && provider !== 'ses') return fail(404, 'Unknown provider.');
   const payload = await body(request, 200_000);
-  const events = Array.isArray(payload) ? payload : [payload];
+  // Put every provider's report into one shape: { type, email, msgId, reason }.
+  let events;
+  if (provider === 'ses') {
+    const n = readSesNotification(payload, env);
+    if (n.rejected) return fail(400, 'Notification refused: ' + n.rejected);
+    if (n.confirm) { const r = await fetch(n.confirm); await audit(env.DB, 'webhook:ses', 'ses.reports_confirmed', null, null, { ok: r.ok }); return json({ ok: r.ok, confirmed: r.ok }); }
+    events = n.events;
+  } else {
+    events = (Array.isArray(payload) ? payload : [payload]).map((ev) => provider === 'brevo'
+      ? { type: HOOK_TYPES.brevo[ev.event], email: ev.email, msgId: ev['message-id'], reason: ev.reason }
+      : { type: HOOK_TYPES.resend[ev.type], email: ev.data?.to?.[0], msgId: ev.data?.email_id, reason: ev.data?.bounce?.message });
+  }
   let handled = 0;
   for (const ev of events.slice(0, 20)) {
-    const type = HOOK_TYPES[provider][provider === 'brevo' ? ev.event : ev.type];
-    const email = normalizeEmail(provider === 'brevo' ? ev.email : ev.data?.to?.[0]);
-    const msgId = provider === 'brevo' ? ev['message-id'] : ev.data?.email_id;
+    const type = ev.type, msgId = ev.msgId;
+    const email = normalizeEmail((/<([^<>]+)>/.exec(String(ev.email || '')) || [])[1] || ev.email);
     if (!type || !email) continue;
     const rec = (msgId && await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE provider_message_id = ?', msgId))
       || await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE email_norm = ? ORDER BY send_id DESC LIMIT 1', email);
-    await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, String(ev.reason || ev.data?.bounce?.message || '').slice(0, 300) || null, now());
+    await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, String(ev.reason || '').slice(0, 300) || null, now());
     if (rec && type === 'delivered') await run(env.DB, "UPDATE send_recipients SET status = 'delivered', delivered_at = ? WHERE send_id = ? AND email_norm = ? AND status = 'sent'", now(), rec.send_id, email);
     if (type === 'bounce_hard' || type === 'complaint' || type === 'unsubscribe') {
       const to = type === 'bounce_hard' ? 'bounced' : type === 'complaint' ? 'complained' : 'unsubscribed';
@@ -199,6 +210,7 @@ async function adminApi(request, env, path, url) {
   if (!actor) return fail(401, 'Sign in required.');
   if (path === 'gmail/connect' && method === 'GET') return gmailConnect(env, url);
   if (path === 'deliverability/domain' && method === 'GET') { try { return json(await checkDomain(url.searchParams.get('domain'))); } catch (e) { return fail(400, String(e.message || e)); } }
+  if (path === 'ses/status' && method === 'GET') return json(await sesStatus(env));
   if (path === 'brevo/status' && method === 'GET') return json(await brevoStatus(env, await siteConfig(env)));
   if (path === 'brevo/setup' && method === 'POST') { const r = await brevoSetup(env, await siteConfig(env)); await audit(db, actor, 'brevo.setup', null, null, { ok: r.ok, done: r.done || null }); return json(r, r.ok ? 200 : 400); }
   if (path === 'gmail/check' && method === 'POST') return json({ ok: true, health: await checkGmailHealth(env) });
@@ -366,7 +378,7 @@ async function adminApi(request, env, path, url) {
       last_problem: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'delivery_last_problem'"))?.value || 'null'),
       gmail_health: JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'gmail_health'"))?.value || 'null'),
       gmail: { client_configured: !!(env.GMAIL_CLIENT_ID && env.GMAIL_CLIENT_SECRET), connected: !!m.GMAIL_REFRESH_TOKEN, account: m.GMAIL_FROM_EMAIL || null, redirect_uri: gmailRedirect(url) },
-      configured: { brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO|not a real address|preview only/i.test((await siteConfig(env)).postal_address) } });
+      configured: { ses: !!(env.AWS_ACCESS_KEY_ID && env.AWS_SECRET_ACCESS_KEY), brevo: !!env.BREVO_API_KEY, resend: !!env.RESEND_API_KEY, postal_address: !/^TODO|not a real address|preview only/i.test((await siteConfig(env)).postal_address) } });
   }
   if (path === 'metrics/beehiiv' && method === 'POST') return json(await importBeehiivMetrics(env, await body(request), actor));
   if (path === 'metrics/growth' && method === 'POST') return json(await importGrowth(env, await body(request), actor));

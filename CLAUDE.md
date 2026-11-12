@@ -2,7 +2,8 @@
 
 Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, and what is next.
 `docs/platform/WEEKLY-RUNBOOK.md` describes how an issue is published and sent.
-Then `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
+Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the planned main sender; needs the owner's approval
+before any AWS account or billing) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
 sent, even to the test inbox, without the owner's approval for that send.
 
 ## What this repository is
@@ -40,7 +41,7 @@ sent, even to the test inbox, without the owner's approval for that send.
 | QA | `src/lib/qa.mjs` | Blocks approval on errors (format, links, rendering drift, footer). |
 | Worker | `src/worker/` | Cloudflare Worker: public signup, confirm/unsubscribe, tracking, webhooks, admin API, cron sender. |
 | Database | `migrations/0001_init.sql` | Cloudflare D1. Private; reachable only through the authenticated admin API. |
-| Delivery | `src/worker/providers.mjs` | Replaceable adapters: Brevo, Resend, Gmail API, dry run. `brevo.mjs` shows Brevo account status in the dashboard and registers the sender and delivery reports. |
+| Delivery | `src/worker/providers.mjs` | Replaceable adapters: Amazon SES (`ses.mjs`), Brevo, Resend, Gmail API, dry run. `brevo.mjs` and `ses.mjs` also feed the dashboard's status panels. Decision record: `docs/platform/SENDING-PROVIDER.md`. |
 | Static serving | `src/worker/assets.mjs`, `entry.embedded.mjs` | The built site is packaged inside the Worker script (see "Deploying"). |
 | Admin UI | `admin/` | Plain JS; contains no data. |
 | Migration | `scripts/extract-beehiiv.mjs` | Public beehiiv pages -> issue JSON, with a verbatim-text check. |
@@ -52,7 +53,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 41 tests, in-memory SQLite behind the D1 interface
+npm test               # 43 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -87,7 +88,8 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
 - Personal details and credentials are Worker secrets, never in `wrangler.toml`: `ADMIN_PASSWORD_HASH`,
   `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS` (still a fake placeholder: the owner has not approved
   a real one), `TEST_RECIPIENTS` (set: the owner's one authorised inbox), `GMAIL_CLIENT_ID`,
-  `GMAIL_CLIENT_SECRET`, later `BREVO_API_KEY`, `RESEND_API_KEY`, `REPLY_TO`.
+  `GMAIL_CLIENT_SECRET`, `BREVO_API_KEY` (set by the owner on November 12), later `AWS_ACCESS_KEY_ID`,
+  `AWS_SECRET_ACCESS_KEY`, `RESEND_API_KEY`, `REPLY_TO`.
 - The Gmail refresh token is stored in the private database by the dashboard's "Connect Gmail" button.
 - New migrations must be applied to the preview: `npx wrangler d1 migrations apply DB --remote`.
 - Remote database access: `npx wrangler d1 execute DB --remote --command "..."`.

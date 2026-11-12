@@ -10,6 +10,8 @@
 // Adding or swapping a provider means adding one object here; nothing else changes.
 // No adapter is used unless SEND_MODE=live; the default is the dry-run adapter, which sends nothing.
 
+import { ses } from './ses.mjs';
+
 const num = (v, d) => (Number.isFinite(Number(v)) && v !== undefined && v !== '' ? Number(v) : d);
 const errText = async (res) => `${res.status} ${(await res.text()).slice(0, 300)}`;
 const retryableStatus = (s) => s === 429 || s >= 500;
@@ -123,11 +125,11 @@ export const gmail = {
   },
 };
 
-export const PROVIDERS = { dryrun, brevo, resend, gmail };
+export const PROVIDERS = { dryrun, ses, brevo, resend, gmail };
 
 /** Providers in preference order. SEND_MODE must be "live" for anything but the dry-run adapter. */
 export function providerChain(env, { forTest = false } = {}) {
-  const names = String(env.EMAIL_PROVIDERS || 'brevo,resend,gmail').split(',').map((s) => s.trim()).filter(Boolean);
+  const names = String(env.EMAIL_PROVIDERS || 'ses,brevo,resend,gmail').split(',').map((s) => s.trim()).filter(Boolean);
   const real = names.map((n) => PROVIDERS[n]).filter((p) => p && p.name !== 'dryrun' && p.configured(env));
   if (env.SEND_MODE === 'live') return real;
   // Dry-run mode protects the audience. A test send is different: it can only ever go to the owner's
