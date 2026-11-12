@@ -8,40 +8,26 @@ A fully independent Prompted publishing platform: website, archive, subscriber d
 publishing, scheduling, sending and analytics, with no beehiiv and no Miami University infrastructure,
 at $0. beehiiv keeps running only as a safety net until an owner-approved cutover.
 
-## Current state (November 12, evening). Read this first; older sections below are history.
+## Current state (November 12, late). Read this first; older sections below are history.
 
-- **Live preview:** https://readprompted.org (also the original `workers.dev` address). Noindex, banner,
-  synthetic data, `SEND_MODE = "dryrun"`. Not a cutover. beehiiv remains the live sender.
-- **Main sender: Amazon SES** (`SENDING-PROVIDER.md` has the full state table). Verified live through the
-  dashboard on November 12: IAM key works for read-only calls; domain verified with DKIM and MAIL FROM;
-  configuration set `prompted-newsletter` exists and is the domain default; Auto Validation **off**;
-  Amazon's suppression list covers bounces and complaints; account still in the **sandbox** (200 a day,
-  1 a second) while production access is under review. While in the sandbox the platform leaves SES out
-  of the sending chain entirely.
-- **Delivery reports:** `/api/hooks/ses` accepts only Amazon-signed SNS messages for the pinned topic
-  (`SES_TOPIC_ARN` secret), recent, each once. No secret in that address. Live check: unsigned and
-  forged messages are refused (403). The owner's subscription is confirmed (see below).
-- **Bulk sending** built (up to one second of recipients per request, per-person unsubscribe link and
-  header, spacing at 90% of Amazon's rate). Off until the IAM key may call `ses:SendBulkEmail`
-  (`OWNER-SETUP.md` 6g). Measured pace: 2,500 people in about 45 minutes on the free Cloudflare plan;
-  about 5 minutes on Workers Paid ($5 a month, not approved, not needed for 255).
-- **Brevo:** connected, authenticated, delivery reports registered; tests and fallback (300 a day).
-- **Gmail:** last-resort fallback; sign-in expires about November 18; recommended to let it lapse.
-- **Opt-in wording corrected:** the existing ~255 subscribers asked for Prompted but did not all join
-  through the new site's double opt-in. Docs no longer claim otherwise. Real bounce and complaint
-  suppression is unchanged; first sends to the existing list must be staged.
-- **Open deliverability concern:** two October SEPi members report never seeing Prompted although
-  beehiiv records delivery. Cross-group inbox placement is now a cutover gate (`DELIVERABILITY.md`,
-  `CUTOVER-MANIFEST.md`). Investigation is the owner's (private CRM); no contact or emails without approval.
-- **Analytics (November 12, late):** first-party opens and clicks built and deployed, **switched off**:
-  raw and estimated-human figures, per-link (labelled, including template links and Index terms), by
-  address type, tag and organization, trend by issue, 90-day event retention, private random tracking ids.
-  Amazon's own open and click tracking is being turned off by the owner. Optional "In the Prompted Index"
-  email block built and shown to the owner, not adopted. Details: `ANALYTICS.md`.
-- **SNS subscription:** created by the owner and confirmed automatically at 19:54 UTC on November 12
-  (real Amazon signature verified). Reports are connected.
-- **Tests:** 49 passing. **Production systems untouched:** `main`, beehiiv, the Index, the CRM, the
-  automations. **No real email** has been sent by the platform since the three Gmail tests on November 11.
+**Infrastructure is finished as far as Amazon's sandbox allows. beehiiv stays the live sender; no cutover.**
+
+| Workstream | State | Evidence |
+| --- | --- | --- |
+| SES configuration | Domain, DKIM, MAIL FROM, configuration set, signed SNS reports, Auto Validation off, Amazon tracking off: all verified live | Dashboard SES panel, readiness check |
+| Real SES sends through the platform | Simulator only: delivered; real bounce and complaint reports suppressed the addresses | `SENDING-PROVIDER.md` "Real SES results" |
+| Bulk sending | **Blocked by IAM** (needs `ses:SendBulkTemplatedEmail`); off | Amazon's refusal message |
+| Real test to the owner's Miami inbox | **Blocked by IAM** in the sandbox (recipient identity not in the policy); nothing sent | Amazon's refusal message |
+| Postal address | Owner-approved, stored as a Worker secret | QA passes |
+| Real ledger in private staging | 262 imported (255 / 2 / 5), CRM organisations merged, comparison in agreement, backups kept privately | Dashboard, `HANDOFF.md` database section |
+| Full-list rehearsals | Local against simulated SES: 21 of 21. Deployed staging dry run: 255 in 4 minutes, no errors | `CUTOVER-RUNBOOK.md` rehearsal record |
+| Cutover and rollback | Runbook written; live readiness check deployed: NO-GO, 4 external blockers | `/api/admin/cutover/readiness` |
+
+Owner action that unblocks the rest: the IAM policy in `OWNER-SETUP.md` 6g. Then Claude resends the
+Miami test through the platform, turns bulk on and proves it with Amazon's simulator.
+External: Amazon production access (under review). Then: seed tests across groups, the tracking seed
+test, the owner's cutover date. Risk to watch: send runs use more processing time than the free plan's
+nominal limit (no errors so far).
 
 ## Status at a glance
 

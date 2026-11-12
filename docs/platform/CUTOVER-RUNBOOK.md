@@ -101,6 +101,13 @@ Index subscribe buttons (right after a Monday Index run), LinkedIn task link tar
 - **Real Amazon SES (mailbox simulator, no person):** single sends delivered and reported back through
   signed SNS within a second; real bounce and complaint reports suppressed the addresses. Bulk requests
   refused by IAM (needs `ses:SendBulkTemplatedEmail`); nothing sent.
-- **Deployed dry-run on the real staging database:** see HANDOFF.md for timings.
+- **Deployed dry-run on the real staging database (Cloudflare cron and D1):** 255 people in 4 minutes
+  (20:58:19 to 21:02:22 UTC), 56 a minute as designed, every one through the dry-run adapter, no errors.
+  The rehearsal send was then deleted. **Risk found:** those runs used about 26 to 35 ms of processing
+  time each against the free plan's nominal 10 ms. Cloudflare recorded no errors, but that headroom is not
+  guaranteed. If CPU errors ever appear, lower `SES_CALLS_PER_TICK` (slower but cheaper) or move to Workers
+  Paid ($5 a month, owner approval needed).
+- **Live readiness check (`/api/admin/cutover/readiness`):** NO-GO with 4 blockers, all external: SES
+  production access, the daily limit that comes with it, bulk sending (IAM fix), inbox placement evidence.
 - **Not rehearsed for real:** a production-mode deploy (would make the site public and unlock sending);
   rehearsed only as configuration review and tests. A real multi-recipient SES send (needs production access).
