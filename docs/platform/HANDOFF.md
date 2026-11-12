@@ -1,6 +1,6 @@
 # Prompted platform: handoff
 
-Last updated November 11, 2026 (preview deployed). Branch `platform-dev` (created from `main` at `d5c7ce5`). `main` is untouched.
+Last updated November 12, 2026, late (infrastructure finished in the sandbox; real ledger staged; rehearsals done). Branch `platform-dev` (created from `main` at `d5c7ce5`). `main` is untouched.
 
 ## Goal
 
@@ -261,14 +261,24 @@ health check with a dashboard warning.
 6. Decide whether issue 31's "fla ws" should be corrected (see `MIGRATION-REPORT.md`).
 7. Before February 9, 2027: replace the Cloudflare token (it expires then and is broader than needed).
 
-## State of the preview database
+## State of the preview database: REAL SUBSCRIBER DATA, PRIVATE STAGING (since November 12)
 
-It holds **synthetic data only**: 31 `@example.org` people (one unsubscribed), one `@example.com` signup
-test, and completed dry-run sends of issues 30 and 31. Empty it before any real import:
+The preview database `prompted-dev` now holds the **real** subscriber ledger as a private, non-sending
+staging copy, authorised by the owner on November 12: 262 people from a fresh complete beehiiv read
+(255 active, 2 pending, 5 unsubscribed), CRM organisations merged (statuses untouched), 8 suppressions
+(5 unsubscribed + 3 Amazon simulator addresses). Comparison with the beehiiv file: in agreement.
 
-```bash
-npx wrangler d1 execute DB --remote --command "DELETE FROM send_recipients; DELETE FROM send_links; DELETE FROM sends; DELETE FROM delivery_events; DELETE FROM import_rows; DELETE FROM import_batches; DELETE FROM people; DELETE FROM organizations; DELETE FROM suppressions; DELETE FROM provider_usage; DELETE FROM rate_limits;"
-```
+Rules while it does:
+
+- Nothing can reach these people. `AUDIENCE_SENDING` is not `enabled`, so every issue send uses the
+  dry-run adapter whatever `SEND_MODE` says; outside production real providers may only reach
+  `TEST_RECIPIENTS` and Amazon's mailbox simulator; preview signup confirmations are never emailed.
+- The data is reachable only through the authenticated admin API. Never copy it into the repository,
+  logs, tests, screenshots or chat. Backups go to a private location only.
+- Do **not** run the old "empty the database" command: it would delete the staged ledger. Rehearsal sends
+  are deleted individually after use (they block a real send of the same issue otherwise).
+- Refresh before cutover: re-read beehiiv in full and re-import in migration mode (idempotent; it only
+  ever makes statuses more restrictive), then run Compare only.
 
 ## Next steps for the next session, in order
 

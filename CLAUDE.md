@@ -54,7 +54,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 49 tests, in-memory SQLite behind the D1 interface
+npm test               # 52 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -87,8 +87,8 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
 - The packaged script is about 0.8 MB gzipped against a 3 MB free limit. `npm run build` fails loudly near
   the limit. At that point deploy with real static assets from a machine with a direct `wrangler login`.
 - Personal details and credentials are Worker secrets, never in `wrangler.toml`: `ADMIN_PASSWORD_HASH`,
-  `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS` (still a fake placeholder: the owner has not approved
-  a real one), `TEST_RECIPIENTS` (set: the owner's one authorised inbox), `GMAIL_CLIENT_ID`,
+  `SESSION_SECRET`, `WEBHOOK_SECRET`, `POSTAL_ADDRESS` (the owner's approved address, set November 12;
+  never write it into the repository), `TEST_RECIPIENTS` (the owner's authorised inboxes), `GMAIL_CLIENT_ID`,
   `GMAIL_CLIENT_SECRET`, `BREVO_API_KEY`, `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` (IAM user
   `prompted-ses-sender`, restricted policy), `SES_TOPIC_ARN` (the SNS topic; only it is accepted), later
   `RESEND_API_KEY`, `REPLY_TO`.
@@ -107,11 +107,20 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
   for `SES_TOPIC_ARN` (`src/worker/sns.mjs`), recent, once each (`webhook_messages`). Do not add a URL
   key to it and do not weaken the signature check. Brevo's hook keeps its `?key=` secret.
 - SES stays out of the sending chain until Amazon grants production access (read from the account every
-  30 minutes). Bulk mode (`SES_BULK`) needs `ses:SendBulkEmail` on the IAM policy first.
+  30 minutes). Bulk mode (`SES_BULK`) needs `ses:SendBulkTemplatedEmail` (and
+  `ses:SendBulkEmail`) on the IAM policy; in the sandbox each recipient's identity must be in the policy too.
 - Engagement tracking is first-party only and **off** (`TRACK_OPENS`, `TRACK_CLICKS`) until the owner
   authorises inbox-placement tests. Tracking URLs carry a random per-send `track_id`, never the subscriber
   token. Keep click redirects limited to stored `http(s)` links and keep them working when recording fails.
   Amazon's own open and click tracking stays off. The Index terms email block (`INDEX_TERMS_EMAIL`) is not adopted.
+- **The preview database holds the REAL subscriber ledger as private staging (since November 12).** See
+  `docs/platform/HANDOFF.md`, "State of the preview database". Never export it into the repository, tests,
+  logs or chat, and never run a blanket delete on it.
+- `AUDIENCE_SENDING` is the hard lock for the real audience: anything but `"enabled"` forces issue sends to
+  the dry-run adapter. Only an approved cutover sets it (`docs/platform/CUTOVER-RUNBOOK.md`).
+- Amazon's mailbox simulator (`*@simulator.amazonses.com`) is allowed as a test recipient outside
+  production, only through SES. Use it to test SES without reaching a person.
+- `GET /api/admin/cutover/readiness` is the live go/no-go check (read-only).
 - `FROM_EMAIL` is a plain setting in `wrangler.toml` (`brief@readprompted.org`), not a secret.
 - Signup confirmations on the preview never leave the platform unless `PREVIEW_CONFIRMATIONS = "live"`.
 - A new cron schedule takes a few minutes to start firing after the first deploy.

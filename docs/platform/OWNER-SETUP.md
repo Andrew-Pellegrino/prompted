@@ -220,12 +220,52 @@ Optional tidy-up, any time: the topic's access policy lets SES from our account 
 `arn:aws:ses:*`. Narrower would be `arn:aws:ses:us-east-1:<account>:configuration-set/prompted-newsletter`.
 It is not a security hole (only our account can publish), so leave it unless convenient.
 
-### 6g. Before cutover: allow bulk sending (owner, two minutes)
+### 6g. IAM policy for the sending key (corrected November 12, after real tests)
 
-Bulk requests are what make a whole-list Monday send fast (see `SENDING-PROVIDER.md`). In IAM, open
-**Policies**, `PromptedSESSenderPolicy`, **Edit**, JSON, and in the statement that allows `ses:SendEmail`
-add `ses:SendBulkEmail` to the list of actions (same resources and conditions). Save, then tell Claude,
-who turns `SES_BULK` on. Nothing is sent by this change.
+Two facts learned from real calls to Amazon on November 12 (nothing was sent by either refusal):
+
+1. **Bulk sending is authorised as `ses:SendBulkTemplatedEmail`**, not only `ses:SendBulkEmail`. Amazon
+   refused a bulk request with "not authorized to perform ses:SendBulkTemplatedEmail on resource
+   configuration-set/prompted-newsletter".
+2. **In the sandbox, Amazon also checks the recipient's verified identity.** A test to the owner's Miami
+   inbox was refused with "not authorized to perform ses:SendEmail on resource
+   identity/<OWNER_TEST_INBOX>". After production access this check disappears, but the entry is harmless.
+
+IAM cannot restrict the From address for bulk requests (no `ses:FromAddress` condition key), so the
+platform enforces it: every SES request must use `FROM_EMAIL` and `SES_CONFIGURATION_SET` or it is refused
+before leaving the Worker (`guard()` in `ses.mjs`).
+
+Policy `PromptedSESSenderPolicy`, full replacement (`<ACCOUNT>` is the 12-digit AWS account number, `<OWNER_TEST_INBOX>` the owner's verified test address; both are kept out of this repository):
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    { "Sid": "SendPromptedEmail", "Effect": "Allow", "Action": "ses:SendEmail",
+      "Resource": [
+        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
+        "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*",
+        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"
+      ],
+      "Condition": { "StringEquals": { "ses:FromAddress": "brief@readprompted.org" } } },
+    { "Sid": "SendPromptedBulkEmail", "Effect": "Allow",
+      "Action": ["ses:SendBulkEmail", "ses:SendBulkTemplatedEmail"],
+      "Resource": [
+        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
+        "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted-newsletter",
+        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"
+      ] },
+    { "Sid": "ReadAccount", "Effect": "Allow", "Action": "ses:GetAccount", "Resource": "*" },
+    { "Sid": "ReadIdentity", "Effect": "Allow", "Action": "ses:GetEmailIdentity",
+      "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org" },
+    { "Sid": "ReadConfigurationSet", "Effect": "Allow", "Action": "ses:GetConfigurationSet",
+      "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*" }
+  ]
+}
+```
+
+After saving it, tell Claude: the Miami test is resent through the platform, then `SES_BULK` is turned on
+and one bulk request goes to Amazon's mailbox simulator (no person) to prove the permission.
 
 ### Gmail fallback: the sign-in expires around November 18
 

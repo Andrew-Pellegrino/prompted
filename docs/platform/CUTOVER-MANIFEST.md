@@ -13,7 +13,7 @@ and pointing everything in this table at it, not moving the site again.
 | --- | --- |
 | Site, archive, Index copy and signup work in a deployed preview | **Passed** on the preview, November 11 (synthetic data). |
 | Private database deployed with dashboard login | **Passed**: anonymous, forged and cross-site requests are refused. |
-| Real subscriber ledger imported and reconciled against beehiiv counts | Not started (needs the deployed database and owner approval). |
+| Real subscriber ledger imported and reconciled against beehiiv counts | **Passed in private staging** (November 12): 262 = 255 active + 2 pending + 5 unsubscribed, comparison in agreement, CRM organisations merged. Must be refreshed the day before cutover. |
 | A sending identity exists and passes SPF/DKIM/DMARC checks | **Passed for the domain**: `readprompted.org` is verified at Amazon SES (DKIM, MAIL FROM) and at Brevo; one SPF, one DMARC record. Inbox placement not yet tested. |
 | Amazon SES production access granted, with a daily limit above the whole list and a per-second rate known | **Waiting**: request under review since November 12 (sandbox: 200 a day, 1 a second). |
 | Bounce, complaint and delivery reports arrive and are processed (signed SNS) | Built and tested with simulated reports; **the SNS subscription is the owner's next step** (`OWNER-SETUP.md` 6f). |
@@ -24,9 +24,9 @@ and pointing everything in this table at it, not moving the site again.
 | New sending address announced to readers from beehiiv in two issues | Not started. |
 | Warm-up completed with staged sends while beehiiv covers the rest | Not started. |
 | Test issue received and compared in Gmail, Outlook and Apple Mail | Not started. |
-| Postal address set in the footer | Not set. QA blocks real sends until it is. |
-| One full dry run of a Monday send against the real ledger | Not started. |
-| Rollback rehearsed | Plan below; not rehearsed. |
+| Postal address set in the footer | **Passed**: owner-approved address stored as a Worker secret (not in the repository). |
+| One full dry run of a Monday send against the real ledger | **Passed** (November 12): locally against simulated SES (21 of 21 checks: pace, dedupe, failures, recovery, unsubscribes, warm-up, staged send) and on the deployed staging database with the dry-run adapter paced like SES. |
+| Rollback rehearsed | Procedure written (`CUTOVER-RUNBOOK.md`); switch-off path tested (audience lock, cancel, stale-claim handling). A production-mode deploy was deliberately not performed. |
 
 ## Links and integrations
 
@@ -52,6 +52,9 @@ Not inspected this session (read them before cutover): the live Typefully queue,
 scheduled task, the LinkedIn profile, and the Drive "LinkedIn Log".
 
 ## Order of operations on cutover week
+
+The exact steps, switches and rollback are in `CUTOVER-RUNBOOK.md`. Live go/no-go: `GET /api/admin/cutover/readiness`.
+
 
 1. Sunday: full beehiiv export to private storage; import into the platform; reconcile counts by status.
 2. Sunday: build the new issue, run QA, send tests to the owner's inboxes, owner approves and schedules.

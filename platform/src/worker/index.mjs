@@ -6,6 +6,7 @@ import { sendTransactional } from './sending.mjs';
 import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
 import { sesStatus, sesEvents, refreshSesAccount } from './ses.mjs';
+import { cutoverReadiness } from './readiness.mjs';
 import { verifySnsMessage, isAmazonSnsUrl } from './sns.mjs';
 import { openRoute, clickRoute, legacyClickRoute, legacyOpenRoute, engagementReport, engagementTrend, pruneEngagement, HUMAN_RULES } from './engagement.mjs';
 // The site address for safe fallbacks, without reading the database or the built site.
@@ -270,6 +271,7 @@ async function adminApi(request, env, path, url) {
   if (path === 'logout' && method === 'POST') return json({ ok: true }, 200, { 'set-cookie': 'prompted_admin=; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=0' });
   if (path === 'me') return json({ ok: true, actor, env: env.SITE_ENV || 'preview', send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun' });
   if (path === 'dashboard') return json(await dashboard(env));
+  if (path === 'cutover/readiness') return json(await cutoverReadiness(env));
   const engM = /^sends\/(\d+)\/engagement$/.exec(path);
   if (engM) return json(await engagementReport(db, Number(engM[1])));
   if (path === 'engagement/trend') return json({ rows: await engagementTrend(db), rules: HUMAN_RULES });
@@ -470,6 +472,8 @@ async function route(request, env) {
   if (p === '/api/subscribe' && request.method === 'POST') return apiSubscribe(request, env);
   if ((m = /^\/confirm\/([a-f0-9]{20,64})$/.exec(p))) return confirmRoute(request, env, m[1]);
   if ((m = /^\/u\/([a-f0-9]{20,64})$/.exec(p))) return unsubscribeRoute(request, env, m[1]);
+  // Test emails to addresses that are not subscribers carry this inert link; it changes nothing.
+  if (p === '/u/test') return Response.redirect(new URL('/unsubscribed/', request.url), 303);
   // Tracking: /o/<tracking id>.gif and /r/<tracking id>/<link number>. Older URLs still work but are not recorded.
   if ((m = /^\/o\/([a-f0-9]{24})\.gif$/.exec(p))) return openRoute(request, env, m[1]);
   if ((m = /^\/r\/([a-f0-9]{24})\/(\d{1,4})$/.exec(p))) return clickRoute(request, env, m[1], Number(m[2]), siteUrlOf(env, url));

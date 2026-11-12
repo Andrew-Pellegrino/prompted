@@ -20,6 +20,16 @@ export const dryrun = {
   name: 'dryrun',
   configured: () => true,
   dailyLimit: (env) => num(env.DRYRUN_DAILY_LIMIT, 100000),
+  // Rehearsals: with DRYRUN_BULK = "on" the dry-run adapter paces itself exactly like SES bulk sending at
+  // DRYRUN_RATE messages a second, so a full-list rehearsal shows real batch sizes, spacing and duration.
+  bulkEnabled: (env) => env.DRYRUN_BULK === 'on',
+  batchPlan: (env) => ses.batchPlan({ ...env, SES_ACCOUNT: { production_access: true, max_rate: num(env.DRYRUN_RATE, 14) }, SES_CALL_SPACING_MS: env.DRYRUN_SPACING_MS ?? env.SES_CALL_SPACING_MS }),
+  async sendBatch(env, batch) {
+    // Failure injection for rehearsals: DRYRUN_FAIL (address fragment) fails for good; DRYRUN_THROTTLE (fragment) says "not now".
+    return batch.recipients.map((r) => (env.DRYRUN_FAIL && r.to.includes(env.DRYRUN_FAIL) ? { ok: false, error: 'simulated rejection', retryable: false }
+      : env.DRYRUN_THROTTLE && r.to.includes(env.DRYRUN_THROTTLE) ? { ok: false, rateLimited: true, retryable: true, error: 'simulated throttling' }
+      : { ok: true, id: 'dryrun-' + crypto.randomUUID() }));
+  },
   async send(env, msg) {
     if (env.DRYRUN_FAIL && msg.to.includes(env.DRYRUN_FAIL)) return { ok: false, error: 'simulated failure', retryable: false };
     return { ok: true, id: 'dryrun-' + crypto.randomUUID() };

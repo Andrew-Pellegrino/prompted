@@ -21,6 +21,18 @@ the last resort.** Approved by the owner on November 12.
 Amazon's counter showed one message sent in the previous 24 hours. The platform did not send it; it is
 most likely from the owner's console setup. Worth a glance in the SES console if unsure.
 
+## Real SES results (November 12, late)
+
+| Test | Result |
+| --- | --- |
+| Platform test send, one message, to Amazon's success simulator (no person), through `prompted-newsletter` | **Delivered.** Amazon's signed Send and Delivery reports arrived within a second and were matched to the message |
+| Bounce, complaint and suppression-list simulators | Real reports: bounce and suppression-list as permanent bounces, complaint as a complaint; all three addresses suppressed by the platform |
+| Bulk request to the success simulator | **Refused by IAM** (`ses:SendBulkTemplatedEmail` missing). Nothing sent; the send paused safely |
+| Latest issue to the owner's Miami inbox | **Refused by IAM** in the sandbox (recipient identity not in the policy). Nothing sent |
+
+Both refusals are fixed by one policy change (`OWNER-SETUP.md` 6g). Every SES request is also checked by
+the platform itself: sender must be `brief@readprompted.org`, configuration set must be set.
+
 ## Why the plan changed
 
 Brevo's free plan sends 300 emails a day. The list is about 255 people and growing, and every subscriber

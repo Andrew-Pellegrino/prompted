@@ -263,7 +263,7 @@ test('test sends go only to authorised test inboxes; live providers are fenced i
   const realFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => { calls.push({ url: String(url), body: JSON.parse(init.body) }); return new Response(JSON.stringify({ messageId: '<m1@brevo>' }), { status: 201 }); };
   try {
-    const live = await makeEnv({ SEND_MODE: 'live', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', REPLY_TO: 'owner@example.com' });
+    const live = await makeEnv({ SEND_MODE: 'live', AUDIENCE_SENDING: 'enabled', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', REPLY_TO: 'owner@example.com' });
     const lc = await audience(live, 3, ['owner-test@example.com,active']);
     const send = await lc.post('/api/admin/sends', { issue_slug: SLUG });
     await lc.post(`/api/admin/sends/${send.data.id}/approve`);
@@ -412,7 +412,7 @@ test('staged send: a tagged pilot group first, then everyone else, nobody twice'
 });
 
 test('Gmail limits and expired sign-in pause a send without burning attempts or losing anyone', async () => {
-  const env = await makeEnv({ SEND_MODE: 'live', EMAIL_PROVIDERS: 'gmail', GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt', GMAIL_FROM_EMAIL: 'sender@gmail.test', SITE_ENV: 'production', SEND_CHUNK: '10' });
+  const env = await makeEnv({ SEND_MODE: 'live', AUDIENCE_SENDING: 'enabled', EMAIL_PROVIDERS: 'gmail', GMAIL_CLIENT_ID: 'cid', GMAIL_CLIENT_SECRET: 'cs', GMAIL_REFRESH_TOKEN: 'rt', GMAIL_FROM_EMAIL: 'sender@gmail.test', SITE_ENV: 'production', SEND_CHUNK: '10' });
   const c = await audience(env, 6);
   const send = await c.post('/api/admin/sends', { issue_slug: SLUG });
   await c.post(`/api/admin/sends/${send.data.id}/approve`);
@@ -561,7 +561,7 @@ test('warm-up ramp caps real sending per day and grows gradually; tracking is of
   assert.equal(warmupCap({ WARMUP: '2026-12-01,20,1.25' }, new Date('2026-11-30T23:00:00Z')), 0, 'nothing before the start date');
   assert.deepEqual([0, 1, 2, 7, 14].map((d) => warmupCap({ WARMUP: '2026-12-01,20,1.25' }, new Date(Date.UTC(2026, 11, 1 + d, 12)))), [20, 25, 31, 95, 454]);
   const start = new Date().toISOString().slice(0, 10);
-  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', WARMUP: `${start},5,1.5`, SEND_CHUNK: '50' });
+  const env = await makeEnv({ SEND_MODE: 'live', AUDIENCE_SENDING: 'enabled', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', WARMUP: `${start},5,1.5`, SEND_CHUNK: '50' });
   const c = await audience(env, 12);
   const bodies = [], realFetch = globalThis.fetch;
   globalThis.fetch = async (url, init) => { bodies.push(JSON.parse(init.body)); return new Response('{"messageId":"m"}', { status: 201 }); };
@@ -784,7 +784,7 @@ test('Amazon SES: request signing matches the published AWS example; single send
 
 test('Amazon SES bulk: a whole issue goes out in requests of up to a second of recipients, each with their own unsubscribe link and header; failures are sorted correctly', async () => {
   const n = 40;
-  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'ses', SES_BULK: 'on', SES_CALL_SPACING_MS: '0', AWS_ACCESS_KEY_ID: 'AKID', AWS_SECRET_ACCESS_KEY: 's', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted-newsletter', QUOTA_RESERVE: '0' });
+  const env = await makeEnv({ SEND_MODE: 'live', AUDIENCE_SENDING: 'enabled', SITE_ENV: 'production', EMAIL_PROVIDERS: 'ses', SES_BULK: 'on', SES_CALL_SPACING_MS: '0', AWS_ACCESS_KEY_ID: 'AKID', AWS_SECRET_ACCESS_KEY: 's', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted-newsletter', QUOTA_RESERVE: '0' });
   env.DB.sqlite.prepare("INSERT INTO settings (key, value) VALUES ('ses_account', ?)").run(JSON.stringify({ production_access: true, sending_enabled: true, max_24h: 50000, max_rate: 14 }));
   const c = await audience(env, n);
   const requests = [], realFetch = globalThis.fetch;
@@ -999,7 +999,7 @@ const hit = (env, path, { ua = 'Mozilla/5.0 (Macintosh) AppleWebKit Safari', met
 
 test('tracking is off by default; when on, tracking URLs carry only a random per-send id, template links are tracked, the plain-text part is untouched', async () => {
   const run = async (extra) => {
-    const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', QUOTA_RESERVE: '0', ...extra });
+    const env = await makeEnv({ SEND_MODE: 'live', AUDIENCE_SENDING: 'enabled', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', QUOTA_RESERVE: '0', ...extra });
     const c = await audience(env, 3);
     const bodies = [], realFetch = globalThis.fetch;
     globalThis.fetch = async (url, init) => { bodies.push(JSON.parse(init.body)); return new Response('{"messageId":"m"}', { status: 201 }); };
@@ -1166,4 +1166,70 @@ test('optional "In the Prompted Index" block: a few distinctive terms, off by de
   env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z' WHERE id = ?").run(s.data.id);
   await tick(env);
   assert.equal(one(env, "SELECT COUNT(*) n FROM send_links WHERE send_id = ? AND kind = 'index_term'", s.data.id).n, 0, 'not in a real send unless INDEX_TERMS_EMAIL is "on"');
+});
+
+test('safety fences for real-data staging: audience lock, simulator-only-through-SES, sender guard, inert test unsubscribe', async () => {
+  // SEND_MODE live in production but AUDIENCE_SENDING not enabled: the audience still gets the dry-run adapter
+  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', EMAIL_PROVIDERS: 'brevo', BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', QUOTA_RESERVE: '0' });
+  const c = await audience(env, 4);
+  const calls = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { calls.push(String(url)); return new Response('{"messageId":"m"}', { status: 201 }); };
+  try {
+    const send = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+    await c.post(`/api/admin/sends/${send.data.id}/approve`);
+    await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+    env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+    await tick(env);
+    assert.deepEqual(calls, [], 'no provider contacted');
+    assert.deepEqual(many(env, 'SELECT DISTINCT provider FROM send_recipients').map((r) => r.provider), ['dryrun']);
+  } finally { globalThis.fetch = realFetch; }
+  // simulator addresses: accepted as test recipients on the preview only when SES is the sender
+  const env2 = await makeEnv({ BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example' }), c2 = client(env2);
+  await c2.login();
+  assert.equal((await c2.post('/api/admin/sends/test', { issue_slug: 'week-of-august-9-16-2026', emails: ['success@simulator.amazonses.com'] })).status, 409, 'not through Brevo');
+  assert.equal((await c2.post('/api/admin/sends/test', { issue_slug: 'week-of-august-9-16-2026', emails: ['someone@example.org'] })).status, 403);
+  // the SES adapter refuses any other sender or a missing configuration set, before any request
+  const sesEnv = { AWS_ACCESS_KEY_ID: 'A', AWS_SECRET_ACCESS_KEY: 'S', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted-newsletter' };
+  const msg = { from: { name: 'P', email: 'other@prompted.example' }, to: 'x@example.com', subject: 's', html: 'h', text: 't', headers: {} };
+  await assert.rejects(() => ses.send(sesEnv, msg), /sender must be brief@prompted.example/);
+  await assert.rejects(() => ses.sendBatch(sesEnv, { ...msg, recipients: [{ to: 'x@example.com', token: 't' }] }), /sender must be/);
+  await assert.rejects(() => ses.send({ ...sesEnv, SES_CONFIGURATION_SET: '' }, { ...msg, from: { name: 'P', email: 'brief@prompted.example' } }), /SES_CONFIGURATION_SET/);
+  // a test email's inert unsubscribe link changes nothing
+  const u = await client(env2).get('/u/test');
+  assert.deepEqual([u.status, new URL(u.headers.get('location')).pathname], [303, '/unsubscribed/']);
+});
+
+test('someone who unsubscribes, bounces or is suppressed after a send starts is skipped when their turn comes', async () => {
+  const env = await makeEnv({ SEND_CHUNK: '3', QUOTA_RESERVE: '0' });
+  const c = await audience(env, 8);
+  const send = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+  await c.post(`/api/admin/sends/${send.data.id}/approve`);
+  await c.post(`/api/admin/sends/${send.data.id}/schedule`, {});
+  env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+  await tick(env); // first chunk of 3
+  const queued = many(env, "SELECT email_norm FROM send_recipients WHERE status = 'queued' ORDER BY rowid").map((r) => r.email_norm);
+  const tok = one(env, 'SELECT token FROM people WHERE email_norm = ?', queued[0]).token;
+  await c.post(`/u/${tok}`); // unsubscribes mid-send
+  env.DB.sqlite.prepare("INSERT INTO suppressions (email_norm, reason, source, created_at) VALUES (?, 'bounced', 'test', '2026-11-12')").run(queued[1]);
+  for (let i = 0; i < 5; i++) await tick(env);
+  const st = Object.fromEntries(many(env, 'SELECT email_norm, status FROM send_recipients').map((r) => [r.email_norm, r.status]));
+  assert.deepEqual([st[queued[0]], st[queued[1]]], ['skipped', 'skipped']);
+  assert.equal(Object.values(st).filter((x) => x === 'sent').length, 6);
+  assert.equal(one(env, 'SELECT COUNT(*) n FROM delivery_events WHERE type = ? AND email_norm IN (?, ?)', 'sent', queued[0], queued[1]).n, 0);
+});
+
+test('cutover readiness: read-only, lists every blocker, and says NO-GO while anything is missing', async () => {
+  const env = await makeEnv(), c = client(env);
+  assert.equal((await c.get('/api/admin/cutover/readiness')).status, 401);
+  await c.login();
+  const realFetch = globalThis.fetch;
+  globalThis.fetch = async (url) => new Response(JSON.stringify(String(url).includes('dns-query') ? { Status: 0, Answer: [] } : {}), { status: 200 });
+  try {
+    const r = (await c.get('/api/admin/cutover/readiness')).data;
+    assert.equal(r.go, false);
+    const names = r.items.map((i) => i.name);
+    for (const n of ['Amazon SES production access granted', 'Postal address in the footer', 'Ledger imported from beehiiv within the last 24 hours', 'Inbox placement proven for Miami, Gmail, Outlook and iCloud from the domain', 'Audience lock (AUDIENCE_SENDING)']) assert.ok(names.includes(n), n);
+    assert.ok(r.items.find((i) => i.name === 'Audience lock (AUDIENCE_SENDING)').detail.startsWith('locked'));
+    assert.ok(r.items.find((i) => i.name === 'Postal address in the footer').ok, 'the test environment has an address');
+  } finally { globalThis.fetch = realFetch; }
 });

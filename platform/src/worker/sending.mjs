@@ -14,6 +14,13 @@ import { esc } from '../lib/html.mjs';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const testAllowlist = (env) => String(env.TEST_RECIPIENTS || '').split(',').map(normalizeEmail).filter(Boolean);
+// Amazon's mailbox simulator: addresses that belong to no person and only exist to produce a delivery,
+// bounce or complaint report. Allowed as test recipients outside production, and only through SES.
+export const SIMULATOR = /@simulator\.amazonses\.com$/;
+const isTestRecipient = (env, e) => testAllowlist(env).includes(e) || (!isProduction(env) && SIMULATOR.test(e));
+// Second fence for the real audience: unless AUDIENCE_SENDING is "enabled", an issue send can only ever use
+// the dry-run adapter, whatever SEND_MODE says. Test sends are unaffected (they are fenced by the allowlist).
+const audienceLocked = (env, send) => send.kind !== 'test' && env.AUDIENCE_SENDING !== 'enabled';
 const isProduction = (env) => env.SITE_ENV === 'production';
 const MAX_ATTEMPTS = 3;
 const STALE_CLAIM_MS = 15 * 60 * 1000;
@@ -54,7 +61,7 @@ async function linkStatements(env, sendId, issue, site, forTest) {
 
 /** How many recipients one cron run may hand to this provider. */
 function perTick(provider, env, send, chunkSize) {
-  if (send.kind !== 'test' && provider.sendBatch && provider.bulkEnabled?.(env)) { const p = provider.batchPlan(env); return p.perCall * p.calls; }
+  if (provider.sendBatch && provider.bulkEnabled?.(env)) { const p = provider.batchPlan(env); return p.perCall * p.calls; }
   return provider.maxPerTick ? provider.maxPerTick(env) : chunkSize;
 }
 const pause = (ms) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : null);
@@ -133,7 +140,8 @@ export async function testSend(env, slug, emails, actor) {
   const db = env.DB, allow = testAllowlist(env);
   const list = [...new Set((emails || []).map(normalizeEmail))].filter(validEmail);
   if (!list.length) throw new HttpError(400, 'Give at least one test address.');
-  const blocked = list.filter((e) => !allow.includes(e));
+  const blocked = list.filter((e) => !isTestRecipient(env, e));
+  if (list.some((e) => SIMULATOR.test(e)) && !providerChain(await withMailSettings(env), { forTest: true }).some((p) => p.name === 'ses')) throw new HttpError(409, 'Amazon simulator addresses can only be used when Amazon SES is the sending provider.');
   if (blocked.length) throw new HttpError(403, `Not an authorised test inbox: ${blocked.join(', ')}. Add it to TEST_RECIPIENTS first.`);
   const issue = await loadIssue(env, slug), site = await siteConfig(env), email = renderIssueEmail(issue, site);
   const res = await run(db, `INSERT INTO sends (issue_slug, kind, subject, preview, status, content_sha256, created_by, created_at, started_at) VALUES (?, 'test', ?, ?, 'sending', ?, ?, ?, ?)`,
@@ -188,8 +196,18 @@ export async function processSend(env, send) {
   await run(db, "UPDATE send_recipients SET status = 'failed', last_error = 'unconfirmed: handed to provider but no result recorded; check the provider log before retrying' WHERE send_id = ? AND status = 'sending' AND claimed_at < ?",
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
+  if (audienceLocked(env, send)) env = { ...env, SEND_MODE: 'dryrun' };
   const pick = await pickProvider(env, reserve, send.kind === 'test');
   const queued = pick ? await all(db, "SELECT email_norm, token, track_id, person_id, attempts FROM send_recipients WHERE send_id = ? AND status = 'queued' ORDER BY rowid LIMIT ?", send.id, Math.min(pick.remaining, perTick(pick.provider, env, send, chunkSize))) : [];
+  // People who unsubscribed, bounced or complained after the audience was fixed are skipped, never sent.
+  if (queued.length && send.kind !== 'test') {
+    const gone = new Set((await all(db, `SELECT r.email_norm FROM send_recipients r LEFT JOIN people p ON p.id = r.person_id
+      WHERE r.send_id = ? AND r.status = 'queued' AND (r.email_norm IN (SELECT email_norm FROM suppressions) OR (r.person_id IS NOT NULL AND p.status <> 'active'))`, send.id)).map((x) => x.email_norm));
+    if (gone.size) {
+      await db.batch([...gone].map((e) => stmt(db, "UPDATE send_recipients SET status = 'skipped', last_error = 'no longer subscribed when their turn came' WHERE send_id = ? AND email_norm = ? AND status = 'queued'", send.id, e)));
+      for (let i = queued.length - 1; i >= 0; i--) if (gone.has(queued[i].email_norm)) queued.splice(i, 1);
+    }
+  }
   if (queued.length) {
     const { provider } = pick;
     const issue = await loadIssue(env, send.issue_slug), site = await siteConfig(env);
@@ -212,14 +230,15 @@ export async function processSend(env, send) {
     // Bulk: the issue goes out once per request with up to a second's worth of recipients; each person's
     // private token is filled in by the provider. Only for the real issue send, and only if nothing else in
     // the email looks like a template placeholder (the editorial text is never altered to make it fit).
-    const bulkHtml = send.kind !== 'test' && provider.sendBatch && provider.bulkEnabled?.(env)
+    const bulkHtml = provider.sendBatch && provider.bulkEnabled?.(env)
       ? fillRecipient(email.html, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl, token: BULK_TOKEN, track: BULK_TRACK, openPixelUrl: pixelUrl }) : null;
     const bulkText = bulkHtml && fillRecipient(email.text, { unsubscribeUrl: `${site.url}/u/${BULK_TOKEN}`, webUrl: plainWebUrl, token: BULK_TOKEN, track: BULK_TRACK, openPixelUrl: null }, false);
     const useBulk = !!bulkHtml && bulkSafe(bulkHtml, bulkText, send.subject);
     const eligible = [];
     for (const r of queued) {
       // Outside production, real providers may only reach authorised test inboxes.
-      if (provider.name !== 'dryrun' && !isProduction(env) && !allow.includes(r.email_norm)) results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } });
+      if (provider.name !== 'dryrun' && !isProduction(env) && !isTestRecipient(env, r.email_norm)) results.push({ r, res: { ok: false, skipped: true, error: 'preview environment: not an authorised test inbox' } });
+      else if (SIMULATOR.test(r.email_norm) && provider.name !== 'ses') results.push({ r, res: { ok: false, skipped: true, error: 'simulator addresses are only sent through Amazon SES' } });
       else eligible.push(r);
     }
     if (useBulk) {
@@ -235,7 +254,8 @@ export async function processSend(env, send) {
         } catch (e) { out = chunk.map(() => ({ ok: false, error: String(e.message || e).slice(0, 300), retryable: true })); }
         chunk.forEach((r, k) => {
           let res = out[k];
-          if (res.rateLimited || res.authError) { paused = paused || res; res = { ...res, deferred: true }; }
+          if (res.authError && send.kind === 'test') res = { ...res, retryable: false };
+          else if (res.rateLimited || res.authError) { paused = paused || res; res = { ...res, deferred: true }; }
           results.push({ r, res });
         });
       }
@@ -248,7 +268,9 @@ export async function processSend(env, send) {
         try {
           res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, { ...vars, webUrl: plainWebUrl, openPixelUrl: null }, false), headers: listHeaders(unsub) });
         } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
-        if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
+        // A test send has no audience to protect: a refused key or permission fails it at once instead of retrying every minute.
+        if (res.authError && send.kind === 'test') { res = { ...res, retryable: false }; paused = res; }
+        else if (res.rateLimited || res.authError) { paused = res; res = { ...res, deferred: true }; }
         results.push({ r, res });
       }
     }

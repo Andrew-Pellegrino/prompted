@@ -34,9 +34,18 @@ EMAIL_PROVIDERS = "ses,brevo,resend,gmail"
 SES_REGION = "us-east-1"
 # The SES configuration set that carries event reports (bounces, complaints, deliveries) to the SNS topic.
 SES_CONFIGURATION_SET = "prompted-newsletter"
-# "on" sends the issue in bulk requests (up to a second's worth of people each). Needs the access key to be
-# allowed ses:SendBulkEmail; until the owner adds that permission it stays off and SES sends one by one.
+# "on" sends in bulk requests (up to a second's worth of people each). The IAM key has ses:SendBulkEmail
+# (separate statement; the From address is enforced in ses.mjs because IAM cannot enforce it for bulk).
 SES_BULK = ""
+# Test sends may use SES while the account is still in Amazon's sandbox (only verified recipients and the
+# mailbox simulator are reachable there). The audience is unaffected: see AUDIENCE_SENDING.
+SES_USE_IN_SANDBOX = "true"
+# Hard lock for the real audience. Anything but "enabled" forces issue sends to the dry-run adapter,
+# whatever SEND_MODE says. Set to "enabled" only at an approved cutover.
+AUDIENCE_SENDING = ""
+# Rehearsals on the staging ledger: the dry-run adapter paces itself like SES bulk at this rate.
+DRYRUN_BULK = "on"
+DRYRUN_RATE = "14"
 FROM_NAME = "Prompted"
 # The address issues are sent from once Brevo is connected. Mail sent to it is forwarded to the owner.
 FROM_EMAIL = "brief@readprompted.org"

@@ -85,6 +85,16 @@ const ENTRY_PAUSE = /^(ACCOUNT_THROTTLED|TRANSIENT_FAILURE|ACCOUNT_DAILY_QUOTA_E
 /** Amazon's limits as last read from the account (kept in the private database), or null. */
 const snapshot = (env) => (env.SES_ACCOUNT && typeof env.SES_ACCOUNT === 'object' ? env.SES_ACCOUNT : null);
 
+/**
+ * The IAM policy cannot enforce the From address for bulk requests (AWS has no ses:FromAddress condition
+ * for SendBulkEmail), so the platform enforces it: every SES request must come from FROM_EMAIL and use the
+ * configured configuration set, or it is refused before anything leaves the Worker.
+ */
+function guard(env, fromEmail) {
+  if (!env.FROM_EMAIL || String(fromEmail).toLowerCase() !== String(env.FROM_EMAIL).toLowerCase()) throw new Error(`SES refused locally: sender must be ${env.FROM_EMAIL || 'FROM_EMAIL'}`);
+  if (!env.SES_CONFIGURATION_SET) throw new Error('SES refused locally: SES_CONFIGURATION_SET is not set');
+}
+
 export const ses = {
   name: 'ses',
   // Until Amazon grants production access the account can only reach addresses verified inside AWS, so the
@@ -108,6 +118,7 @@ export const ses = {
     return { perCall, calls, spacingMs, perMinute: Math.min(perCall * calls, Math.floor(rate * 0.9 * 55)) };
   },
   async send(env, msg) {
+    guard(env, msg.from.email);
     const headers = Object.entries(msg.headers || {});
     noBreaks([...headers, ['Subject', msg.subject], ['To', msg.to]]);
     const r = await sesCall(env, 'POST', '/v2/email/outbound-emails', {
@@ -125,6 +136,7 @@ export const ses = {
   },
   /** batch = { from, replyTo, subject, html, text, recipients: [{ to, token, headers }] }. One result per recipient, same order. */
   async sendBatch(env, batch) {
+    guard(env, batch.from.email);
     const r = await sesCall(env, 'POST', '/v2/email/outbound-bulk-emails', buildBulkBody(env, batch));
     if (!r.ok) { const f = callFailure(r); return batch.recipients.map(() => f); }
     const results = r.data?.BulkEmailEntryResults || [];
