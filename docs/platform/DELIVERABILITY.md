@@ -37,6 +37,15 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
   Gmail distrusts the brand-new `readprompted.org` domain itself. Content, design, tracking and the choice
   of Amazon are ruled out as the cause.
 
+- **Contacts test (8:01 PM ET):** after the owner added `brief@readprompted.org` to the Miami contacts, a
+  plain check still went to Spam. On every one of the six tests Gmail's own explanation was "You reported
+  this message as spam from your inbox", which the owner did not do, and the phone showed a notification
+  before each moved. That pattern (arrives in the inbox, then something acting as the owner moves it to
+  Spam) points at a mail app or a filter on the account rather than at Gmail's own filter: for example a
+  Gmail filter or blocked-sender rule, or another app with the Miami account and a junk filter, which
+  Gmail records as the user reporting spam. To be checked by the owner before drawing conclusions about
+  Miami as a whole.
+
 What follows for launch: about 93% of the list are Miami addresses, so this must be solved before the
 cutover, not after. It is a reputation problem, not an engineering one. In order of expected effect:
 1. **Recipient trust signals.** Gmail lets a message through when the reader has the sender in their
