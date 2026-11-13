@@ -47,7 +47,9 @@ export const brevo = {
       headers: { 'api-key': env.BREVO_API_KEY, 'content-type': 'application/json', accept: 'application/json' },
       body: JSON.stringify({
         sender: msg.from, to: [{ email: msg.to }], replyTo: msg.replyTo ? { email: msg.replyTo } : undefined,
-        subject: msg.subject, htmlContent: msg.html, textContent: msg.text, headers: msg.headers,
+        subject: msg.subject, htmlContent: msg.html, textContent: msg.text,
+        // Brevo rejects an empty headers object ("headers is blank", found in a real test on November 13).
+        headers: msg.headers && Object.keys(msg.headers).length ? msg.headers : undefined,
       }),
     });
     if (!res.ok) return { ok: false, error: 'brevo ' + (await errText(res)), retryable: retryableStatus(res.status) };

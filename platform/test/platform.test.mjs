@@ -1283,3 +1283,20 @@ test('an interrupted SES run settles itself: the Amazon Send report marks people
     assert.equal(sent.length - before, 1, 'exactly one new request: for reader1 only');
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('plain delivery check: real provider for an authorised test inbox only, provider can be chosen', async () => {
+  const env = await makeEnv({ BREVO_API_KEY: 'k', FROM_EMAIL: 'brief@prompted.example', AWS_ACCESS_KEY_ID: 'A', AWS_SECRET_ACCESS_KEY: 'S', SES_CONFIGURATION_SET: 'prompted-newsletter', SES_USE_IN_SANDBOX: 'true' }), c = client(env);
+  env.DB.sqlite.prepare("INSERT INTO settings (key, value) VALUES ('ses_account', ?)").run(JSON.stringify({ production_access: false, max_24h: 200, max_rate: 1 }));
+  await c.login();
+  const hosts = [], realFetch = globalThis.fetch;
+  const bodies = [];
+  globalThis.fetch = async (url, init) => { hosts.push(new URL(url).host); bodies.push(JSON.parse(init.body)); return new Response(JSON.stringify({ MessageId: 'm', messageId: 'b' }), { status: 200 }); };
+  try {
+    assert.equal((await c.post('/api/admin/sends/diagnostic', { email: 'stranger@example.com' })).status, 403);
+    const a = (await c.post('/api/admin/sends/diagnostic', { email: 'owner-test@example.com' })).data;
+    const b = (await c.post('/api/admin/sends/diagnostic', { email: 'owner-test@example.com', provider: 'brevo' })).data;
+    assert.deepEqual([a.ok, a.provider, b.ok, b.provider], [true, 'ses', true, 'brevo']);
+    assert.deepEqual(hosts, ['email.us-east-1.amazonaws.com', 'api.brevo.com']);
+    assert.ok(!('headers' in bodies[1]), 'no empty headers object is sent to Brevo (it rejects one)');
+  } finally { globalThis.fetch = realFetch; }
+});

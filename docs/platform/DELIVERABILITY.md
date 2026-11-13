@@ -29,7 +29,14 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
   an empty box at first. The text masthead carries the identity regardless.
 - The tracking-on copy recorded an image fetch 5 seconds after delivery while the images were still
   blocked for the reader: Google's systems, not a person. The platform's human estimate excludes it.
-- A third test (tracking off) was sent at 7:40 PM ET on November 12, after the "Not spam" marks.
+- A third test (tracking off) sent at 7:40 PM ET, after the "Not spam" marks, **also went to Spam**. The
+  owner's phone showed a notification first, which suggests Gmail moved it after delivery. Miami's Spam
+  folder also holds ordinary Grubhub order receipts, so Miami's filter is strict for unfamiliar senders.
+- Diagnosis in progress (7:42 PM ET): the same plain message with no links, images, tracking or "[TEST]" was
+  sent once through Amazon SES and once through Brevo (same `brief@readprompted.org`, different sending
+  servers). Both in Spam points at the new domain; only the SES one in Spam points at Amazon's shared servers.
+- A real defect found by this test and fixed: Brevo rejected messages with an empty header list, so the
+  Brevo fallback could not send confirmations or plain messages. Covered by a test now.
 
 Likely causes, in order: the domain is two days old with no sending history; Amazon's shared sending
 addresses; one-off test messages with a "[TEST]" subject. None is a configuration error. What helps, with

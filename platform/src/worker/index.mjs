@@ -432,7 +432,8 @@ async function adminApi(request, env, path, url) {
     if (!String(env.TEST_RECIPIENTS || '').split(',').map(normalizeEmail).includes(to)) return fail(403, 'Not an authorised test inbox.');
     const stamp = now().slice(0, 16).replace('T', ' ');
     const text = `Hi,\n\nThis is a plain delivery check from the Prompted platform, sent ${stamp} UTC. It has no links, images or tracking.\n\nIf you can read this in your inbox, plain delivery from the sending account works.\n\nPrompted`;
-    const res = await sendTransactional(env, to, `Prompted delivery check ${stamp}`, `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5">${esc(text).replace(/\n/g, '<br>')}</div>`, text);
+    if (b.provider && !['ses', 'brevo'].includes(b.provider)) return fail(400, 'Provider must be ses or brevo.');
+    const res = await sendTransactional(env, to, `Prompted delivery check ${stamp}`, `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.5">${esc(text).replace(/\n/g, '<br>')}</div>`, text, { test: true, provider: b.provider || null });
     await audit(db, actor, 'send.diagnostic', null, null, { ok: res.ok, provider: res.provider || null });
     return json({ ok: !!res.ok, provider: res.provider || null, error: res.error || null });
   }

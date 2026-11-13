@@ -375,8 +375,22 @@ export async function retryFailed(env, id, actor) {
 }
 
 /** One-off transactional message (subscription confirmation). Uses the same providers and quota. */
-export async function sendTransactional(env, to, subject, html, text) {
+export async function sendTransactional(env, to, subject, html, text, opts = {}) {
   env = await withMailSettings(env);
+  // opts.test: an owner-initiated test to an authorised inbox (the caller has checked the allowlist).
+  // opts.provider: use only this provider (for comparing senders).
+  if (opts.test) {
+    if (!testAllowlist(env).includes(normalizeEmail(to))) return { ok: false, skipped: true, error: 'not an authorised test inbox' };
+    const chain = providerChain(env, { forTest: true }).filter((p) => !opts.provider || p.name === opts.provider);
+    const provider = chain[0];
+    if (!provider) return { ok: false, error: `provider ${opts.provider || ''} is not available` };
+    const { from, replyTo } = senderFor(env, provider);
+    let res;
+    try { res = await provider.send(env, { from, replyTo, to, subject, html, text, headers: {} }); } catch (e) { res = { ok: false, error: String(e.message || e) }; }
+    if (res.ok) await run(env.DB, 'INSERT INTO provider_usage (provider, day, count) VALUES (?, ?, 1) ON CONFLICT(provider, day) DO UPDATE SET count = count + 1', provider.name, today());
+    await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (NULL, ?, ?, ?, ?, ?)', normalizeEmail(to), res.ok ? 'diagnostic_sent' : 'diagnostic_failed', provider.name, res.ok ? (res.id || null) : (res.error || null), now());
+    return { ...res, provider: provider.name };
+  }
   // The signup form is public, so on the preview anyone could type the owner's test address into it.
   // A real confirmation email there needs the owner's switch (PREVIEW_CONFIRMATIONS = "live");
   // otherwise it is recorded as a dry run and nothing leaves the platform.
