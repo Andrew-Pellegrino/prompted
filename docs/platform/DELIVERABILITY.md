@@ -32,9 +32,23 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
 - A third test (tracking off) sent at 7:40 PM ET, after the "Not spam" marks, **also went to Spam**. The
   owner's phone showed a notification first, which suggests Gmail moved it after delivery. Miami's Spam
   folder also holds ordinary Grubhub order receipts, so Miami's filter is strict for unfamiliar senders.
-- Diagnosis in progress (7:42 PM ET): the same plain message with no links, images, tracking or "[TEST]" was
-  sent once through Amazon SES and once through Brevo (same `brief@readprompted.org`, different sending
-  servers). Both in Spam points at the new domain; only the SES one in Spam points at Amazon's shared servers.
+- **Diagnosis (7:42 and 7:43 PM ET): the same plain message (no links, images, tracking or "[TEST]") sent
+  through Amazon SES and through Brevo both went to Spam.** Different sending servers, same result: Miami's
+  Gmail distrusts the brand-new `readprompted.org` domain itself. Content, design, tracking and the choice
+  of Amazon are ruled out as the cause.
+
+What follows for launch: about 93% of the list are Miami addresses, so this must be solved before the
+cutover, not after. It is a reputation problem, not an engineering one. In order of expected effect:
+1. **Recipient trust signals.** Gmail lets a message through when the reader has the sender in their
+   contacts or has replied to it. Test first: the owner adds `brief@readprompted.org` to the Miami
+   account's contacts, then one more plain check is sent. If it lands in the Inbox, the beehiiv
+   announcement ("add brief@readprompted.org to your contacts") becomes the main lever.
+2. **Miami IT** can mark `readprompted.org` as a trusted sender for the whole university mail system
+   (owner's decision; nobody contacted).
+3. **Time and steady sending:** a slow warm-up to people who expect the email, the same day and volume each
+   week, low complaints. Gmail reputation for a new domain typically takes a few weeks.
+4. **Google Postmaster Tools** (free) to watch the domain's Gmail reputation once volume exists.
+5. Not recommended now: dedicated IP addresses (extra cost, and they need volume to build reputation).
 - A real defect found by this test and fixed: Brevo rejected messages with an empty header list, so the
   Brevo fallback could not send confirmations or plain messages. Covered by a test now.
 
