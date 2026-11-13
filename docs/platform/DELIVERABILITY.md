@@ -16,59 +16,36 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
 | Signup confirmation | one (`workers.dev`) | none | no | Spam |
 | Plain delivery check | none | none | no | Spam |
 
-## First Amazon SES results at Miami (November 12 to 13)
+## Miami test results (November 12, Eastern time): cause not yet established
 
-- Two authorised tests of the latest issue from `brief@readprompted.org` through Amazon SES (tracking off,
-  then on) were **accepted by Miami's mail server** (Amazon's signed delivery reports) and authenticated
-  cleanly (SPF, DKIM as readprompted.org, DMARC: all pass at a real receiver).
-- The owner found both in **Spam** and marked them "Not spam". Gmail's own note on both read "You reported
-  this message as spam from your inbox", which normally means a message first landed in the inbox; the
-  owner's recollection is that they appeared in Spam. Treat the result as **not yet inbox**.
-- No complaint reached Amazon (Google does not send per-message complaints back), so nothing was suppressed.
-- Miami's mail shows external images blocked until "Show images" is pressed, so the lockup image appears as
-  an empty box at first. The text masthead carries the identity regardless.
-- The tracking-on copy recorded an image fetch 5 seconds after delivery while the images were still
-  blocked for the reader: Google's systems, not a person. The platform's human estimate excludes it.
-- A third test (tracking off) sent at 7:40 PM ET, after the "Not spam" marks, **also went to Spam**. The
-  owner's phone showed a notification first, which suggests Gmail moved it after delivery. Miami's Spam
-  folder also holds ordinary Grubhub order receipts, so Miami's filter is strict for unfamiliar senders.
-- **Diagnosis (7:42 and 7:43 PM ET): the same plain message (no links, images, tracking or "[TEST]") sent
-  through Amazon SES and through Brevo both went to Spam.** Different sending servers, same result: Miami's
-  Gmail distrusts the brand-new `readprompted.org` domain itself. Content, design, tracking and the choice
-  of Amazon are ruled out as the cause.
+Six authorised test messages from `brief@readprompted.org` to the owner's Miami address (four full or plain
+messages through Amazon SES, one plain message through Brevo, one plain message after adding the sender to
+the owner's contacts). For every one:
 
-- **Contacts test (8:01 PM ET):** after the owner added `brief@readprompted.org` to the Miami contacts, a
-  plain check still went to Spam. On every one of the six tests Gmail's own explanation was "You reported
-  this message as spam from your inbox", which the owner did not do, and the phone showed a notification
-  before each moved. That pattern (arrives in the inbox, then something acting as the owner moves it to
-  Spam) points at a mail app or a filter on the account rather than at Gmail's own filter: for example a
-  Gmail filter or blocked-sender rule, or another app with the Miami account and a junk filter, which
-  Gmail records as the user reporting spam. To be checked by the owner before drawing conclusions about
-  Miami as a whole.
+- the sending service reported **delivery** (Miami's server accepted it) and no bounce, rejection or
+  complaint came back;
+- copies of the same sends checked at an independent receiver passed **SPF, DKIM (readprompted.org) and
+  DMARC**, with List-Unsubscribe and one-click headers;
+- the owner's phone showed a notification, and the message was then found in **Spam**;
+- Gmail's explanation read **"You reported this message as spam from your inbox"**, although the owner did
+  not knowingly report any of them.
 
-What follows for launch: about 93% of the list are Miami addresses, so this must be solved before the
-cutover, not after. It is a reputation problem, not an engineering one. In order of expected effect:
-1. **Recipient trust signals.** Gmail lets a message through when the reader has the sender in their
-   contacts or has replied to it. Test first: the owner adds `brief@readprompted.org` to the Miami
-   account's contacts, then one more plain check is sent. If it lands in the Inbox, the beehiiv
-   announcement ("add brief@readprompted.org to your contacts") becomes the main lever.
-2. **Miami IT** can mark `readprompted.org` as a trusted sender for the whole university mail system
-   (owner's decision; nobody contacted).
-3. **Time and steady sending:** a slow warm-up to people who expect the email, the same day and volume each
-   week, low complaints. Gmail reputation for a new domain typically takes a few weeks.
-4. **Google Postmaster Tools** (free) to watch the domain's Gmail reputation once volume exists.
-5. Not recommended now: dedicated IP addresses (extra cost, and they need volume to build reputation).
-- A real defect found by this test and fixed: Brevo rejected messages with an empty header list, so the
-  Brevo fallback could not send confirmations or plain messages. Covered by a test now.
+Ruled out on our side: authentication, content (a plain message with no links, images or tracking behaved
+the same), a single sending service (Amazon and Brevo behaved the same), and the owner's account settings
+(no filters, sender not blocked, no third-party mail app identified, sender in contacts). An earlier note
+that Grubhub receipts in Spam showed a strict Miami filter was wrong: those addresses were blocked by the
+owner.
 
-Likely causes, in order: the domain is two days old with no sending history; Amazon's shared sending
-addresses; one-off test messages with a "[TEST]" subject. None is a configuration error. What helps, with
-no code change needed: a slow warm-up to people who expect the email (already built), readers adding
-`brief@readprompted.org` to their contacts (the planned announcement from beehiiv), consistent weekly
-volume, and, for Miami specifically, asking Miami IT to treat `readprompted.org` as a trusted sender
-(owner's decision; nobody has been contacted). Optional and free: Google Postmaster Tools for
-`readprompted.org` shows Gmail's view of the domain's reputation once volume builds (the owner adds the
-domain in Postmaster Tools; Claude can add the verification record to DNS).
+**The cause is not established.** Domain reputation, a Gmail or Miami policy, or a tool acting on the
+mailbox all remain possible, and the "you reported" wording is unexplained. The owner is contacting Miami
+IT with a technical summary (private Google Doc "Prompted — email delivery investigation for Miami IT",
+with Message-IDs and timestamps; not in this repository). No more diagnostic emails until there is a
+specific reason, such as a trace requested by Miami IT.
+
+Other observations: Miami shows external images only after "Show images", so the lockup image is at first
+an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
+blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
+fixed one real defect: Brevo rejected messages with an empty header list.
 
 ## Open concern: Miami recipients who say they never saw Prompted (November 12)
 
