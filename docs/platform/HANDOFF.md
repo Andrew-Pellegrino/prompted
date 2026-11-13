@@ -18,7 +18,7 @@ sender until the owner's final GO; the audience lock (`AUDIENCE_SENDING`) stays 
 | SES setup | Domain, DKIM, MAIL FROM, configuration set, signed SNS, Auto Validation off, VDM engagement off, optimized shared delivery on, account suppression for bounces and complaints | Live SES API through the dashboard |
 | Real SES sending through the platform | Single and **bulk** verified: simulator (success, bounce, complaint, suppression list, out-of-office), our own domain, and the owner's Miami inbox; signed Send, Delivery, Bounce and Complaint reports processed | `SENDING-PROVIDER.md` |
 | Authentication at a real receiver | SPF, DKIM and DMARC pass; List-Unsubscribe and one-click present | `/api/admin/inbound-checks` |
-| Miami inbox placement | Two test emails delivered (tracking off and on); **owner to report where they landed** | Delivery reports |
+| Miami inbox placement | Two test emails delivered and authenticated, but found in **Spam** (owner marked Not spam); a third sent after that, result pending. Not a configuration fault; reputation of a two-day-old domain | `DELIVERABILITY.md`, placement log |
 | Interrupted runs | Settled automatically by Amazon's Send report or re-queued after an hour of silence; never blindly resent | Tests and a real Send report |
 | Processing time | Send runs 19 to 36 ms vs 10 ms nominal, no errors; damage limited by the settling above | Cloudflare analytics |
 | Index section in emails | Adopted, on for every send, per-term clicks | Test emails, dashboard |

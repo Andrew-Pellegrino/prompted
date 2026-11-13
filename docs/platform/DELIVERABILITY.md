@@ -16,6 +16,30 @@ marked them "Not spam". The sending account's own inbox shows no rejection notic
 | Signup confirmation | one (`workers.dev`) | none | no | Spam |
 | Plain delivery check | none | none | no | Spam |
 
+## First Amazon SES results at Miami (November 12 to 13)
+
+- Two authorised tests of the latest issue from `brief@readprompted.org` through Amazon SES (tracking off,
+  then on) were **accepted by Miami's mail server** (Amazon's signed delivery reports) and authenticated
+  cleanly (SPF, DKIM as readprompted.org, DMARC: all pass at a real receiver).
+- The owner found both in **Spam** and marked them "Not spam". Gmail's own note on both read "You reported
+  this message as spam from your inbox", which normally means a message first landed in the inbox; the
+  owner's recollection is that they appeared in Spam. Treat the result as **not yet inbox**.
+- No complaint reached Amazon (Google does not send per-message complaints back), so nothing was suppressed.
+- Miami's mail shows external images blocked until "Show images" is pressed, so the lockup image appears as
+  an empty box at first. The text masthead carries the identity regardless.
+- The tracking-on copy recorded an image fetch 5 seconds after delivery while the images were still
+  blocked for the reader: Google's systems, not a person. The platform's human estimate excludes it.
+- A third test (tracking off) was sent at 7:40 PM ET on November 12, after the "Not spam" marks.
+
+Likely causes, in order: the domain is two days old with no sending history; Amazon's shared sending
+addresses; one-off test messages with a "[TEST]" subject. None is a configuration error. What helps, with
+no code change needed: a slow warm-up to people who expect the email (already built), readers adding
+`brief@readprompted.org` to their contacts (the planned announcement from beehiiv), consistent weekly
+volume, and, for Miami specifically, asking Miami IT to treat `readprompted.org` as a trusted sender
+(owner's decision; nobody has been contacted). Optional and free: Google Postmaster Tools for
+`readprompted.org` shows Gmail's view of the domain's reputation once volume builds (the owner adds the
+domain in Postmaster Tools; Claude can add the verification record to DNS).
+
 ## Open concern: Miami recipients who say they never saw Prompted (November 12)
 
 Two members of the SEPi group who joined on October 12 told the owner they had not seen Prompted. In
