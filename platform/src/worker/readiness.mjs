@@ -27,9 +27,11 @@ export async function cutoverReadiness(env) {
   out.push(item('Audience', 'Ledger imported from beehiiv within the last 24 hours', ageH !== null && ageH <= 24, lastImport ? `${lastImport.source_label}, ${Math.round(ageH)} h ago; now ${JSON.stringify(counts)}` : 'no beehiiv import'));
   out.push(item('Audience', 'Suppression list loaded', (await first(db, 'SELECT COUNT(*) AS n FROM suppressions')).n >= (counts.unsubscribed || 0) + (counts.bounced || 0) + (counts.complained || 0), `${(await first(db, 'SELECT COUNT(*) AS n FROM suppressions')).n} suppressed addresses`));
   const placements = await all(db, "SELECT inbox, result FROM placement_tests WHERE sender LIKE '%readprompted.org%' OR sender LIKE '%ses%' ORDER BY id DESC");
-  const groups = ['Miami', 'Gmail', 'Outlook', 'iCloud'];
+  // Owner decision (November 13): Miami University (Google Workspace) and personal Gmail are the launch
+  // requirement. Outlook and iCloud results are recorded when available but do not block the launch.
+  const groups = ['Miami', 'Gmail'];
   const seen = groups.map((g) => [g, placements.find((p) => p.inbox.toLowerCase().includes(g.toLowerCase()))]);
-  out.push(item('Deliverability', 'Inbox placement proven for Miami, Gmail, Outlook and iCloud from the domain', seen.every(([, p]) => p && p.result === 'inbox'), seen.map(([g, p]) => `${g}: ${p ? p.result : 'not tested'}`).join(', ')));
+  out.push(item('Deliverability', 'Inbox placement confirmed by the owner for Miami and personal Gmail from the domain', seen.every(([, p]) => p && p.result === 'inbox'), seen.map(([g, p]) => `${g}: ${p ? p.result : 'not tested'}`).join(', ')));
   const env2 = await withMailSettings(env), q = await quotas(env2);
   out.push(item('Switches', 'Audience lock (AUDIENCE_SENDING)', true, env.AUDIENCE_SENDING === 'enabled' ? 'ENABLED: the real audience can be sent' : 'locked: the audience can only get dry runs', 'info'));
   out.push(item('Switches', 'Sending mode and site mode', true, `SEND_MODE=${env.SEND_MODE || 'dryrun'}, SITE_ENV=${env.SITE_ENV}, audience chain ${q.map((x) => x.name).join(' > ')}`, 'info'));

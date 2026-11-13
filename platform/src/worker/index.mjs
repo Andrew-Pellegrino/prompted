@@ -7,6 +7,7 @@ import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
 import { sesStatus, sesEvents, refreshSesAccount } from './ses.mjs';
 import { cutoverReadiness } from './readiness.mjs';
+import { handleInbound, authVerdicts } from './inbound.mjs';
 import { verifySnsMessage, isAmazonSnsUrl } from './sns.mjs';
 import { openRoute, clickRoute, legacyClickRoute, legacyOpenRoute, engagementReport, engagementTrend, pruneEngagement, HUMAN_RULES } from './engagement.mjs';
 // The site address for safe fallbacks, without reading the database or the built site.
@@ -185,7 +186,7 @@ async function sesHook(request, env) {
  *   not_sent     the provider refused or could not build the message: marked not delivered, person unchanged
  *   bounce_soft, delayed   temporary: recorded only
  */
-async function applyDeliveryEvents(env, provider, events) {
+export async function applyDeliveryEvents(env, provider, events) {
   let handled = 0;
   for (const ev of events) {
     const type = ev.type, msgId = ev.msgId;
@@ -195,6 +196,7 @@ async function applyDeliveryEvents(env, provider, events) {
       || await first(env.DB, 'SELECT send_id, person_id FROM send_recipients WHERE email_norm = ? ORDER BY send_id DESC LIMIT 1', email);
     const reason = String(ev.reason || '').slice(0, 300) || null;
     await run(env.DB, 'INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, ?, ?, ?, ?)', rec?.send_id ?? null, email, type, provider, reason, now());
+    if (type === 'accepted' && ev.sendId) await run(env.DB, "UPDATE send_recipients SET status = 'sent', sent_at = COALESCE(sent_at, ?), provider_message_id = COALESCE(provider_message_id, ?), last_error = NULL WHERE send_id = ? AND email_norm = ? AND (status = 'sending' OR (status = 'failed' AND last_error LIKE 'unconfirmed%') OR (status = 'queued' AND last_error LIKE 'requeued%'))", now(), msgId || null, ev.sendId, email);
     if (rec && type === 'delivered') await run(env.DB, "UPDATE send_recipients SET status = 'delivered', delivered_at = ? WHERE send_id = ? AND email_norm = ? AND status = 'sent'", now(), rec.send_id, email);
     if (rec && (type === 'held' || type === 'not_sent')) await run(env.DB, "UPDATE send_recipients SET status = 'failed', last_error = ? WHERE send_id = ? AND email_norm = ? AND status IN ('sent','delivered')", reason || 'not sent by the provider', rec.send_id, email);
     if (type === 'bounce_hard' || type === 'complaint' || type === 'unsubscribe') {
@@ -272,6 +274,7 @@ async function adminApi(request, env, path, url) {
   if (path === 'me') return json({ ok: true, actor, env: env.SITE_ENV || 'preview', send_mode: env.SEND_MODE === 'live' ? 'live' : 'dryrun' });
   if (path === 'dashboard') return json(await dashboard(env));
   if (path === 'cutover/readiness') return json(await cutoverReadiness(env));
+  if (path === 'inbound-checks') return json({ address: env.INBOUND_CHECK_ADDRESS || null, rows: (await all(db, 'SELECT id, received_at, mail_from, subject, headers FROM inbound_checks ORDER BY id DESC LIMIT 20')).map((r) => { const h = JSON.parse(r.headers); return { ...r, headers: h, verdicts: authVerdicts(h) }; }) });
   const engM = /^sends\/(\d+)\/engagement$/.exec(path);
   if (engM) return json(await engagementReport(db, Number(engM[1])));
   if (path === 'engagement/trend') return json({ rows: await engagementTrend(db), rules: HUMAN_RULES });
@@ -364,6 +367,13 @@ async function adminApi(request, env, path, url) {
     await audit(db, actor, 'export.people', null, null, { rows: rows.length, filters: q });
     return new Response(toCsv(PEOPLE_COLUMNS, rows), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="prompted-people-${now().slice(0, 10)}.csv"`, 'cache-control': 'no-store' } });
   }
+  // Who a send has reached, for the transition week: beehiiv must exclude these addresses so nobody gets two copies.
+  const sentM = /^sends\/(\d+)\/recipients\.csv$/.exec(path);
+  if (sentM) {
+    const rows = await all(db, "SELECT email_norm AS email, status, sent_at, provider FROM send_recipients WHERE send_id = ? AND status IN ('sent','delivered','bounced','complained') ORDER BY email_norm", Number(sentM[1]));
+    await audit(db, actor, 'export.send_recipients', 'send', Number(sentM[1]), { rows: rows.length });
+    return new Response(toCsv(['email', 'status', 'sent_at', 'provider'], rows), { headers: { 'content-type': 'text/csv; charset=utf-8', 'content-disposition': `attachment; filename="prompted-send-${sentM[1]}-reached.csv"`, 'cache-control': 'no-store' } });
+  }
   if (path === 'export/backup.json') {
     await audit(db, actor, 'export.backup');
     return new Response(JSON.stringify(await fullBackup(env)), { headers: { 'content-type': 'application/json', 'content-disposition': `attachment; filename="prompted-backup-${now().slice(0, 10)}.json"`, 'cache-control': 'no-store' } });
@@ -406,7 +416,9 @@ async function adminApi(request, env, path, url) {
   if ((m = /^issues\/([a-z0-9-]+)\/email$/.exec(path))) {
     // ?index_terms=1 shows the optional "In the Prompted Index" block, for review only.
     const issue = await loadIssue(env, m[1]), site = await siteConfig(env);
-    const terms = url.searchParams.get('index_terms') === '1' ? await indexTermsFor(env, issue, site) : [];
+    // The Index section appears when it is switched on for sends (INDEX_TERMS_EMAIL = "on"), or with ?index_terms=1; ?index_terms=0 hides it.
+    const wantTerms = url.searchParams.get('index_terms') === '1' || (env.INDEX_TERMS_EMAIL === 'on' && url.searchParams.get('index_terms') !== '0');
+    const terms = wantTerms ? await indexTermsFor(env, issue, site) : [];
     const email = renderIssueEmail(issue, site, { indexTerms: terms });
     return new Response(fillRecipient(email.html, { unsubscribeUrl: site.url + '/unsubscribed/', webUrl: `${site.url}/issues/${issue.slug}/`, openPixelUrl: null }), { headers: { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store' } });
   }
@@ -502,6 +514,7 @@ export default {
     if (path.startsWith('/api/admin/')) out.headers.set('x-robots-tag', 'noindex, nofollow');
     return out;
   },
+  async email(message, env) { await handleInbound(message, env); },
   async scheduled(event, env, ctx) {
     ctx.waitUntil((async () => {
       try {

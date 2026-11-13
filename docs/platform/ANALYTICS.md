@@ -62,12 +62,7 @@ The dashboard always shows it next to the raw figures, labelled as an estimate.
 
 ## The optional "In the Prompted Index" block
 
-Off (`INDEX_TERMS_EMAIL = ""`). Not adopted; shown to the owner for a decision. When used, it adds a
-small labelled line of up to five Index term names under the sign-off, each linking to its Index entry
-(and tracked per term). Terms are picked from the issue's own text: mentioned more than once if possible,
-favouring terms that are distinctive to the issue. It adds no words to and changes nothing in the
-editorial text (tested byte for byte). Preview it in the dashboard (Publish, the checkbox above the email
-preview) or with `INDEX_TERMS_EMAIL = "preview"` in test sends.
+Adopted by the owner on November 13 (`INDEX_TERMS_EMAIL = "on"`). It adds a
 
 ## Turning tracking on (owner's decision, not yet given)
 

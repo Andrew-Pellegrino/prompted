@@ -24,6 +24,7 @@ const audienceLocked = (env, send) => send.kind !== 'test' && env.AUDIENCE_SENDI
 const isProduction = (env) => env.SITE_ENV === 'production';
 const MAX_ATTEMPTS = 3;
 const STALE_CLAIM_MS = 15 * 60 * 1000;
+const SES_SETTLE_MS = 60 * 60 * 1000;
 
 /**
  * Add mail settings kept in the private database to env. The Gmail refresh token is stored there by the
@@ -64,6 +65,7 @@ function perTick(provider, env, send, chunkSize) {
   if (provider.sendBatch && provider.bulkEnabled?.(env)) { const p = provider.batchPlan(env); return p.perCall * p.calls; }
   return provider.maxPerTick ? provider.maxPerTick(env) : chunkSize;
 }
+const chunks = (list, n) => { const out = []; for (let i = 0; i < list.length; i += n) out.push(list.slice(i, i + n)); return out; };
 const pause = (ms) => (ms > 0 ? new Promise((r) => setTimeout(r, ms)) : null);
 
 const contentHash = (issue) => sha256(issue.title + '\n' + issue.subtitle + '\n' + blocksText(issue.blocks));
@@ -192,8 +194,15 @@ const listHeaders = (unsub) => ({ 'List-Unsubscribe': `<${unsub}>`, 'List-Unsubs
 export async function processSend(env, send) {
   env = await withMailSettings(env);
   const db = env.DB, chunkSize = Number(env.SEND_CHUNK || 20);
-  // 1. A claim that never got a result is NOT retried automatically: it may have been delivered.
-  await run(db, "UPDATE send_recipients SET status = 'failed', last_error = 'unconfirmed: handed to provider but no result recorded; check the provider log before retrying' WHERE send_id = ? AND status = 'sending' AND claimed_at < ?",
+  // 1. A claim that never got a result (the run was stopped part-way) is never blindly resent.
+  //    SES with signed reports connected: Amazon's "Send" report settles it (see applyDeliveryEvents). If no
+  //    report has come after an hour, Amazon never accepted the message, so it goes back to the queue.
+  //    Any other provider: marked failed for the owner to check the provider's log before retrying.
+  const reports = JSON.parse((await first(db, "SELECT value FROM settings WHERE key = 'ses_reports'"))?.value || '{}');
+  const sesSettles = !!reports.subscribed_at && !reports.unsubscribed_at;
+  if (sesSettles) await run(db, "UPDATE send_recipients SET status = 'queued', claimed_at = NULL, last_error = 'requeued: Amazon never reported accepting it' WHERE send_id = ? AND status = 'sending' AND provider = 'ses' AND claimed_at < ?",
+    send.id, new Date(Date.now() - SES_SETTLE_MS).toISOString());
+  await run(db, `UPDATE send_recipients SET status = 'failed', last_error = 'unconfirmed: handed to provider but no result recorded; check the provider log before retrying' WHERE send_id = ? AND status = 'sending' AND claimed_at < ?${sesSettles ? " AND provider <> 'ses'" : ''}`,
     send.id, new Date(Date.now() - STALE_CLAIM_MS).toISOString());
   const reserve = send.kind === 'test' ? 0 : Number(env.QUOTA_RESERVE || 10);
   if (audienceLocked(env, send)) env = { ...env, SEND_MODE: 'dryrun' };
@@ -223,7 +232,8 @@ export async function processSend(env, send) {
     const pixelUrl = trackOpens ? `${site.url}/o/{{TRACK}}.gif` : null;
     // 2. Claim before sending so a crash cannot produce a duplicate.
     const claimedAt = now();
-    await db.batch(queued.map((r) => stmt(db, "UPDATE send_recipients SET status = 'sending', claimed_at = ?, attempts = attempts + 1, provider = ? WHERE send_id = ? AND email_norm = ? AND status = 'queued'", claimedAt, provider.name, send.id, r.email_norm)));
+    // Grouped statements (D1 allows 100 bound values each): a few per run instead of one per person.
+    await db.batch(chunks(queued, 90).map((part) => stmt(db, `UPDATE send_recipients SET status = 'sending', claimed_at = ?, attempts = attempts + 1, provider = ? WHERE send_id = ? AND status = 'queued' AND email_norm IN (${part.map(() => '?').join(',')})`, claimedAt, provider.name, send.id, ...part.map((r) => r.email_norm))));
     const results = [];
     const allow = testAllowlist(env);
     let paused = null; // set when the provider says "not now" (rate limit, expired sign-in): nothing more is attempted this run
@@ -250,7 +260,7 @@ export async function processSend(env, send) {
         let out;
         try {
           out = await provider.sendBatch(env, { from, replyTo, subject: send.subject, html: bulkHtml, text: bulkText,
-            recipients: chunk.map((r) => ({ to: r.email_norm, token: r.token, track: r.track_id, headers: listHeaders(`${site.url}/u/${r.token}`) })) });
+            sendId: send.id, recipients: chunk.map((r) => ({ to: r.email_norm, token: r.token, track: r.track_id, headers: listHeaders(`${site.url}/u/${r.token}`) })) });
         } catch (e) { out = chunk.map(() => ({ ok: false, error: String(e.message || e).slice(0, 300), retryable: true })); }
         chunk.forEach((r, k) => {
           let res = out[k];
@@ -266,7 +276,7 @@ export async function processSend(env, send) {
         const vars = { unsubscribeUrl: unsub, webUrl, token: r.token, track: r.track_id, openPixelUrl: pixelUrl };
         let res;
         try {
-          res = await provider.send(env, { from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, { ...vars, webUrl: plainWebUrl, openPixelUrl: null }, false), headers: listHeaders(unsub) });
+          res = await provider.send(env, { sendId: send.id, from, replyTo, to: r.email_norm, subject: send.subject, html: fillRecipient(email.html, vars), text: fillRecipient(email.text, { ...vars, webUrl: plainWebUrl, openPixelUrl: null }, false), headers: listHeaders(unsub) });
         } catch (e) { res = { ok: false, error: String(e.message || e).slice(0, 300), retryable: true }; }
         // A test send has no audience to protect: a refused key or permission fails it at once instead of retrying every minute.
         if (res.authError && send.kind === 'test') { res = { ...res, retryable: false }; paused = res; }
@@ -276,13 +286,12 @@ export async function processSend(env, send) {
     }
     if (paused) await run(db, "INSERT INTO settings (key, value) VALUES ('delivery_last_problem', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value", JSON.stringify({ at: now(), provider: provider.name, message: paused.error }));
     // 3. Record results in one batch.
-    const at = now(), stmts = [];
+    const at = now(), stmts = [], okRows = [];
     let sent = 0;
     for (const { r, res } of results) {
       if (res.ok) {
         sent++;
-        stmts.push(stmt(db, "UPDATE send_recipients SET status = 'sent', sent_at = ?, provider_message_id = ?, last_error = NULL WHERE send_id = ? AND email_norm = ?", at, res.id || null, send.id, r.email_norm));
-        stmts.push(stmt(db, "INSERT INTO delivery_events (send_id, email_norm, type, provider, at) VALUES (?, ?, 'sent', ?, ?)", send.id, r.email_norm, provider.name, at));
+        okRows.push({ email: r.email_norm, id: res.id || null });
       } else if (res.deferred) {
         // Back to the queue untouched: a provider pause is not a failed attempt.
         stmts.push(stmt(db, "UPDATE send_recipients SET status = 'queued', claimed_at = NULL, attempts = MAX(0, attempts - 1), last_error = ? WHERE send_id = ? AND email_norm = ?", res.error || null, send.id, r.email_norm));
@@ -292,6 +301,11 @@ export async function processSend(env, send) {
         if (status === 'failed') stmts.push(stmt(db, "INSERT INTO delivery_events (send_id, email_norm, type, provider, detail, at) VALUES (?, ?, 'failed', ?, ?, ?)", send.id, r.email_norm, provider.name, res.error || null, at));
       }
     }
+    for (const part of chunks(okRows, 30)) {
+      stmts.push(stmt(db, `UPDATE send_recipients SET status = 'sent', sent_at = ?, last_error = NULL, provider_message_id = CASE email_norm ${part.map(() => 'WHEN ? THEN ?').join(' ')} END WHERE send_id = ? AND email_norm IN (${part.map(() => '?').join(',')})`,
+        at, ...part.flatMap((x) => [x.email, x.id]), send.id, ...part.map((x) => x.email)));
+    }
+    for (const part of chunks(okRows, 24)) stmts.push(stmt(db, `INSERT INTO delivery_events (send_id, email_norm, type, provider, at) VALUES ${part.map(() => "(?, ?, 'sent', ?, ?)").join(',')}`, ...part.flatMap((x) => [send.id, x.email, provider.name, at])));
     if (sent) stmts.push(stmt(db, 'INSERT INTO provider_usage (provider, day, count) VALUES (?, ?, ?) ON CONFLICT(provider, day) DO UPDATE SET count = count + excluded.count', provider.name, today(), sent));
     await db.batch(stmts);
   }

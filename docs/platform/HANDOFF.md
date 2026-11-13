@@ -8,26 +8,29 @@ A fully independent Prompted publishing platform: website, archive, subscriber d
 publishing, scheduling, sending and analytics, with no beehiiv and no Miami University infrastructure,
 at $0. beehiiv keeps running only as a safety net until an owner-approved cutover.
 
-## Current state (November 12, late). Read this first; older sections below are history.
+## Current state (November 13). Read this first; older sections below are history.
 
-**Infrastructure is finished as far as Amazon's sandbox allows. beehiiv stays the live sender; no cutover.**
+**Everything that can be done before Amazon grants production access is done. beehiiv stays the live
+sender until the owner's final GO; the audience lock (`AUDIENCE_SENDING`) stays off.**
 
-| Workstream | State | Evidence |
+| Area | State | Evidence |
 | --- | --- | --- |
-| SES configuration | Domain, DKIM, MAIL FROM, configuration set, signed SNS reports, Auto Validation off, Amazon tracking off: all verified live | Dashboard SES panel, readiness check |
-| Real SES sends through the platform | Simulator only: delivered; real bounce and complaint reports suppressed the addresses | `SENDING-PROVIDER.md` "Real SES results" |
-| Bulk sending | **Blocked by IAM** (needs `ses:SendBulkTemplatedEmail`); off | Amazon's refusal message |
-| Real test to the owner's Miami inbox | **Blocked by IAM** in the sandbox (recipient identity not in the policy); nothing sent | Amazon's refusal message |
-| Postal address | Owner-approved, stored as a Worker secret | QA passes |
-| Real ledger in private staging | 262 imported (255 / 2 / 5), CRM organisations merged, comparison in agreement, backups kept privately | Dashboard, `HANDOFF.md` database section |
-| Full-list rehearsals | Local against simulated SES: 21 of 21. Deployed staging dry run: 255 in 4 minutes, no errors | `CUTOVER-RUNBOOK.md` rehearsal record |
-| Cutover and rollback | Runbook written; live readiness check deployed: NO-GO, 4 external blockers | `/api/admin/cutover/readiness` |
+| SES setup | Domain, DKIM, MAIL FROM, configuration set, signed SNS, Auto Validation off, VDM engagement off, optimized shared delivery on, account suppression for bounces and complaints | Live SES API through the dashboard |
+| Real SES sending through the platform | Single and **bulk** verified: simulator (success, bounce, complaint, suppression list, out-of-office), our own domain, and the owner's Miami inbox; signed Send, Delivery, Bounce and Complaint reports processed | `SENDING-PROVIDER.md` |
+| Authentication at a real receiver | SPF, DKIM and DMARC pass; List-Unsubscribe and one-click present | `/api/admin/inbound-checks` |
+| Miami inbox placement | Two test emails delivered (tracking off and on); **owner to report where they landed** | Delivery reports |
+| Interrupted runs | Settled automatically by Amazon's Send report or re-queued after an hour of silence; never blindly resent | Tests and a real Send report |
+| Processing time | Send runs 19 to 36 ms vs 10 ms nominal, no errors; damage limited by the settling above | Cloudflare analytics |
+| Index section in emails | Adopted, on for every send, per-term clicks | Test emails, dashboard |
+| Analytics | First-party, configurable, **off** by default; verified with a real test email | `ANALYTICS.md` |
+| Staging ledger | Real 262 (255 / 2 / 5) + 1 owner test record (prospective, never in an audience); beehiiv unchanged since import (checked Nov 13) | Dashboard, beehiiv counts |
+| Rehearsals | 25 of 25 against simulated SES on the real ledger (incl. refresh changes and the transition-week export); deployed dry runs: 255 in 4 minutes, twice | `CUTOVER-RUNBOOK.md` |
+| Cutover | Runbook and live readiness check; NO-GO only for AWS production access, daily limit, and the owner's Miami and personal-Gmail placement results | `/api/admin/cutover/readiness` |
+| Security | Audit done, no open defects; accepted risks listed | `SECURITY-AUDIT.md` |
 
-Owner action that unblocks the rest: the IAM policy in `OWNER-SETUP.md` 6g. Then Claude resends the
-Miami test through the platform, turns bulk on and proves it with Amazon's simulator.
-External: Amazon production access (under review). Then: seed tests across groups, the tracking seed
-test, the owner's cutover date. Risk to watch: send runs use more processing time than the free plan's
-nominal limit (no errors so far).
+Remaining, all outside engineering: Amazon's production access; then a real multi-recipient send and the
+real rate; the owner's placement reports (Miami now, personal Gmail after production access); the separate
+beehiiv-versus-Prompted comparison; the owner's final GO.
 
 ## Status at a glance
 
@@ -272,7 +275,7 @@ Rules while it does:
    handshake was recorded (`ses.reports_connected` in the audit log).
 2. After production access: read the real limits in the dashboard, recompute the pace table, set
    `SES_BULK = "on"` once the IAM permission exists, and propose seed tests (owner approves each).
-3. Seed tests across groups (Gmail, Outlook, iCloud, Miami and another university) from
+3. Seed tests (Miami and personal Gmail required; others optional) from
    `brief@readprompted.org`; record each in the placement log.
 4. After owner approval: empty the preview database, import the full beehiiv export and the CRM,
    reconcile counts by status against beehiiv.

@@ -29,20 +29,23 @@ SITE_URL = "https://readprompted.org"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"
 # Order of preference. A provider is skipped until its credentials are stored as secrets.
-EMAIL_PROVIDERS = "ses,brevo,resend,gmail"
+EMAIL_PROVIDERS = "ses,brevo"
 # Amazon SES: the AWS region the sending account lives in. Keys are secrets (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY).
 SES_REGION = "us-east-1"
 # The SES configuration set that carries event reports (bounces, complaints, deliveries) to the SNS topic.
 SES_CONFIGURATION_SET = "prompted-newsletter"
 # "on" sends in bulk requests (up to a second's worth of people each). The IAM key has ses:SendBulkEmail
 # (separate statement; the From address is enforced in ses.mjs because IAM cannot enforce it for bulk).
-SES_BULK = ""
+SES_BULK = "on"
 # Test sends may use SES while the account is still in Amazon's sandbox (only verified recipients and the
 # mailbox simulator are reachable there). The audience is unaffected: see AUDIENCE_SENDING.
 SES_USE_IN_SANDBOX = "true"
 # Hard lock for the real audience. Anything but "enabled" forces issue sends to the dry-run adapter,
 # whatever SEND_MODE says. Set to "enabled" only at an approved cutover.
 AUDIENCE_SENDING = ""
+# One address on our own domain whose mail Cloudflare Email Routing hands to this Worker, so the platform can
+# read how a real receiving server judged our own test emails (SPF, DKIM, DMARC). Headers only.
+INBOUND_CHECK_ADDRESS = "seed-check@readprompted.org"
 # Rehearsals on the staging ledger: the dry-run adapter paces itself like SES bulk at this rate.
 DRYRUN_BULK = "on"
 DRYRUN_RATE = "14"
@@ -60,9 +63,9 @@ QUOTA_RESERVE = "10"
 # tests: the plan is a seed round without tracking, then the same seed with it, and only then real use.
 TRACK_OPENS = "false"
 TRACK_CLICKS = "false"
-# Optional "In the Prompted Index" block in the email: "" (off), "preview" (dashboard preview and test
-# sends only) or "on" (every send). Not adopted yet; the owner decides after seeing it.
-INDEX_TERMS_EMAIL = ""
+# "In the Prompted Index" block in the email: "" (off), "preview" (dashboard preview and test sends only)
+# or "on" (every send). Adopted by the owner on November 13.
+INDEX_TERMS_EMAIL = "on"
 # Retention: detailed open and click events (days), then per-reader counters (days). Issue totals are kept.
 EVENT_RETENTION_DAYS = "90"
 RECIPIENT_ENGAGEMENT_DAYS = "400"

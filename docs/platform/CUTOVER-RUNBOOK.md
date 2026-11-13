@@ -14,7 +14,9 @@ Rehearsed on November 12, 2026 against the real staged ledger (see "Rehearsal re
 | `SEND_MODE` | `dryrun` | `live` | Real providers may be used |
 | `AUDIENCE_SENDING` | `""` | `enabled` | Second, independent lock: without it the audience only ever gets dry runs |
 | `SES_USE_IN_SANDBOX` | `true` | `""` | Test sends through SES before production access |
-| `SES_BULK` | `""` until the IAM fix | `on` | Bulk requests (needed for the Monday pace) |
+| `SES_BULK` | `on` (verified) | `on` | Bulk requests (needed for the Monday pace) |
+| `INDEX_TERMS_EMAIL` | `on` | `on` | The adopted "In the Prompted Index" section |
+| `EMAIL_PROVIDERS` | `ses,brevo` | `ses,brevo` | SES first, Brevo as fallback (Gmail retired) |
 | `DRYRUN_BULK` | `on` | `""` | Rehearsal pacing only |
 | `TRACK_OPENS`, `TRACK_CLICKS` | `false` | owner's decision after the tracking seed test | First-party analytics |
 | `PREVIEW_CONFIRMATIONS` | `""` | not used in production | Signup confirmations are real in production |
@@ -27,7 +29,8 @@ A cutover is one deploy that changes the first three switches together, after ev
 1. `GET /api/admin/cutover/readiness` must show **go: true**. It checks live: SES production access and
    limits, domain DKIM and MAIL FROM, signed SNS reports, Auto Validation off, Amazon tracking off, bulk on,
    SPF/DKIM/DMARC/MX, postal address, a beehiiv ledger imported within 24 hours, suppressions loaded,
-   and inbox placement recorded as "inbox" for Miami, Gmail, Outlook and iCloud from the domain.
+   and inbox placement confirmed by the owner for Miami University and personal Gmail (Outlook and iCloud
+   results are welcome but not required).
 2. Seed tests (each approved by the owner): the latest issue to the seed inboxes, first without tracking,
    then with tracking. Record each result in the dashboard placement log. The Miami cross-group check in
    `CUTOVER-MANIFEST.md` must pass.
@@ -54,7 +57,9 @@ A cutover is one deploy that changes the first three switches together, after ev
    `SITE_URL=https://readprompted.org SITE_ENV=production npm run build && npx wrangler deploy`.
 2. Check: `/robots.txt` allows crawling, no preview banner, `GET /api/admin/providers` shows the audience
    chain `ses > brevo` (not `dryrun`), `GET /api/admin/cutover/readiness` still go.
-3. Approve and schedule the issue in the dashboard (default slot 8:45 a.m. Eastern). With
+3. Export, if warming up, who the platform will reach: after the first run, `GET /api/admin/sends/<id>/recipients.csv`
+   lists everyone reached so far; beehiiv's send that week must exclude them.
+4. Approve and schedule the issue in the dashboard (default slot 8:45 a.m. Eastern). With
    `WARMUP` set, the platform stops at the day's cap; beehiiv covers the rest that week (send from beehiiv
    **only** to people the platform has not reached: export the platform's sent list first).
 4. Watch from 8:45: the send page shows sent, delivered, bounced, complained and failed counts within
@@ -73,7 +78,8 @@ Index subscribe buttons (right after a Monday Index run), LinkedIn task link tar
 | "Amazon SES says not now" | Rate or daily limit reached, or Amazon paused sending | Nothing; the send resumes on the next run. If paused, read the SES console |
 | "refused the access key or its permissions" | IAM problem | Fix the policy; the send resumes by itself; nobody is lost |
 | Failed recipients | Rejected addresses | Check the reason; retry only after checking Amazon's log (`Retry failed`) |
-| "unconfirmed: handed to provider but no result recorded" | A run stopped mid-request | Check Amazon's log before retrying, or that person may get two copies |
+| "requeued: Amazon never reported accepting it" | A run stopped mid-request and Amazon has no record of the message | Nothing; it is sent on the next run |
+| "unconfirmed: handed to provider but no result recorded" | Same, with a provider other than SES (or SES reports disconnected) | Check that provider's log before retrying, or that person may get two copies |
 | Bounce or complaint rate climbing | List or content problem | Cancel the rest of the send; switch back (below) |
 
 ## Rollback (any time; minutes)

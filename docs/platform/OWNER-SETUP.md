@@ -169,20 +169,19 @@ send".
 
 No test email is sent until the owner approves that specific send.
 
-### 6e. Main sender: Amazon SES — set up, waiting for Amazon
+### 6e. Main sender: Amazon SES — DONE except Amazon's production access
 
 Why, what it costs, how fast it sends and what is proven: `SENDING-PROVIDER.md`.
 
-Done by the owner on November 12: AWS account (paid plan, root passkey, no root keys, $5 budget alert),
-`readprompted.org` identity with MAIL FROM `bounce.readprompted.org` (Verified), production access
-request (Marketing; **under review**), IAM user `prompted-ses-sender` with a restricted policy and its key
-stored as Worker secrets, configuration set `prompted-newsletter` (domain default) with an event
-destination to the SNS topic `prompted-ses-events`, Auto Validation turned off.
+All owner steps are done (November 12 to 13): AWS account (paid plan, root passkey, no root keys, $5 budget
+alert), `readprompted.org` identity with MAIL FROM `bounce.readprompted.org`, production access requested
+(**under review**), IAM user `prompted-ses-sender` with its key stored as Worker secrets, configuration set
+`prompted-newsletter` (domain default) with an event destination to the SNS topic `prompted-ses-events`
+(Opens and Clicks unticked), HTTPS subscription to `https://readprompted.org/api/hooks/ses` (confirmed),
+Auto Validation off, VDM engagement tracking off, optimized shared delivery on, and the IAM policy below.
 
-Done by Claude: DNS records; topic pinned in the Worker; read-only checks of the key, identity,
-configuration set and Auto Validation against the real account (all pass).
-
-If Amazon writes back asking for more detail, answer truthfully. Suggested wording, edit as needed:
+**The only remaining owner item here is Amazon's answer.** If Amazon writes asking for detail, answer
+truthfully; suggested wording:
 
 > Prompted is a free weekly newsletter about AI, sent every Monday morning to about 255 subscribers who
 > asked to receive it. Most joined through our earlier newsletter platform's signup form or by asking to
@@ -193,88 +192,40 @@ If Amazon writes back asking for more detail, answer truthfully. Suggested wordi
 > hard bounces and complaints are suppressed permanently. We will move the existing list over gradually,
 > starting with small batches, and watch bounce and complaint rates before each step.
 
-Only keep sentences that are exactly true. In particular, do not describe the existing list as all
-double opt-in.
+Do not describe the existing list as all double opt-in.
 
-### 6f. Connect Amazon's delivery reports — subscription DONE (November 12); tracking switch-off pending
+### IAM policy in force (`PromptedSESSenderPolicy`, saved by the owner November 13)
 
-The IAM key cannot change SNS, by design, so this one step is the owner's.
-
-1. AWS console, region **US East (N. Virginia)**, open **Simple Notification Service**, **Topics**,
-   `prompted-ses-events`.
-2. **Create subscription**. Protocol **HTTPS**. Endpoint: `https://readprompted.org/api/hooks/ses`
-   (exactly this; no key or password in it). Leave **Enable raw message delivery** unticked.
-   **Create subscription**.
-3. Wait one minute and refresh. The subscription's status should change from "Pending confirmation" to
-   **Confirmed**: the platform checks Amazon's signature and confirms it by itself. The dashboard's SES
-   panel then shows "Delivery reports (SNS): yes".
-4. Recommended, same visit: open **SES**, **Configuration sets**, `prompted-newsletter`, **Event
-   destinations**, `prompted-newsletter-events`, **Edit**, and untick **Opens** and **Clicks**. With them
-   ticked, Amazon adds its own tracking pixel to every email and rewrites every link through an Amazon
-   address; that hurts privacy and can hurt inbox placement, and the platform does not use it. If **VDM**
-   (Virtual Deliverability Manager) shows **Engagement tracking** turned on under **Settings**, turn that
-   off too. Keep Sends, Deliveries, Bounces, Complaints, Rejects, Delivery delays, Rendering failures and
-   Subscriptions ticked.
-
-Optional tidy-up, any time: the topic's access policy lets SES from our account publish with a source of
-`arn:aws:ses:*`. Narrower would be `arn:aws:ses:us-east-1:<account>:configuration-set/prompted-newsletter`.
-It is not a security hole (only our account can publish), so leave it unless convenient.
-
-### 6g. IAM policy for the sending key (corrected November 12, after real tests)
-
-Two facts learned from real calls to Amazon on November 12 (nothing was sent by either refusal):
-
-1. **Bulk sending is authorised as `ses:SendBulkTemplatedEmail`**, not only `ses:SendBulkEmail`. Amazon
-   refused a bulk request with "not authorized to perform ses:SendBulkTemplatedEmail on resource
-   configuration-set/prompted-newsletter".
-2. **In the sandbox, Amazon also checks the recipient's verified identity.** A test to the owner's Miami
-   inbox was refused with "not authorized to perform ses:SendEmail on resource
-   identity/<OWNER_TEST_INBOX>". After production access this check disappears, but the entry is harmless.
-
-IAM cannot restrict the From address for bulk requests (no `ses:FromAddress` condition key), so the
-platform enforces it: every SES request must use `FROM_EMAIL` and `SES_CONFIGURATION_SET` or it is refused
-before leaving the Worker (`guard()` in `ses.mjs`).
-
-Policy `PromptedSESSenderPolicy`, full replacement (`<ACCOUNT>` is the 12-digit AWS account number, `<OWNER_TEST_INBOX>` the owner's verified test address; both are kept out of this repository):
+Verified against real SES: single and bulk sends to Amazon's simulator, to our own domain and to the owner's
+test inbox. Facts behind its shape: bulk requests are authorised as `ses:SendBulkTemplatedEmail` as well
+as `ses:SendBulkEmail`; in the sandbox Amazon also checks the recipient's verified identity; IAM cannot
+restrict the From address for bulk, so the platform enforces it (`guard()` in `ses.mjs`).
+(`<ACCOUNT>` and `<OWNER_TEST_INBOX>` are kept out of this repository.)
 
 ```json
 {
   "Version": "2012-10-17",
   "Statement": [
     { "Sid": "SendPromptedEmail", "Effect": "Allow", "Action": "ses:SendEmail",
-      "Resource": [
-        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
-        "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*",
-        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"
-      ],
+      "Resource": ["arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
+                   "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*",
+                   "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"],
       "Condition": { "StringEquals": { "ses:FromAddress": "brief@readprompted.org" } } },
-    { "Sid": "SendPromptedBulkEmail", "Effect": "Allow",
-      "Action": ["ses:SendBulkEmail", "ses:SendBulkTemplatedEmail"],
-      "Resource": [
-        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
-        "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted-newsletter",
-        "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"
-      ] },
+    { "Sid": "SendPromptedBulkEmail", "Effect": "Allow", "Action": ["ses:SendBulkEmail", "ses:SendBulkTemplatedEmail"],
+      "Resource": ["arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org",
+                   "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted-newsletter",
+                   "arn:aws:ses:us-east-1:<ACCOUNT>:identity/<OWNER_TEST_INBOX>"] },
     { "Sid": "ReadAccount", "Effect": "Allow", "Action": "ses:GetAccount", "Resource": "*" },
-    { "Sid": "ReadIdentity", "Effect": "Allow", "Action": "ses:GetEmailIdentity",
-      "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org" },
-    { "Sid": "ReadConfigurationSet", "Effect": "Allow", "Action": "ses:GetConfigurationSet",
-      "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*" }
+    { "Sid": "ReadIdentity", "Effect": "Allow", "Action": "ses:GetEmailIdentity", "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:identity/readprompted.org" },
+    { "Sid": "ReadConfigurationSet", "Effect": "Allow", "Action": "ses:GetConfigurationSet", "Resource": "arn:aws:ses:us-east-1:<ACCOUNT>:configuration-set/prompted*" }
   ]
 }
 ```
 
-After saving it, tell Claude: the Miami test is resent through the platform, then `SES_BULK` is turned on
-and one bulk request goes to Amazon's mailbox simulator (no person) to prove the permission.
+### Gmail fallback: retired (November 13)
 
-### Gmail fallback: the sign-in expires around November 18
-
-Recommendation: **do nothing.** Brevo is now the fallback and test sender, and Gmail's test emails went
-to Spam. When the Gmail sign-in expires, the platform simply stops using Gmail; a send that reached it
-would pause, not lose anyone. If you ever want Gmail back as a permanent fallback, publish the Google app
-(Google Cloud, **Auth Platform**, **Audience**, **Publish app**; Google may show an "unverified app"
-warning, which is acceptable for your own account), add `https://readprompted.org/api/admin/gmail/callback`
-as a redirect address in the OAuth client, and click **Connect Gmail** again from the dashboard.
+Gmail was removed from the sending chain (`EMAIL_PROVIDERS = "ses,brevo"`): its test emails went to Spam
+and its sign-in expires around November 18. Brevo is the fallback. Nothing needs doing.
 
 ## 7. Private data migration (only after tests pass and you approve)
 

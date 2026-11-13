@@ -71,6 +71,7 @@ export function buildBulkBody(env, batch) {
     FromEmailAddress: `${displayName(batch.from.name)} <${batch.from.email}>`,
     ReplyToAddresses: batch.replyTo ? [batch.replyTo] : undefined,
     ConfigurationSetName: env.SES_CONFIGURATION_SET || undefined,
+    DefaultEmailTags: batch.sendId ? [{ Name: 'prompted_send', Value: String(batch.sendId) }] : undefined,
     DefaultContent: { Template: { TemplateContent: { Subject: batch.subject, Html: batch.html, Text: batch.text || '' }, TemplateData: '{"TOKEN":"","TRACK":""}' } },
     BulkEmailEntries: batch.recipients.map((r) => ({
       Destination: { ToAddresses: [r.to] },
@@ -126,6 +127,7 @@ export const ses = {
       Destination: { ToAddresses: [msg.to] },
       ReplyToAddresses: msg.replyTo ? [msg.replyTo] : undefined,
       ConfigurationSetName: env.SES_CONFIGURATION_SET || undefined,
+      EmailTags: msg.sendId ? [{ Name: 'prompted_send', Value: String(msg.sendId) }] : undefined,
       Content: { Simple: {
         Subject: { Data: msg.subject, Charset: 'UTF-8' },
         Body: { Html: { Data: msg.html, Charset: 'UTF-8' }, Text: { Data: msg.text || '', Charset: 'UTF-8' } },
@@ -202,6 +204,9 @@ export async function sesStatus(env, site) {
     account_suppression_reasons: account.data?.SuppressionAttributes?.SuppressedReasons || null,
     // Amazon's own open and click tracking for VDM. Prompted measures engagement itself, so this should be off.
     vdm_engagement_tracking: account.data?.VdmAttributes?.DashboardAttributes?.EngagementMetrics ?? null,
+    vdm_enabled: account.data?.VdmAttributes?.VdmEnabled ?? null,
+    optimized_shared_delivery: account.data?.VdmAttributes?.GuardianAttributes?.OptimizedSharedDelivery ?? null,
+    configuration_set_detail: cset?.ok ? { sending_enabled: cset.data?.SendingOptions?.SendingEnabled !== false, tracking_domain: cset.data?.TrackingOptions?.CustomRedirectDomain || null, suppressed_reasons: cset.data?.SuppressionOptions?.SuppressedReasons || null, reputation_metrics: cset.data?.ReputationOptions?.ReputationMetricsEnabled ?? null, delivery: cset.data?.DeliveryOptions || null } : null,
   };
   out.reports_connected = !!out.reports.subscribed_at && !out.reports.unsubscribed_at;
   const warnings = [];
@@ -246,7 +251,7 @@ const HELD = {
  *   Bounce -> bounce_hard | bounce_soft | held      Complaint -> complaint | held
  *   Delivery -> delivered                            DeliveryDelay -> delayed (recorded, nothing changes)
  *   Reject, Rendering Failure -> not_sent            Subscription -> unsubscribe (only if they left everything)
- *   Send -> nothing (we already know)                Open, Click -> nothing (the platform does not use Amazon's tracking)
+ *   Send -> accepted (settles an interrupted run)    Open, Click -> nothing (the platform does not use Amazon's tracking)
  * Returns { kind, events: [{ type, email, msgId, reason }], ignored }.
  */
 export function sesEvents(message) {
@@ -263,6 +268,10 @@ export function sesEvents(message) {
     // With this subtype nobody complained just now: Amazon declined to send because of an earlier complaint.
     const held = HELD[m.complaint?.complaintSubType];
     for (const r of m.complaint?.complainedRecipients || []) events.push(held ? { type: 'held', email: r.emailAddress, msgId, reason: held } : { type: 'complaint', email: r.emailAddress, msgId, reason: m.complaint.complaintFeedbackType || null });
+  } else if (kind === 'Send') {
+    // Amazon accepted the message. Used to settle people whose run stopped before the result was recorded.
+    const sendId = Number((m.mail?.tags?.prompted_send || [])[0]) || null;
+    for (const email of to) events.push({ type: 'accepted', email, msgId, sendId, reason: null });
   } else if (kind === 'Delivery') {
     for (const email of m.delivery?.recipients || []) events.push({ type: 'delivered', email, msgId, reason: null });
   } else if (kind === 'DeliveryDelay') {

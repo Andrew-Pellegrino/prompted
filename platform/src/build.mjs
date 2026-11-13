@@ -276,7 +276,9 @@ export async function build(env = process.env) {
     const sub = '/s/index/';
     await out('index/data.json', JSON.stringify({ ...indexData, subscribeUrl: sub }));
     const page = await readFile(path.join(REPO, 'index', 'index.html'), 'utf8');
-    await out('index/index.html', page.replace(/(<a class="sub-btn" href=")[^"]*(")/, `$1${sub}$2`).replace('<a class="nameplate"', '<a href="/" style="position:absolute;left:16px;top:10px;font:13px Arial,sans-serif;text-decoration:none;z-index:3">← Prompted</a><a class="nameplate"'));
+    // The live Index's subscribe button overflows narrow phones (same on GitHub Pages); fix it in this copy only.
+    const phoneFix = '<style>@media (max-width:480px){.plate-mid{flex-wrap:wrap;row-gap:8px}a.sub-btn{white-space:normal;max-width:100%;box-sizing:border-box;text-align:center}}</style></head>';
+    await out('index/index.html', page.replace('</head>', phoneFix).replace(/(<a class="sub-btn" href=")[^"]*(")/, `$1${sub}$2`).replace('<a class="nameplate"', '<a href="/" style="position:absolute;left:16px;top:10px;font:13px Arial,sans-serif;text-decoration:none;z-index:3">← Prompted</a><a class="nameplate"'));
   }
 
   const rssItems = [...issues].reverse().slice(0, 20).map((i) => `<item><title>${esc(i.title)}</title><link>${site.url}${issueUrl(i)}</link><guid isPermaLink="true">${site.url}${issueUrl(i)}</guid><pubDate>${new Date(i.publication.sent_at || i.publication.date + 'T12:45:00Z').toUTCString()}</pubDate><description>${esc(i.subtitle)}</description></item>`).join('\n');

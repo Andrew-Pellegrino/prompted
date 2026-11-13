@@ -27,10 +27,11 @@ most likely from the owner's console setup. Worth a glance in the SES console if
 | --- | --- |
 | Platform test send, one message, to Amazon's success simulator (no person), through `prompted-newsletter` | **Delivered.** Amazon's signed Send and Delivery reports arrived within a second and were matched to the message |
 | Bounce, complaint and suppression-list simulators | Real reports: bounce and suppression-list as permanent bounces, complaint as a complaint; all three addresses suppressed by the platform |
-| Bulk request to the success simulator | **Refused by IAM** (`ses:SendBulkTemplatedEmail` missing). Nothing sent; the send paused safely |
-| Latest issue to the owner's Miami inbox | **Refused by IAM** in the sandbox (recipient identity not in the policy). Nothing sent |
+| Bulk request to the success simulator (Nov 12) | Refused by IAM (`ses:SendBulkTemplatedEmail` missing); nothing sent. **After the owner's policy fix (Nov 13): accepted and delivered** |
+| Latest issue (with the Index section) to the owner's Miami inbox and to `seed-check@readprompted.org`, bulk, tracking off, then tracking on (Nov 13) | **Delivered** (Amazon's signed Delivery reports). Receiving server at our own domain: SPF pass, DKIM pass (`d=readprompted.org`), DMARC pass, List-Unsubscribe and one-click present. Tracked Index-term link and open image work. Inbox placement at Miami: **owner to report** |
+| Amazon's Send report (Nov 13) | Carries the `prompted_send` tag; recorded as an acceptance, which settles interrupted runs |
 
-Both refusals are fixed by one policy change (`OWNER-SETUP.md` 6g). Every SES request is also checked by
+The policy now in force is in `OWNER-SETUP.md`, "IAM policy in force". Every SES request is also checked by
 the platform itself: sender must be `brief@readprompted.org`, configuration set must be set.
 
 ## Why the plan changed

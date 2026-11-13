@@ -904,7 +904,8 @@ test('Amazon SES reports through SNS: only correctly signed messages from our to
     const v2 = await hook(kit.note({ eventType: 'Delivery', mail: { messageId: 'id-v2', destination: ['v2@example.com'] }, delivery: { recipients: ['v2@example.com'] } }, { SignatureVersion: '2' }));
     const v2Again = kit.note({ eventType: 'Delivery', mail: { messageId: 'id-v2' }, delivery: { recipients: ['v2@example.com'] } }, { SignatureVersion: '2' });
     assert.equal(v2.status, 200, 'SHA-256 signatures (version 2) are accepted too');
-    for (const k of ['Send', 'Open', 'Click']) assert.equal((await hook(kit.note({ eventType: k, mail: { messageId: 'id-v2', destination: ['v2@example.com'] } }))).data.handled, 0);
+    assert.equal((await hook(kit.note({ eventType: 'Send', mail: { messageId: 'id-v2', destination: ['v2@example.com'], tags: { prompted_send: ['900'] } } }))).data.handled, 1, 'Send becomes an acceptance record');
+    for (const k of ['Open', 'Click']) assert.equal((await hook(kit.note({ eventType: k, mail: { messageId: 'id-v2', destination: ['v2@example.com'] } }))).data.handled, 0);
     assert.deepEqual(['gone', 'angry', 'full', 'checked', 'listed', 'late', 'refused', 'v2'].map((e) => status(`${e}@example.com`)),
       ['bounced', 'complained', 'active', 'active', 'active', 'active', 'active', 'active'], 'only real hard bounces and real complaints change a subscriber');
     assert.equal(one(env, "SELECT COUNT(*) n FROM suppressions WHERE email_norm IN ('gone@example.com','angry@example.com')").n, 2);
@@ -913,7 +914,7 @@ test('Amazon SES reports through SNS: only correctly signed messages from our to
     assert.match(rec.checked.last_error, /Auto Validation/);
     assert.match(rec.refused.last_error, /Amazon refused to send this message: Bad content/);
     const types = many(env, "SELECT type FROM delivery_events WHERE provider = 'ses' ORDER BY id").map((r) => r.type);
-    assert.deepEqual(types, ['bounce_hard', 'complaint', 'bounce_soft', 'held', 'held', 'delayed', 'not_sent', 'delivered']);
+    assert.deepEqual(types, ['bounce_hard', 'complaint', 'bounce_soft', 'held', 'held', 'delayed', 'not_sent', 'delivered', 'accepted']);
     assert.equal((await hook(v2Again)).status, 200);
 
     // the dashboard sees that reports are connected and that Amazon is adding tracking
@@ -1157,7 +1158,11 @@ test('optional "In the Prompted Index" block: a few distinctive terms, off by de
   const env = await makeEnv({ INDEX_TERMS_EMAIL: 'preview' }), c = client(env);
   await c.login();
   assert.match((await c.get('/api/admin/issues/week-of-november-1-8-2026/email?index_terms=1')).data, /In the Prompted Index/);
-  assert.doesNotMatch((await c.get('/api/admin/issues/week-of-november-1-8-2026/email')).data, /In the Prompted Index/);
+  assert.doesNotMatch((await c.get('/api/admin/issues/week-of-november-1-8-2026/email')).data, /In the Prompted Index/, 'preview mode: only on request');
+  env.INDEX_TERMS_EMAIL = 'on';
+  assert.match((await c.get('/api/admin/issues/week-of-november-1-8-2026/email')).data, /In the Prompted Index/, 'adopted: shown by default');
+  assert.doesNotMatch((await c.get('/api/admin/issues/week-of-november-1-8-2026/email?index_terms=0')).data, /In the Prompted Index/);
+  env.INDEX_TERMS_EMAIL = 'preview';
   const t = await c.post('/api/admin/sends/test', { issue_slug: 'week-of-november-1-8-2026', emails: ['owner-test@example.com'] });
   assert.ok(t.data.links.some((l) => l.kind === 'index_term'), 'test sends include it in preview mode');
   const s = await c.post('/api/admin/sends', { issue_slug: 'week-of-november-1-8-2026' });
@@ -1228,8 +1233,53 @@ test('cutover readiness: read-only, lists every blocker, and says NO-GO while an
     const r = (await c.get('/api/admin/cutover/readiness')).data;
     assert.equal(r.go, false);
     const names = r.items.map((i) => i.name);
-    for (const n of ['Amazon SES production access granted', 'Postal address in the footer', 'Ledger imported from beehiiv within the last 24 hours', 'Inbox placement proven for Miami, Gmail, Outlook and iCloud from the domain', 'Audience lock (AUDIENCE_SENDING)']) assert.ok(names.includes(n), n);
+    for (const n of ['Amazon SES production access granted', 'Postal address in the footer', 'Ledger imported from beehiiv within the last 24 hours', 'Inbox placement confirmed by the owner for Miami and personal Gmail from the domain', 'Audience lock (AUDIENCE_SENDING)']) assert.ok(names.includes(n), n);
     assert.ok(r.items.find((i) => i.name === 'Audience lock (AUDIENCE_SENDING)').detail.startsWith('locked'));
     assert.ok(r.items.find((i) => i.name === 'Postal address in the footer').ok, 'the test environment has an address');
+  } finally { globalThis.fetch = realFetch; }
+});
+
+test('inbound header check: only our test address and our own sender, headers only, verdicts read', async () => {
+  const { handleInbound, authVerdicts } = await import('../src/worker/inbound.mjs');
+  const env = await makeEnv({ INBOUND_CHECK_ADDRESS: 'seed-check@prompted.example' });
+  const msg = (to, from) => { const m = { to, from, rejected: null, headers: new Headers({ 'authentication-results': 'mx.cloudflare.net; spf=pass smtp.mailfrom=bounce.prompted.example; dkim=pass header.d=prompted.example; dmarc=pass header.from=prompted.example', 'list-unsubscribe': '<https://x/u/1>', 'list-unsubscribe-post': 'List-Unsubscribe=One-Click', subject: 'Test', 'x-private': 'never kept' }), setReject(r) { this.rejected = r; } }; return m; };
+  const a = msg('other@prompted.example', 'brief@readprompted.org'); await handleInbound(a, env);
+  const b = msg('seed-check@prompted.example', 'someone@elsewhere.example'); await handleInbound(b, env);
+  assert.ok(a.rejected && b.rejected);
+  await handleInbound(msg('seed-check@prompted.example', 'bounce@bounce.readprompted.org'), env);
+  const row = one(env, 'SELECT headers FROM inbound_checks');
+  const h = JSON.parse(row.headers);
+  assert.ok(!('x-private' in h));
+  assert.deepEqual(authVerdicts(h), { spf: 'pass', dkim: 'pass', dmarc: 'pass', list_unsubscribe: true, one_click: true });
+});
+
+test('an interrupted SES run settles itself: the Amazon Send report marks people sent; silence for an hour re-queues them; never a duplicate', async () => {
+  const { sesEvents } = await import('../src/worker/ses.mjs');
+  const env = await makeEnv({ SEND_MODE: 'live', SITE_ENV: 'production', AUDIENCE_SENDING: 'enabled', EMAIL_PROVIDERS: 'ses', AWS_ACCESS_KEY_ID: 'A', AWS_SECRET_ACCESS_KEY: 'S', FROM_EMAIL: 'brief@prompted.example', SES_CONFIGURATION_SET: 'prompted-newsletter', QUOTA_RESERVE: '0' });
+  env.DB.sqlite.prepare("INSERT INTO settings (key, value) VALUES ('ses_account', ?), ('ses_reports', ?)").run(JSON.stringify({ production_access: true, max_24h: 50000, max_rate: 14 }), JSON.stringify({ subscribed_at: '2026-11-13T00:00:00Z' }));
+  const c = await audience(env, 3);
+  const sent = [], realFetch = globalThis.fetch;
+  globalThis.fetch = async (url, init) => { const b = JSON.parse(init.body); sent.push(b); return new Response(JSON.stringify({ MessageId: 'm-' + sent.length }), { status: 200 }); };
+  try {
+    const s = await c.post('/api/admin/sends', { issue_slug: 'week-of-august-9-16-2026' });
+    await c.post(`/api/admin/sends/${s.data.id}/approve`); await c.post(`/api/admin/sends/${s.data.id}/schedule`, {});
+    env.DB.sqlite.prepare("UPDATE sends SET scheduled_at = '2020-01-01T00:00:00Z'").run();
+    await tick(env);
+    assert.ok(sent.every((b) => b.EmailTags[0].Name === 'prompted_send' && b.EmailTags[0].Value === String(s.data.id)), 'every SES message carries its send');
+    // pretend the run stopped after the hand-off: two people left "sending" without a result
+    env.DB.sqlite.prepare("UPDATE sends SET status = 'sending' WHERE id = ?").run(s.data.id);
+    env.DB.sqlite.prepare("UPDATE send_recipients SET status = 'sending', claimed_at = '2020-01-01T00:00:00Z', provider = 'ses', provider_message_id = NULL WHERE email_norm IN ('reader0@example.com','reader1@example.com')").run();
+    // Amazon did accept reader0's message: its signed Send report settles it
+    const ev = sesEvents(JSON.stringify({ eventType: 'Send', mail: { messageId: 'm-1', destination: ['reader0@example.com'], tags: { prompted_send: [String(s.data.id)] } } }));
+    assert.deepEqual(ev.events.map((e) => [e.type, e.sendId]), [['accepted', s.data.id]]);
+    const { applyDeliveryEvents } = await import('../src/worker/index.mjs');
+    await applyDeliveryEvents(env, 'ses', ev.events);
+    assert.deepEqual({ ...one(env, "SELECT status, provider_message_id FROM send_recipients WHERE email_norm = 'reader0@example.com'") }, { status: 'sent', provider_message_id: 'm-1' });
+    const before = sent.length;
+    await tick(env);
+    const st = Object.fromEntries(many(env, 'SELECT email_norm, status, last_error FROM send_recipients').map((r) => [r.email_norm, r]));
+    assert.equal(st['reader0@example.com'].status, 'sent');
+    assert.equal(st['reader1@example.com'].status, 'sent', 'no Send report for an hour: Amazon never took it, so it was re-queued and sent');
+    assert.equal(sent.length - before, 1, 'exactly one new request: for reader1 only');
   } finally { globalThis.fetch = realFetch; }
 });

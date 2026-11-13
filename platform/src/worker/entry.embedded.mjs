@@ -9,4 +9,5 @@ const withAssets = (env) => (env.ASSETS ? env : { ...env, ASSETS });
 export default {
   fetch: (request, env, ctx) => worker.fetch(request, withAssets(env), ctx),
   scheduled: (event, env, ctx) => worker.scheduled(event, withAssets(env), ctx),
+  email: (message, env, ctx) => worker.email(message, withAssets(env), ctx),
 };

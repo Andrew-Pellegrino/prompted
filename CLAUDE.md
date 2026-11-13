@@ -2,8 +2,8 @@
 
 Read `docs/platform/HANDOFF.md` first. It says what is done, what is verified, and what is next.
 `docs/platform/WEEKLY-RUNBOOK.md` describes how an issue is published and sent.
-Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the main sender: set up and verified read-only,
-production access under review, SNS subscription is the owner's next step) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
+Then `docs/platform/SENDING-PROVIDER.md` (Amazon SES is the main sender: fully set up and tested in the sandbox;
+only Amazon's production access is outstanding) and `docs/platform/DELIVERABILITY.md`: inbox placement is the open problem, and no real email may be
 sent, even to the test inbox, without the owner's approval for that send.
 
 ## What this repository is
@@ -54,7 +54,7 @@ Workers allow 50 subrequests and about 10 ms CPU per invocation (sends go out in
 
 ```bash
 npm install            # wrangler only; the app itself has no runtime dependencies
-npm test               # 52 tests, in-memory SQLite behind the D1 interface
+npm test               # 54 tests, in-memory SQLite behind the D1 interface
 npm run build          # SITE_URL=... SITE_ENV=preview|production; also packages dist/ into .generated/ for the Worker
 npm run qa -- <slug>   # pre-send QA for one issue
 npm run new-issue -- approved.md --write   # approved text -> content/issues/NNN-slug.json (see src/lib/import-text.mjs)
@@ -107,12 +107,15 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
   for `SES_TOPIC_ARN` (`src/worker/sns.mjs`), recent, once each (`webhook_messages`). Do not add a URL
   key to it and do not weaken the signature check. Brevo's hook keeps its `?key=` secret.
 - SES stays out of the sending chain until Amazon grants production access (read from the account every
-  30 minutes). Bulk mode (`SES_BULK`) needs `ses:SendBulkTemplatedEmail` (and
-  `ses:SendBulkEmail`) on the IAM policy; in the sandbox each recipient's identity must be in the policy too.
+  30 minutes). Bulk mode (`SES_BULK = "on"`) is verified against real SES; in the sandbox a recipient
+  must be a verified identity named in the IAM policy (the owner's Miami test inbox is), or on our own domain.
+- Every SES message carries the tag `prompted_send`; Amazon's signed Send report settles people whose run was
+  interrupted (never blindly resent). `seed-check@readprompted.org` is routed to the Worker, which keeps the
+  receiving server's authentication headers (`/api/admin/inbound-checks`).
 - Engagement tracking is first-party only and **off** (`TRACK_OPENS`, `TRACK_CLICKS`) until the owner
   authorises inbox-placement tests. Tracking URLs carry a random per-send `track_id`, never the subscriber
   token. Keep click redirects limited to stored `http(s)` links and keep them working when recording fails.
-  Amazon's own open and click tracking stays off. The Index terms email block (`INDEX_TERMS_EMAIL`) is not adopted.
+  Amazon's own open and click tracking stays off. The "In the Prompted Index" email section is adopted (`INDEX_TERMS_EMAIL = "on"`).
 - **The preview database holds the REAL subscriber ledger as private staging (since November 12).** See
   `docs/platform/HANDOFF.md`, "State of the preview database". Never export it into the repository, tests,
   logs or chat, and never run a blanket delete on it.
