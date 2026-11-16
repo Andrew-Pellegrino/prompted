@@ -130,6 +130,21 @@ SITE_URL=https://readprompted.org SITE_ENV=preview npm run build && npx wrangler
 - Cloudflare's management API rate-limits bursts (error 971, wait a few minutes). Do not fire many
   `wrangler d1 execute` calls in a row; read state through the dashboard's own `/api/admin/*` instead.
 
+## Publishing the weekly Index ("publish the Index")
+
+The Monday task "Prompted Index Weekly Update" cannot write to GitHub (scheduled tasks cannot attach a
+repository). It saves a "Prompted Index changes YYYY-MM-DD" JSON file in the Drive folder "Prompted Index"
+(id 1ZnSgDnGadyZyCmYFRL7P-vondVOXviR-) and updates the Review Queue doc. When the owner says "publish the
+Index", that is approval for this one commit to `main`, changing only `index/data.json`:
+
+1. Read the changes file from Drive (`read_file_content`) and save it to the scratchpad.
+2. `git fetch origin main`, then a scratch worktree of `origin/main` (never switch this checkout).
+3. `node platform/scripts/apply-index-changes.mjs <changes.json> <wt>/index/data.json <wt>/index/data.json`.
+   It refuses a file built on a different version of data.json and validates like the task does.
+4. Render `<wt>/index/` locally in a browser and check for errors; then commit "Weekly update YYYY-MM-DD"
+   and `git push origin HEAD:main`. Confirm https://andrew-pellegrino.github.io/prompted/index/data.json
+   shows the new `updated` value. Remove the worktree. No change to `index/` on this branch.
+
 ## Where current project sources live (not in this repo)
 
 Project records are private Google Drive documents (owner's account): "00 START HERE — Prompted Current State",
