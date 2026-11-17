@@ -42,6 +42,19 @@ IT with a technical summary (private Google Doc "Prompted — email delivery inv
 with Message-IDs and timestamps; not in this repository). No more diagnostic emails until there is a
 specific reason, such as a trace requested by Miami IT.
 
+**Miami IT's reply (November 17).** Miami's mail log for the 01:00 check shows the state "Opened and read,
+Seen, **Marked as spam**, Marked unimportant", and the ticket is on hold until December 1. So the Spam
+placement follows a spam report recorded on the owner's own account, which matches Gmail's "You reported
+this message as spam" wording. What made that report is still unknown: the owner did not knowingly do it,
+and no filter or third-party app was found. Miami IT warns that spam reports from its users will eventually
+hurt delivery to everyone in its workspace, so the cause matters beyond the test inbox. IT also read the
+envelope sender (`<id>@bounce.readprompted.org`, Amazon's custom MAIL FROM, which makes SPF align with our
+domain) as a spammer-like "from address" and asked us to set a header From. The header From is already
+`brief@readprompted.org` (the platform refuses any other sender); the long address is only the bounce
+address, as IT itself suggested it should be. Next step: ask IT whether the log shows what recorded the
+spam report (device or client, and how soon after delivery), and whether Miami can mark the domain as a
+trusted sender.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
