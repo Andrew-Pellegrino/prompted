@@ -64,6 +64,15 @@ that sender's reputation with every other beehiiv newsletter. IT said moving to 
 call". IT's example of a DMARC rejection was not a Prompted issue (it was a beehiiv account notification to
 another Miami user), so it does not show Prompted being rejected.
 
+**Owner-approved test, November 18, 21:27 UTC (4:27 PM Eastern), after the owner marked every earlier test
+"Not spam" and confirmed the phone app's swipes are set to Archive.** One plain SES message. It arrived in the
+**Inbox** (screenshot), the owner opened it, and about a minute later it was in **Spam** with "You reported
+this message as spam from your inbox". So Google's filter delivered it to the inbox; the spam report came
+afterwards, from something acting on the account, and soon after the message was opened. The most likely
+explanation is an app or add-on with access to the Miami mailbox (its actions are recorded as the user's).
+Next: the owner checks the account's connected apps and Gmail add-ons, and Miami IT checks its logs for
+which client or app recorded the report at that minute.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
