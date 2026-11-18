@@ -73,6 +73,13 @@ explanation is an app or add-on with access to the Miami mailbox (its actions ar
 Next: the owner checks the account's connected apps and Gmail add-ons, and Miami IT checks its logs for
 which client or app recorded the report at that minute.
 
+Checked the same day: the phone app's swipes (Archive), Apple Mail (not connected), Gmail add-ons (none
+relevant). Of the account's linked apps only OpenAI has Gmail access (owner's deliberate ChatGPT connection);
+its scheduled tasks include none that reports spam, so it is not shown to be the cause and stays connected.
+The owner added a Gmail filter "Never send it to Spam" for `brief@readprompted.org` (it guards against
+Gmail's own filtering, not against a later report) and asked Miami IT whether its logs separate a report made
+by the user, one made by an app through the Gmail API, and automatic filtering. No more tests until IT replies.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
