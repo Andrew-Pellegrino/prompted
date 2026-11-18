@@ -55,6 +55,15 @@ address, as IT itself suggested it should be. Next step: ask IT whether the log 
 spam report (device or client, and how soon after delivery), and whether Miami can mark the domain as a
 trusted sender.
 
+**Miami IT's second reply (November 18).** The log has nothing more on the spam report than that one entry
+("opened, then marked spam"), so what made it is still unknown. IT reports that beehiiv's shared sending
+subdomain (`bh.mail.beehiiv.com`) sends Miami thousands of messages a week from many publications, many of
+them marked as spam by recipients, which "doesn't help Google make a good decision" about mail from it. That
+is the strongest explanation so far for Miami subscribers missing the beehiiv-sent issues: Prompted shares
+that sender's reputation with every other beehiiv newsletter. IT said moving to our own domain "is the right
+call". IT's example of a DMARC rejection was not a Prompted issue (it was a beehiiv account notification to
+another Miami user), so it does not show Prompted being rejected.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
