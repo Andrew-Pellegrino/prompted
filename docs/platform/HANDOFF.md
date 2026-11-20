@@ -29,8 +29,9 @@ sender until the owner's final GO; the audience lock (`AUDIENCE_SENDING`) stays 
 | Security | Audit done, no open defects; accepted risks listed | `SECURITY-AUDIT.md` |
 
 Remaining, all outside engineering: Amazon's production access (**Amazon's review shows DENIED as of
-November 20**: the SES panel now shows Amazon's review status and Support case; the owner answers the case in
-the AWS Support Center and asks for the review to continue); then a real multi-recipient send and the
+November 20**: the SES panel now shows Amazon's review status and Support case; Amazon had asked six questions on
+November 12 that went unanswered; the owner answered them on the case on November 20, and the review is
+waiting on Amazon); then a real multi-recipient send and the
 real rate; the owner's placement reports (Miami now, personal Gmail after production access); the separate
 beehiiv-versus-Prompted comparison; the owner's final GO.
 
