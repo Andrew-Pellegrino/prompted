@@ -80,6 +80,14 @@ The owner added a Gmail filter "Never send it to Spam" for `brief@readprompted.o
 Gmail's own filtering, not against a later report) and asked Miami IT whether its logs separate a report made
 by the user, one made by an app through the Gmail API, and automatic filtering. No more tests until IT replies.
 
+**Miami IT's third reply (November 20).** The log for the November 18 test: accepted from Amazon at
+4:27:56 PM with TLS, delivered to the mailbox the same second, opened at 4:28:03 and 4:28:31 PM from the
+owner's iPhone (client type iOS, campus network). The spam report itself has no actor in the log. Miami IT
+says Miami runs an **AI email scanner** that "can take actions like moving things to spam", and has asked
+Miami's security team whether it is acting on these messages (ticket on hold until November 27). This is
+now the leading explanation: it would act on every Miami mailbox, not just the owner's, so if confirmed, the
+fix is for Miami security to allow the domain before launch, not a change on our side.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
