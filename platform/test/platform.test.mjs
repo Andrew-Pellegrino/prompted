@@ -941,7 +941,7 @@ test('Amazon SES status: reads the real account state, names the single next ste
   globalThis.fetch = async (url, init = {}) => {
     const u = new URL(url); calls.push((init.method || 'GET') + ' ' + u.pathname);
     const j = (o, s = 200) => new Response(JSON.stringify(o), { status: s });
-    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', VdmAttributes: { VdmEnabled: 'ENABLED', DashboardAttributes: { EngagementMetrics: state.vdmEngagement || 'DISABLED' } }, SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: { ConditionThreshold: { ConditionThresholdEnabled: state.autoValidation, OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
+    if (u.pathname === '/v2/email/account') return j({ ProductionAccessEnabled: state.production, SendingEnabled: true, EnforcementStatus: 'HEALTHY', ...(state.review ? { Details: { ReviewDetails: { Status: state.review, CaseId: '1234567890' } } } : {}), VdmAttributes: { VdmEnabled: 'ENABLED', DashboardAttributes: { EngagementMetrics: state.vdmEngagement || 'DISABLED' } }, SuppressionAttributes: { SuppressedReasons: ['BOUNCE', 'COMPLAINT'], ValidationAttributes: { ConditionThreshold: { ConditionThresholdEnabled: state.autoValidation, OverallConfidenceThreshold: { ConfidenceVerdictThreshold: 'MANAGED' } } } }, SendQuota: { Max24HourSend: state.production ? 50000 : 200, MaxSendRate: state.production ? 14 : 1, SentLast24Hours: 0 } });
     if (u.pathname === '/v2/email/identities/prompted.example') return j({ VerifiedForSendingStatus: state.verified, ConfigurationSetName: 'prompted-newsletter', DkimAttributes: { Status: 'SUCCESS' }, MailFromAttributes: { MailFromDomain: 'bounce.prompted.example', MailFromDomainStatus: 'SUCCESS' } });
     if (u.pathname === '/v2/email/configuration-sets/prompted-newsletter') return state.setExists ? j({ ConfigurationSetName: 'prompted-newsletter', SuppressionOptions: state.setOverride ? { ValidationOptions: { ConditionThreshold: { ConditionThresholdEnabled: state.setOverride } } } : {} }) : j({ message: 'not found' }, 404);
     return j({}, 404);
@@ -951,6 +951,13 @@ test('Amazon SES status: reads the real account state, names the single next ste
     let s = await st();
     assert.deepEqual([s.key_valid, s.production_access, s.quota.per_day, s.used_by_platform, s.ready], [true, false, 200, false, false]);
     assert.match(s.next, /Waiting for Amazon to approve production access/);
+    state.review = 'PENDING';
+    s = await st();
+    assert.deepEqual(s.review, { status: 'PENDING', case_id: '1234567890' });
+    assert.match(s.next, /review pending, Support case 1234567890/);
+    state.review = 'DENIED';
+    assert.match((await st()).next, /did not approve production access \(review denied\).*case 1234567890/, 'a refusal points to the Support case, not to waiting');
+    state.review = null;
     assert.deepEqual(JSON.parse(one(env, "SELECT value FROM settings WHERE key = 'ses_account'").value).max_24h, 200, 'Amazon\'s limits are kept for the sender');
     state.production = true;
     assert.match((await st()).next, /configuration set name/);

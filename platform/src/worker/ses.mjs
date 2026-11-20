@@ -192,6 +192,8 @@ export async function sesStatus(env, site) {
     production_access: !!account.data?.ProductionAccessEnabled,
     sending_enabled: account.data?.SendingEnabled !== false,
     standing: account.data?.EnforcementStatus || null,
+    // Amazon's own record of the production-access request: PENDING, GRANTED, DENIED or FAILED, and its Support case.
+    review: account.data?.Details?.ReviewDetails ? { status: account.data.Details.ReviewDetails.Status || null, case_id: account.data.Details.ReviewDetails.CaseId || null } : null,
     quota: { per_day: q.Max24HourSend ?? null, per_second: q.MaxSendRate ?? null, sent_last_24h: q.SentLast24Hours ?? null },
     used_by_platform: ses.configured(withSnap),
     platform_daily_limit: ses.dailyLimit(withSnap),
@@ -219,7 +221,8 @@ export async function sesStatus(env, site) {
   out.next = !from ? 'Set the sender address (FROM_EMAIL).'
     : !out.domain ? `Add ${domain} as a verified identity in Amazon SES (region ${region}).`
     : !out.domain.verified ? 'Waiting for Amazon to see the DKIM records in DNS. This can take up to 72 hours but is usually minutes.'
-    : !out.production_access ? 'Waiting for Amazon to approve production access (the request is under review). Until then Amazon only sends to addresses verified inside the AWS account, 200 a day, and the platform does not use it.'
+    : !out.production_access && ['DENIED', 'FAILED'].includes(out.review?.status) ? `Amazon did not approve production access (review ${out.review.status.toLowerCase()}). Read its reply in the AWS Support Center${out.review.case_id ? `, case ${out.review.case_id}` : ''}, answer it there, and ask for the review to continue.`
+    : !out.production_access ? `Waiting for Amazon to approve production access (review ${String(out.review?.status || 'pending').toLowerCase()}${out.review?.case_id ? `, Support case ${out.review.case_id}` : ''}). Amazon may ask questions in that case; check the AWS Support Center. Until then Amazon only sends to addresses verified inside the AWS account, 200 a day, and the platform does not use it.`
     : !out.sending_enabled ? 'Amazon has paused sending on this account. Open the SES console to see why.'
     : !out.configuration_set ? 'Set the configuration set name (SES_CONFIGURATION_SET).'
     : out.configuration_set_found === false ? `Amazon has no configuration set named "${out.configuration_set}" in ${region}, or the access key may not read it.`
