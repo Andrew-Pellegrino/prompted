@@ -29,9 +29,9 @@ sender until the owner's final GO; the audience lock (`AUDIENCE_SENDING`) stays 
 | Security | Audit done, no open defects; accepted risks listed | `SECURITY-AUDIT.md` |
 
 Remaining, all outside engineering: Amazon's production access (**Amazon's review shows DENIED as of
-November 20**: the SES panel now shows Amazon's review status and Support case; Amazon had asked six questions on
-November 12 that went unanswered; the owner answered them on the case on November 20, and the review is
-waiting on Amazon); then a real multi-recipient send and the
+November 20**: the SES panel now shows Amazon's review status and Support case; **GRANTED November 22**: 50,000 a day, 14 a
+second, out of the sandbox. Live readiness now lists only the fresh beehiiv ledger import (done on cutover
+eve) and the owner's Miami and personal-Gmail placement results; the audience chain is still dry run); then a real multi-recipient send and the
 real rate; the owner's placement reports (Miami now, personal Gmail after production access); the separate
 beehiiv-versus-Prompted comparison; the owner's final GO.
 
