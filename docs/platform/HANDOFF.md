@@ -28,6 +28,11 @@ sender until the owner's final GO; the audience lock (`AUDIENCE_SENDING`) stays 
 | Cutover | Runbook and live readiness check; NO-GO only for AWS production access, daily limit, and the owner's Miami and personal-Gmail placement results | `/api/admin/cutover/readiness` |
 | Security | Audit done, no open defects; accepted risks listed | `SECURITY-AUDIT.md` |
 
+**Owner decisions, November 23:** launch (cutover) on **Monday, December 7, 2026**; a one-line heads-up about the
+new sender in the November 30 beehiiv issue; tracking **off** for the launch issue, then click tracking from the
+second issue after one tracking-on test (open tracking optional, read loosely). Cutover eve is Sunday, December 6
+(`CUTOVER-RUNBOOK.md`).
+
 Remaining, all outside engineering: Amazon's production access (**Amazon's review shows DENIED as of
 November 20**: the SES panel now shows Amazon's review status and Support case; **GRANTED November 22**: 50,000 a day, 14 a
 second, out of the sandbox. Placement passed November 22 (Gmail, Primary) and November 23 (Miami, after Miami
