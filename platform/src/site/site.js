@@ -83,4 +83,29 @@
       run();
     });
   }
+
+  // Front-page Index lookup: jump straight to the matching entry (without JavaScript the form just opens the Index).
+  var look = document.querySelector('form.search[action="/index/"]');
+  if (look) look.addEventListener('submit', function (ev) {
+    var term = (look.q.value || '').trim().toLowerCase();
+    if (!term) return;
+    ev.preventDefault();
+    fetch('/index/data.json').then(function (r) { return r.json(); }).then(function (d) {
+      var best = null, score = 0;
+      (d.terms || []).forEach(function (t) {
+        [t.term].concat(t.surfaces || []).forEach(function (s) {
+          s = String(s).toLowerCase();
+          var v = s === term ? 3 : s.indexOf(term) === 0 ? 2 : s.indexOf(term) >= 0 ? 1 : 0;
+          if (v > score || (v === score && v && best && t.issues > best.issues)) { score = v; best = t; }
+        });
+      });
+      location.href = '/index/' + (best ? '#' + encodeURIComponent(best.anchor) : '');
+    }).catch(function () { location.href = '/index/'; });
+  });
+
+  // Archive search: press / to jump to the box.
+  document.addEventListener('keydown', function (e) {
+    var b = document.querySelector('[data-search]');
+    if (b && e.key === '/' && document.activeElement !== b && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); b.focus(); }
+  });
 })();
