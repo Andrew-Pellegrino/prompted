@@ -144,6 +144,10 @@ Index", that is approval for this one commit to `main`, changing only `index/dat
 4. Render `<wt>/index/` locally in a browser and check for errors; then commit "Weekly update YYYY-MM-DD"
    and `git push origin HEAD:main`. Confirm https://andrew-pellegrino.github.io/prompted/index/data.json
    shows the new `updated` value. Remove the worktree. No change to `index/` on this branch.
+5. Trash the published changes file in Drive (`update_file` with `trashed: true`, or tell the owner to). The
+   task treats any changes file whose `baseUpdated` equals the live `updated` as unpublished, so a file
+   published the same day it was made would otherwise be carried into next week's run (the script would
+   then refuse it, so nothing breaks, but the run stalls).
 
 ## Where current project sources live (not in this repo)
 
