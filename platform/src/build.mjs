@@ -16,10 +16,32 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = path.resolve(ROOT, '..');
 const DIST = path.join(ROOT, 'dist');
 
+async function wranglerVars() {
+  try {
+    const text = await readFile(path.join(ROOT, 'wrangler.toml'), 'utf8');
+    const out = {};
+    for (const m of text.matchAll(/^(SITE_PUBLIC|SIGNUP_URL)\s*=\s*"([^"]*)"/gm)) out[m[1]] = m[2];
+    return out;
+  } catch { return {}; }
+}
+
+/** External signup link with campaign tags carried over (used while another service still holds the list). */
+function externalSignup(site, utm = {}) {
+  const u = new URL(site.signup_url);
+  for (const [k, v] of Object.entries(utm)) if (v) u.searchParams.set(k, v);
+  return u.toString();
+}
+
 export async function loadSite(env = process.env) {
   const site = JSON.parse(await readFile(path.join(ROOT, 'content', 'site.json'), 'utf8'));
   site.url = (env.SITE_URL || 'http://localhost:8787').replace(/\/$/, '');
   site.env = env.SITE_ENV || 'preview';
+  // Before cutover the public website can be live (indexed, no preview banner) while signups still go to the
+  // current sender. Defaults come from wrangler.toml so the Worker and the built pages always agree.
+  const vars = env === process.env ? await wranglerVars() : {}; // explicit env objects (tests) stay self-contained
+  const pick = (k) => (env[k] !== undefined ? env[k] : vars[k]) || '';
+  site.public = site.env === 'production' || pick('SITE_PUBLIC') === 'true';
+  site.signup_url = site.env === 'production' ? '' : pick('SIGNUP_URL').replace(/\/$/, '');
   site.asset_base_url = site.url;
   site.index_url = site.url + '/index/';
   site.forward_subscribe_url = site.url + '/s/forward/';
@@ -41,7 +63,8 @@ export async function loadIssues() {
 const storyTitles = (issue) => issue.blocks.filter((b) => b.type === 'heading' && b.level === 3).map((b) => runsText(b.children).trim());
 const issueUrl = (i) => `/issues/${i.slug}/`;
 
-function signupForm(id, label = 'Subscribe free') {
+function signupForm(id, label = 'Subscribe free', site = null) {
+  if (site?.signup_url) return `<p class="signup"><a class="btn" href="${esc(externalSignup(site, { utm_source: 'readprompted_org', utm_medium: 'web', utm_campaign: id }))}">${label}</a></p>`;
   return `<form class="signup" data-signup="${id}" action="/api/subscribe" method="post">
   <label class="vh" for="email-${id}">Email address</label>
   <input id="email-${id}" name="email" type="email" required autocomplete="email" placeholder="you@example.com">
@@ -53,7 +76,7 @@ function signupForm(id, label = 'Subscribe free') {
 
 function layout(site, { title, description, pathName, body, current = '', ogType = 'website', extraHead = '', jsonLd = null }) {
   const canonical = site.url + pathName;
-  const noindex = site.env !== 'production';
+  const noindex = !site.public;
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -87,7 +110,7 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
   <nav aria-label="Main">
     <a href="/issues/"${current === 'issues' ? ' aria-current="page"' : ''}>Archive</a>
     <a href="/index/">Index</a>
-    <a class="btn" href="/subscribe/">Subscribe</a>
+    <a class="btn" href="${site.signup_url ? esc(externalSignup(site, { utm_source: 'readprompted_org', utm_medium: 'web', utm_campaign: 'header' })) : '/subscribe/'}">Subscribe</a>
   </nav>
 </div></div>
 <main id="main">
@@ -112,7 +135,7 @@ function homePage(site, issues) {
   <p class="tag">${esc(site.tagline)}</p>
   <p class="for">${esc(site.attribution)}</p>
   <p class="promise">${esc(site.promise)}</p>
-  ${signupForm('home-hero')}
+  ${signupForm('home-hero', undefined, site)}
   <p class="fine">Free. One email, ${esc(site.send_slot_label)}. Unsubscribe any time.</p>
 </div></section>
 <section class="block"><div class="wrap grid two">
@@ -152,7 +175,7 @@ function homePage(site, issues) {
     <p style="font-family:var(--serif);font-size:19px;margin:0 0 18px;max-width:520px">The Index explains the terms that show up in Prompted and counts how many issues mention each one.</p>
     <a class="btn ghost" href="/index/">Open the Index</a>
   </div>
-  <div class="card"><h2>Get Prompted every Monday</h2><p>Join students, founders and faculty who read it to start the week.</p>${signupForm('home-footer')}</div>
+  <div class="card"><h2>Get Prompted every Monday</h2><p>Join students, founders and faculty who read it to start the week.</p>${signupForm('home-footer', undefined, site)}</div>
 </div></section>`;
   return layout(site, { title: `${site.name} — ${site.tagline}`, description: site.description, pathName: '/', body,
     jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: site.name, url: site.url + '/', description: site.description } });
@@ -192,7 +215,7 @@ ${renderMasthead(issue, site)}
 <article class="issue">
 <h1>${esc(issue.title)}</h1>
 ${head}
-${gated ? `<div class="gate card" data-gate hidden><h2>Keep reading. It is free.</h2><p>Enter your email to get ${esc(site.name)} every Monday morning.</p>${signupForm('issue-gate')}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
+${gated ? `<div class="gate card" data-gate hidden><h2>Keep reading. It is free.</h2><p>${site.signup_url ? 'Subscribe free to get' : 'Enter your email to get'} ${esc(site.name)} every Monday morning.</p>${signupForm('issue-gate', undefined, site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
 <div data-gated>
 ${rest}
 </div>` : ''}
@@ -201,7 +224,7 @@ ${rest}
 <div class="after">
   ${terms.length ? `<section class="terms" aria-labelledby="terms-h"><h2 id="terms-h">Terms from this issue in the Prompted Index</h2><div class="chips">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div></section>` : ''}
   <div class="share"><span>Share:</span><a href="https://www.linkedin.com/sharing/share-offsite/?url=${share}" rel="noopener">LinkedIn</a><a href="mailto:?subject=${encodeURIComponent(issue.title)}&body=${share}">Email</a><a href="${esc(url)}">Permalink</a></div>
-  <div class="card"><h2>Get the next issue in your inbox</h2><p>${esc(site.name)} is free and arrives ${esc(site.send_slot_label)}.</p>${signupForm('issue-end')}</div>
+  <div class="card"><h2>Get the next issue in your inbox</h2><p>${esc(site.name)} is free and arrives ${esc(site.send_slot_label)}.</p>${signupForm('issue-end', undefined, site)}</div>
   <nav class="pager" aria-label="Issues">${prev ? `<a href="${issueUrl(prev)}"><small>← Previous</small>Week of ${esc(prev.week.label)}</a>` : '<span></span>'}${next ? `<a class="next" href="${issueUrl(next)}"><small>Next →</small>Week of ${esc(next.week.label)}</a>` : '<span></span>'}</nav>
 </div>
 </div>`;
@@ -214,7 +237,7 @@ function subscribePage(site, issues) {
   const body = `<div class="wrap"><div class="prose" style="text-align:center;padding-bottom:20px">
   <h1>Subscribe to ${esc(site.name)}</h1>
   <p style="font-family:var(--serif);font-size:21px;margin:0 0 22px">${esc(site.promise)}</p>
-  ${signupForm('subscribe-page')}
+  ${signupForm('subscribe-page', undefined, site)}
   <p class="fine">Free. One email, ${esc(site.send_slot_label)}. Unsubscribe any time with one click.</p>
 </div>
 <div class="grid three who" style="max-width:860px;margin:0 auto 20px;text-align:left">
@@ -270,7 +293,7 @@ export async function build(env = process.env) {
   await out('data/issues.json', JSON.stringify(issues.map((i) => ({ number: i.number, slug: i.slug, title: i.title, subtitle: i.subtitle, week: i.week, publication: i.publication, source: { system: i.source.system, post_id: i.source.post_id, slug: i.source.slug }, sections: sections(i).slice(1).map((s) => s.title), send: scheduledSendFor(i.week) }))));
   await out('data/site.json', JSON.stringify({ name: site.name, tagline: site.tagline, attribution: site.attribution, url: site.url, env: site.env, campaigns: site.campaigns, send_slot_label: site.send_slot_label }));
 
-  for (const c of site.campaigns) await out(`s/${c.code}/index.html`, redirectPage(`/subscribe/?utm_source=${encodeURIComponent(c.utm_source)}&utm_medium=${encodeURIComponent(c.utm_medium)}&utm_campaign=${encodeURIComponent(c.utm_campaign)}`));
+  for (const c of site.campaigns) await out(`s/${c.code}/index.html`, redirectPage(site.signup_url ? externalSignup(site, { utm_source: c.utm_source, utm_medium: c.utm_medium, utm_campaign: c.utm_campaign }) : `/subscribe/?utm_source=${encodeURIComponent(c.utm_source)}&utm_medium=${encodeURIComponent(c.utm_medium)}&utm_campaign=${encodeURIComponent(c.utm_campaign)}`));
 
   // Prompted Index: copied byte-for-byte, except the subscribe target, which points at this site.
   if (indexData) {
@@ -287,7 +310,7 @@ export async function build(env = process.env) {
   await out('feed.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<rss version="2.0"><channel><title>${esc(site.name)}</title><link>${site.url}/</link><description>${esc(site.description)}</description><language>en-us</language>\n${rssItems}\n</channel></rss>\n`);
   const urls = ['/', '/issues/', '/subscribe/', '/index/', ...issues.map(issueUrl)];
   await out('sitemap.xml', `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.map((u) => `<url><loc>${site.url}${u}</loc></url>`).join('\n')}\n</urlset>\n`);
-  await out('robots.txt', site.env === 'production' ? `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /email/\nSitemap: ${site.url}/sitemap.xml\n` : 'User-agent: *\nDisallow: /\n');
+  await out('robots.txt', site.public ? `User-agent: *\nAllow: /\nDisallow: /admin/\nDisallow: /email/\nSitemap: ${site.url}/sitemap.xml\n` : 'User-agent: *\nDisallow: /\n');
   return { site, issues: issues.length, indexTerms: indexData?.terms?.length ?? 0 };
 }
 

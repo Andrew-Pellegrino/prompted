@@ -176,3 +176,20 @@ test('changing the domain is one setting: a build for another address keeps no t
   assert.ok((await readFile(path.join(ROOT, 'dist', 'sitemap.xml'), 'utf8')).includes('https://brand-new-domain.example/issues/'));
   await build({ SITE_URL: 'https://preview.example', SITE_ENV: 'preview' });
 });
+
+test('public site before cutover: indexed, no preview banner, every signup goes to the current sender with campaign tags', async () => {
+  const d = (p) => readFile(path.join(ROOT, 'dist', p), 'utf8');
+  const r = await build({ SITE_URL: 'https://readprompted.example', SITE_ENV: 'preview', SITE_PUBLIC: 'true', SIGNUP_URL: 'https://current.example/' });
+  assert.equal(r.site.public, true);
+  const home = await d('index.html');
+  assert.ok(!home.includes('noindex') && !home.includes('preview-banner'), 'public pages are indexable and unbannered');
+  assert.ok(!home.includes('action="/api/subscribe"'), 'no form posts to the platform before cutover');
+  assert.ok(home.includes('https://current.example/?utm_source=readprompted_org&amp;utm_medium=web&amp;utm_campaign=home-hero'));
+  assert.ok((await d('robots.txt')).includes('Allow: /') && (await d('robots.txt')).includes('Disallow: /admin/'));
+  assert.ok((await d('s/linkedin/index.html')).includes('https://current.example/?utm_source=linkedin&amp;utm_medium=social&amp;utm_campaign=prompted_linkedin'));
+  const prod = await build({ SITE_URL: 'https://readprompted.example', SITE_ENV: 'production', SIGNUP_URL: 'https://current.example/' });
+  assert.equal(prod.site.signup_url, '', 'production always uses the platform\'s own signup');
+  assert.ok((await d('index.html')).includes('action="/api/subscribe"'));
+  await build({ SITE_URL: 'https://preview.example', SITE_ENV: 'preview' });
+});
+

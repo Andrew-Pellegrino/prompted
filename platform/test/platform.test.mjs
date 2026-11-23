@@ -1307,3 +1307,15 @@ test('plain delivery check: real provider for an authorised test inbox only, pro
     assert.ok(!('headers' in bodies[1]), 'no empty headers object is sent to Brevo (it rejects one)');
   } finally { globalThis.fetch = realFetch; }
 });
+
+test('before cutover with SIGNUP_URL set, the signup endpoint sends people to the current sender and stores nothing', async () => {
+  const { default: worker } = await import('../src/worker/index.mjs');
+  const env = await makeEnv({ SIGNUP_URL: 'https://current.example/', SITE_PUBLIC: 'true' });
+  const before = one(env, 'SELECT COUNT(*) AS n FROM people').n;
+  const form = await worker.fetch(new Request('https://preview.example/api/subscribe', { method: 'POST', body: new URLSearchParams({ email: 'reader@example.com' }) }), env);
+  assert.deepEqual([form.status, form.headers.get('location')], [303, 'https://current.example/']);
+  assert.equal(one(env, 'SELECT COUNT(*) AS n FROM people').n, before);
+  const page = await worker.fetch(new Request('https://preview.example/api/me'), env);
+  assert.equal(page.headers.get('x-robots-tag'), null, 'public pages are not marked noindex');
+});
+

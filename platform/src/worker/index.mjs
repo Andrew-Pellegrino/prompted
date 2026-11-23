@@ -56,7 +56,14 @@ async function sessionActor(env, request) {
 const sameOrigin = (request) => { const o = request.headers.get('origin'); return !o || o === new URL(request.url).origin; };
 
 // ---------- public API ----------
+const path0 = (request) => new URL(request.url).pathname;
+
 async function apiSubscribe(request, env) {
+  // Before cutover, signups belong to the current sender: send people there and store nothing here.
+  if (env.SIGNUP_URL && env.SITE_ENV !== 'production') {
+    const ct = request.headers.get('content-type') || '';
+    return ct.includes('json') ? json({ ok: false, redirect: env.SIGNUP_URL, message: 'Please subscribe on our signup page.' }, 409) : new Response(null, { status: 303, headers: { location: env.SIGNUP_URL } });
+  }
   const db = env.DB, ip = clientIp(request);
   const ct = request.headers.get('content-type') || '';
   const input = ct.includes('json') ? await body(request, 20_000) : Object.fromEntries(await request.formData());
@@ -508,7 +515,7 @@ export default {
     }
     const out = new Response(res.body, res);
     for (const [k, v] of Object.entries(SECURITY)) out.headers.set(k, v);
-    if (env.SITE_ENV !== 'production') out.headers.set('x-robots-tag', 'noindex, nofollow');
+    if (env.SITE_ENV !== 'production' && (env.SITE_PUBLIC !== 'true' || path0(request).startsWith('/admin') || path0(request).startsWith('/email/'))) out.headers.set('x-robots-tag', 'noindex, nofollow');
     // The dashboard shell loads only its own script and styles; nothing third-party can run there.
     const path = new URL(request.url).pathname;
     if (path.startsWith('/admin')) { out.headers.set('content-security-policy', "default-src 'self'; frame-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'"); out.headers.set('x-frame-options', 'DENY'); }

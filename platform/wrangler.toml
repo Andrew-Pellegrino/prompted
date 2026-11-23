@@ -25,6 +25,10 @@ crons = ["* * * * *"] # advances scheduled sends in small chunks; idle runs do a
 
 [vars]
 SITE_ENV = "preview"            # "production" only after an approved cutover
+# Before cutover: signups go to beehiiv (one list), and the public site can be opened to search engines
+# without lifting any sending fence. Both are ignored once SITE_ENV is "production".
+SIGNUP_URL = "https://readprompted.beehiiv.com/subscribe"
+SITE_PUBLIC = ""                 # "true" opens the website to search engines and removes the preview banner
 SITE_URL = "https://readprompted.org"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"
