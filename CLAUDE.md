@@ -8,7 +8,7 @@ sent, even to the test inbox, without the owner's approval for that send.
 
 ## What this repository is
 
-- `main` is **production**. GitHub Pages serves it: `index.html` (redirect to beehiiv), `index/` (the public
+- `main` is **production**. GitHub Pages serves it: `index.html` (redirect to readprompted.org since November 23), `index/` (the public
   Prompted Index), `assets/`. A scheduled task edits `index/data.json` on `main` every Monday.
 - `platform-dev` is the **development branch** for the self-owned publishing platform in `platform/`.
   It has never been merged or deployed to production.

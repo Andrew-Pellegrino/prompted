@@ -33,6 +33,11 @@ new sender in the November 30 beehiiv issue; tracking **off** for the launch iss
 second issue after one tracking-on test (open tracking optional, read loosely). Cutover eve is Sunday, December 6
 (`CUTOVER-RUNBOOK.md`).
 
+**November 23, website opened early:** readprompted.org is public (indexed, no banner; `SITE_PUBLIC = "true"`)
+while sending stays in preview; every signup goes to beehiiv (`SIGNUP_URL`) so there is one list until December 7.
+The GitHub Pages root now redirects to readprompted.org (owner-approved commit on `main`). On cutover, remove
+`SIGNUP_URL` handling by setting `SITE_ENV = "production"` (it is ignored there) and move the Index's Subscribe button.
+
 Remaining, all outside engineering: Amazon's production access (**Amazon's review shows DENIED as of
 November 20**: the SES panel now shows Amazon's review status and Support case; **GRANTED November 22**: 50,000 a day, 14 a
 second, out of the sandbox. Placement passed November 22 (Gmail, Primary) and November 23 (Miami, after Miami
