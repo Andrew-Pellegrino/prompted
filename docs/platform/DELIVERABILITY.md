@@ -88,6 +88,11 @@ Miami's security team whether it is acting on these messages (ticket on hold unt
 now the leading explanation: it would act on every Miami mailbox, not just the owner's, so if confirmed, the
 fix is for Miami security to allow the domain before launch, not a change on our side.
 
+**Cause confirmed (November 23).** Miami's security team found that its third-party AI email filter was
+moving the messages to Spam, and changed it so it "shouldn't happen now". The account's "You reported this
+message as spam" wording came from that filter acting on the mailbox. Next: one owner-approved test to the
+Miami inbox, recorded in the placement log.
+
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
 blocked for the reader (an automated fetch, which the platform's human estimate excludes). Testing found and
