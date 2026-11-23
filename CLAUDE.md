@@ -148,6 +148,8 @@ Index", that is approval for this one commit to `main`, changing only `index/dat
    task treats any changes file whose `baseUpdated` equals the live `updated` as unpublished, so a file
    published the same day it was made would otherwise be carried into next week's run (the script would
    then refuse it, so nothing breaks, but the run stalls).
+6. Until cutover, also bring the platform archive up to date the same day: see `docs/platform/WEEKLY-RUNBOOK.md`,
+   "Until cutover: keep the archive current from beehiiv", then build and deploy the preview.
 
 ## Where current project sources live (not in this repo)
 
