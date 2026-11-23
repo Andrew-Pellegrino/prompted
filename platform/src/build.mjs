@@ -6,7 +6,7 @@ import { readIndexData } from './lib/index-source.mjs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
-import { esc, renderRuns } from './lib/html.mjs';
+import { esc, renderRuns, localIndexHref } from './lib/html.mjs';
 import { validateIssue, runsText, readMinutes, blocksText, sections } from './lib/issue-model.mjs';
 import { renderIssueWeb, renderMasthead } from './lib/render-web.mjs';
 import { renderIssueEmail, fillRecipient } from './lib/render-email.mjs';
@@ -127,7 +127,7 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
     </nav>
   </div>
   <div class="plate-rule"></div>
-  <div class="dateline"><span>${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span>${latest ? `<span class="num">No. ${latest.number} · ${esc(longDate(latest.publication.date))}</span>` : `<span>Every Monday, 8:45 a.m. Eastern</span>`}</div>
+  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span>${latest ? `<span class="num">No. ${latest.number} · <span class="d-long">${esc(longDate(latest.publication.date))}</span><span class="d-short">${esc(new Date(latest.publication.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }))}</span></span>` : `<span>Every Monday, 8:45 a.m. Eastern</span>`}</div>
 </div></header>
 <main id="main">
 ${body}
@@ -178,7 +178,7 @@ function homePage(site, issues, indexData) {
     <p class="kicker">This week · Issue No. ${latest.number}</p>
     <h1 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h1>
     <p class="byline">Week of ${esc(latest.week.label)} <i>·</i> ${readMinutes(latest)} min read <i>·</i> By ${esc(site.author)}</p>
-    ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children)}</p></div>` : ''}
+    ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
     <a class="read-on" href="${issueUrl(latest)}">Read the full issue ${ARROW}</a>
     <div class="contents">
       <h2 class="sec-h">In this issue</h2>

@@ -50,15 +50,26 @@ a:hover .arr{transform:translateX(3px)}
 .sub-btn:hover{filter:brightness(1.1);color:#fff}
 .plate-rule{border-top:3px solid var(--ink)}
 .dateline{display:flex;justify-content:space-between;gap:16px;padding:7px 0;border-bottom:1px solid var(--hair);color:var(--muted);font:13px var(--head)}
-.dateline span:first-child{font-style:italic}
+.dateline .dl-tag{font-style:italic}
+.mnav{display:none;gap:18px}
+.d-short{display:none}
+.mnav a{text-decoration:none;font-weight:700;color:var(--ink)}
+.mnav a[aria-current="page"]{color:var(--red)}
 /* interior pages: a smaller plate so the content leads */
 body:not(.pg-home) .nameplate{font-size:clamp(36px,4.6vw,52px)}
 body:not(.pg-home) .plate{padding-top:20px}
 @media (max-width:760px){
   .wrap{padding:0 18px}
-  .plate-mid{flex-wrap:wrap;align-items:center;row-gap:10px}
-  .plate-nav{gap:16px;margin:0}
-  .dl-for{display:none}
+  .plate{padding-top:16px}
+  .plate-mid{flex-wrap:nowrap;align-items:center;padding-bottom:10px}
+  .nameplate,body:not(.pg-home) .nameplate{font-size:clamp(38px,12vw,52px)}
+  .plate-nav{margin:0}
+  .plate-nav a:not(.sub-btn){display:none}
+  .plate-nav .sub-btn{padding:9px 13px;font-size:14px}
+  .dateline{align-items:center;font-size:14px}
+  .mnav{display:flex}
+  .dl-tag,.dl-for,.d-long{display:none}
+  .d-short{display:inline}
 }
 
 /* ---------- buttons and signup ---------- */

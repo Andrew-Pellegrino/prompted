@@ -1,12 +1,13 @@
 // Issue -> web article HTML. Same source as the email; wording is never changed.
-import { esc, renderRuns, slugify } from './html.mjs';
+import { esc, renderRuns, slugify, localIndexHref } from './html.mjs';
 import { runsText } from './issue-model.mjs';
 import { mastheadWeek } from './weeks.mjs';
 
-const link = (href) => (/^https?:\/\//.test(href) ? { attrs: { rel: 'noopener' } } : {});
+const linker = (indexUrl) => (href) => { const to = localIndexHref(href, indexUrl); return { href: to, attrs: /^https?:\/\//.test(to) && !to.startsWith(indexUrl || '\u0000') ? { rel: 'noopener' } : {} }; };
 
 /** Returns { html, toc } where toc lists major sections and stories with anchor ids. */
-export function renderIssueWeb(issue) {
+export function renderIssueWeb(issue, { indexUrl = '/index/' } = {}) {
+  const link = linker(indexUrl);
   const used = new Set();
   const toc = [];
   const anchor = (text) => {

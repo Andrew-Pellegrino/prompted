@@ -21,3 +21,9 @@ export function renderRuns(runs, opts = {}) {
 }
 
 export const slugify = (s) => s.toLowerCase().replace(/[’']/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 80);
+
+/** Links in approved issues that point at the Index's original GitHub Pages address are sent to this site's copy
+ *  of the same page (same anchor). Only the address changes; the linked words never do. */
+const GITHUB_INDEX = /^https?:\/\/andrew-pellegrino\.github\.io\/prompted\/index\/?/i;
+export const localIndexHref = (href, indexUrl) => (indexUrl && GITHUB_INDEX.test(href) ? href.replace(GITHUB_INDEX, indexUrl) : href);
+
