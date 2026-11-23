@@ -91,7 +91,8 @@ p.signup{display:block}
 .lead-h a{text-decoration:none}
 .lead-h a:hover{color:inherit;text-decoration:underline;text-decoration-thickness:3px;text-decoration-color:var(--red);text-underline-offset:6px}
 .byline{font:13px var(--head);color:var(--muted);margin-bottom:18px}
-.byline i{font-style:normal;margin:0 6px;color:var(--hair)}
+.byline span{white-space:nowrap}
+.byline i{font-style:normal;margin:0 8px;color:var(--muted)}
 .deck p{font-size:21px;line-height:1.5}
 .deck p::first-letter{font-family:var(--head);font-weight:700;float:left;font-size:3.35em;line-height:.82;padding:.06em .1em 0 0;color:var(--red)}
 .clamp{display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
@@ -300,10 +301,10 @@ footer.site{margin-top:70px;border-top:3px solid var(--ink);padding:30px 0 34px;
   article.issue p.opening{font-size:20px}
   article.issue h2{font-size:26px}
   article.issue h3{font-size:21px}
-  .art-meta{display:block;border:0;border-top:1px solid var(--ink);padding-top:8px}
+  .art-meta{display:flex;flex-wrap:wrap;justify-content:center;row-gap:2px;border:0;border-top:1px solid var(--ink);padding-top:8px}
   .art-meta span{padding:0}
   .art-meta span+span{border:0}
-  .art-meta span+span::before{content:"·";margin:0 7px;color:var(--hair)}
+  .art-meta{column-gap:16px}
   .kbd{display:none}
   .stories{display:none}
   .arch-list .no{font-size:30px;min-width:44px}

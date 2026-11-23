@@ -127,7 +127,7 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
     </nav>
   </div>
   <div class="plate-rule"></div>
-  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span>${latest ? `<span class="num">No. ${latest.number} · <span class="d-long">${esc(longDate(latest.publication.date))}</span><span class="d-short">${esc(new Date(latest.publication.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }))}</span></span>` : `<span>Every Monday, 8:45 a.m. Eastern</span>`}</div>
+  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span>${latest ? `<span class="num">No. ${latest.number} · <span class="d-long">${esc(longDate(latest.publication.date))}</span><span class="d-short">${esc(new Date(latest.publication.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }))}</span></span>` : `<span>Every Monday, 8:45 a.m. ET</span>`}</div>
 </div></header>
 <main id="main">
 ${body}
@@ -175,9 +175,9 @@ function homePage(site, issues, indexData) {
   const termCount = indexData?.terms?.length || 0;
   const body = `<section class="front wrap">
   <div class="lead">
-    <p class="kicker">This week · Issue No. ${latest.number}</p>
+    <p class="kicker">Week of ${esc(latest.week.label)}</p>
     <h1 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h1>
-    <p class="byline">Week of ${esc(latest.week.label)} <i>·</i> ${readMinutes(latest)} min read <i>·</i> By ${esc(site.author)}</p>
+    <p class="byline"><span>By ${esc(site.author)}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
     ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
     <a class="read-on" href="${issueUrl(latest)}">Read the full issue ${ARROW}</a>
     <div class="contents">
@@ -247,7 +247,7 @@ function archivePage(site, issues) {
 <div class="wrap arch">
   ${[...byMonth].map(([m, list]) => `<h2 class="month" data-year><span>${esc(m)}</span></h2><ol class="arch-list">${list.map(issueLi).join('')}</ol>`).join('\n')}
 </div>`;
-  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, searchable.`, pathName: '/issues/', body, current: 'issues', latest: issues.at(-1) });
+  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, searchable.`, pathName: '/issues/', body, current: 'issues' });
 }
 
 function issuePage(site, issue, issues, indexData) {
@@ -289,7 +289,7 @@ ${rest}
   <nav class="pager" aria-label="Issues">${prev ? `<a href="${issueUrl(prev)}"><small>← Previous issue</small><b>Week of ${esc(prev.week.label)}</b><span>${esc(prev.subtitle)}</span></a>` : '<span></span>'}${next ? `<a class="next" href="${issueUrl(next)}"><small>Next issue →</small><b>Week of ${esc(next.week.label)}</b><span>${esc(next.subtitle)}</span></a>` : '<span></span>'}</nav>
 </div>
 </div>`;
-  return layout(site, { title: issue.title, description: issue.subtitle, pathName: issueUrl(issue), body, current: 'issue', ogType: 'article', latest: issues.at(-1),
+  return layout(site, { title: issue.title, description: issue.subtitle, pathName: issueUrl(issue), body, current: 'issue', ogType: 'article',
     jsonLd: { '@context': 'https://schema.org', '@type': 'NewsArticle', headline: issue.title, description: issue.subtitle, datePublished: issue.publication.date, author: { '@type': 'Person', name: site.author }, publisher: { '@type': 'Organization', name: site.name }, mainEntityOfPage: url, isAccessibleForFree: true } });
 }
 
@@ -309,7 +309,7 @@ function subscribePage(site, issues) {
     <div><span class="n num">03</span><h3>Try it first</h3><p><a href="${issueUrl(latest)}">Read this week's issue</a> or browse <a href="/issues/">all ${issues.length}</a>.</p></div>
   </div>
 </section>`;
-  return layout(site, { title: `Subscribe — ${site.name}`, description: site.description, pathName: '/subscribe/', body, current: 'subscribe', latest });
+  return layout(site, { title: `Subscribe — ${site.name}`, description: site.description, pathName: '/subscribe/', body, current: 'subscribe' });
 }
 
 const simplePage = (site, pathName, title, inner) => layout(site, { title: `${title} — ${site.name}`, description: site.description, pathName, body: `<header class="page-head wrap"><h1>${esc(title)}</h1></header><div class="wrap"><div class="prose">${inner}</div></div>` });
