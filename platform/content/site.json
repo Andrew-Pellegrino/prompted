@@ -10,13 +10,125 @@
   "gate_after_blocks": 4,
   "postal_address": "TODO: owner mailing address (required before any real send)",
   "campaigns": [
-    { "code": "linkedin", "label": "LinkedIn", "utm_source": "linkedin", "utm_medium": "social", "utm_campaign": "prompted_linkedin" },
-    { "code": "founders", "label": "Founders", "utm_source": "founders", "utm_medium": "partner", "utm_campaign": "founders_2026" },
-    { "code": "awe", "label": "AWE", "utm_source": "awe", "utm_medium": "partner", "utm_campaign": "awe_2026" },
-    { "code": "sepi", "label": "SEPi", "utm_source": "sepi", "utm_medium": "partner", "utm_campaign": "sepi_2026" },
-    { "code": "rv", "label": "RedHawk Ventures", "utm_source": "redhawk_ventures", "utm_medium": "partner", "utm_campaign": "redhawk_ventures_2026" },
-    { "code": "faculty", "label": "Faculty and staff", "utm_source": "faculty_staff", "utm_medium": "partner", "utm_campaign": "faculty_staff_2026" },
-    { "code": "index", "label": "Prompted Index", "utm_source": "index", "utm_medium": "web", "utm_campaign": "prompted_index" },
-    { "code": "forward", "label": "Forwarded email", "utm_source": "forward", "utm_medium": "email", "utm_campaign": "prompted_forward" }
-  ]
+    {
+      "code": "linkedin",
+      "label": "LinkedIn",
+      "utm_source": "linkedin",
+      "utm_medium": "social",
+      "utm_campaign": "prompted_linkedin"
+    },
+    {
+      "code": "founders",
+      "label": "Founders",
+      "utm_source": "founders",
+      "utm_medium": "partner",
+      "utm_campaign": "founders_2026"
+    },
+    {
+      "code": "awe",
+      "label": "AWE",
+      "utm_source": "awe",
+      "utm_medium": "partner",
+      "utm_campaign": "awe_2026"
+    },
+    {
+      "code": "sepi",
+      "label": "SEPi",
+      "utm_source": "sepi",
+      "utm_medium": "partner",
+      "utm_campaign": "sepi_2026"
+    },
+    {
+      "code": "rv",
+      "label": "RedHawk Ventures",
+      "utm_source": "redhawk_ventures",
+      "utm_medium": "partner",
+      "utm_campaign": "redhawk_ventures_2026"
+    },
+    {
+      "code": "faculty",
+      "label": "Faculty and staff",
+      "utm_source": "faculty_staff",
+      "utm_medium": "partner",
+      "utm_campaign": "faculty_staff_2026"
+    },
+    {
+      "code": "index",
+      "label": "Prompted Index",
+      "utm_source": "index",
+      "utm_medium": "web",
+      "utm_campaign": "prompted_index"
+    },
+    {
+      "code": "forward",
+      "label": "Forwarded email",
+      "utm_source": "forward",
+      "utm_medium": "email",
+      "utm_campaign": "prompted_forward"
+    }
+  ],
+  "front": {
+    "_status": "DRAFT for the owner's approval (written November 23, 2026). Editorial site copy, not issue text.",
+    "opening": "Prompted is a free weekly brief on artificial intelligence for students, founders, faculty, staff and administrators. Every Monday at 8:45 a.m. Eastern it explains the developments that mattered, what they add up to, and what they mean for you. This page is laid out like an issue: this week's lead, the issues before it, and the patterns that have emerged across all {issues} so far.",
+    "patterns": [
+      {
+        "lead": "Chatbots turned into agents.",
+        "body": "In the spring, the story was which chatbot answered best. By summer the labs were shipping assistants that act on their own, and by fall those agents had email addresses, memory and wallets. The harder questions moved with them: what an agent is allowed to touch, and who answers for it when it goes off task.",
+        "issues": [
+          14,
+          24,
+          32
+        ]
+      },
+      {
+        "lead": "The limit moved from chips to power, money and permission.",
+        "body": "Early issues tracked who could buy the most chips. Later ones tracked electricity, construction money and, by November, voters deciding whether data centers get built at all.",
+        "issues": [
+          2,
+          25,
+          31
+        ]
+      },
+      {
+        "lead": "Access became the product.",
+        "body": "The strongest models increasingly ship in tiers. What a model will do depends on who you are, with cyber tools going to vetted defenders first and governments testing frontier models before release.",
+        "issues": [
+          12,
+          22,
+          30
+        ]
+      },
+      {
+        "lead": "AI started producing real mathematics and science.",
+        "body": "A handful of math results in the spring became a run of formal proofs by fall, ending with the Riemann hypothesis. The open question shifted from whether AI can contribute to how anyone checks and credits what it finds.",
+        "issues": [
+          7,
+          23,
+          33
+        ]
+      }
+    ],
+    "lenses": [
+      {
+        "label": "If you are a student or future knowledge worker,",
+        "text": "Prompted is the one read a week that keeps you ahead of the tools your classes and your first job will assume you understand, explained without the hype."
+      },
+      {
+        "label": "If you are a founder or builder,",
+        "text": "you get the changes in price, capability and access that decide what you can build this quarter, and what just became a feature of someone else's product."
+      },
+      {
+        "label": "If you are faculty,",
+        "text": "you get ready-made teaching cases and a calm read on what AI means for assessment and research in your field."
+      },
+      {
+        "label": "If you are staff,",
+        "text": "you get the practical changes headed for your desk: new tools, new policies and new security risks, before they arrive."
+      },
+      {
+        "label": "If you are an administrator,",
+        "text": "you get the governance, budget and vendor questions early enough to plan for them instead of reacting to them."
+      }
+    ]
+  }
 }

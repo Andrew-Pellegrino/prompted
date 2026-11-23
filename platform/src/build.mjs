@@ -11,6 +11,7 @@ import { validateIssue, runsText, readMinutes, blocksText, sections } from './li
 import { renderIssueWeb, renderMasthead } from './lib/render-web.mjs';
 import { renderIssueEmail, fillRecipient } from './lib/render-email.mjs';
 import { termsInIssue } from './lib/index-terms.mjs';
+import { risingTerms } from './lib/trends.mjs';
 import { scheduledSendFor } from './lib/weeks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -126,28 +127,21 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
       <a class="sub-btn" href="${esc(subscribeHref(site, 'header'))}">Subscribe free</a>
     </nav>
   </div>
-  <div class="plate-rule"></div>
-  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span>${latest ? `<span class="num">No. ${latest.number} · <span class="d-long">${esc(longDate(latest.publication.date))}</span><span class="d-short">${esc(new Date(latest.publication.date + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' }))}</span></span>` : `<span>Every Monday, 8:45 a.m. ET</span>`}</div>
+  ${current === 'home' && latest ? `<p class="mast-tag">${esc(site.tagline)}</p>
+  <p class="mast-week">Week of ${esc(latest.week.label)} <i>·</i> <span class="dl-for">${esc(site.attribution)}</span></p>
+  <div class="plate-rule mast-rule"></div>
+  <nav class="mnav solo" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav>` : `<div class="plate-rule"></div>
+  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>`}
 </div></header>
 <main id="main">
 ${body}
 </main>
-<footer class="site"><div class="wrap">
-  <div class="foot-top">
-    <div class="foot-brand">
-      <a class="foot-name" href="/">${esc(site.name)}</a>
-      <p>${esc(site.description)}</p>
-      <a class="sub-btn" href="${esc(subscribeHref(site, 'footer'))}">Subscribe free</a>
-    </div>
-    <nav class="foot-nav" aria-label="Footer">
-      <h4>Read</h4><a href="/">This week</a><a href="/issues/">Archive</a><a href="/index/">Prompted Index</a><a href="/feed.xml">RSS</a>
-    </nav>
-    <nav class="foot-nav" aria-label="About">
-      <h4>About</h4><a href="${esc(subscribeHref(site, 'footer-links'))}">Subscribe</a><a href="/privacy/">Privacy</a>
-    </nav>
-    <div class="foot-lockup"><img src="/img/miami-altman-lockup.png" width="120" height="95" alt="Miami University, John W. Altman Institute for Entrepreneurship"><p>${esc(site.attribution)}.</p></div>
+<footer class="site"><div class="wrap foot">
+  <a class="foot-lockup" href="/"><img src="/img/miami-altman-lockup.png" width="80" height="63" alt="Miami University, John W. Altman Institute for Entrepreneurship"></a>
+  <div class="foot-main">
+    <nav aria-label="Footer"><a href="/">This week</a><a href="/issues/">Archive</a><a href="/index/">Index</a><a href="${esc(subscribeHref(site, 'footer'))}">Subscribe</a><a href="/feed.xml">RSS</a><a href="/privacy/">Privacy</a></nav>
+    <p>© ${new Date().getUTCFullYear()} ${esc(site.name)}. Written by ${esc(site.author)}. ${esc(site.attribution)}.</p>
   </div>
-  <p class="foot-fine">© ${new Date().getUTCFullYear()} ${esc(site.name)}. Written by ${esc(site.author)}. Free, every Monday at 8:45 a.m. Eastern.</p>
 </div></footer>
 <script src="/assets/site.js?v=${site.asset_v?.js || ''}" defer></script>
 </body>
@@ -169,66 +163,53 @@ function leaderboard(indexData, issuesTracked, n = 6) {
 
 function homePage(site, issues, indexData) {
   const latest = issues.at(-1), earlier = issues.slice(-6, -1).reverse();
+  const front = site.front || {};
   const opening = latest.blocks.find((b) => b.role === 'opening');
   const stories = storyAnchors(latest);
-  const terms = indexData ? termsInIssue(latest, indexData, 10) : [];
+  const trends = risingTerms(issues, indexData, { n: 5 });
+  const byNo = new Map(issues.map((i) => [i.number, i]));
   const termCount = indexData?.terms?.length || 0;
-  const body = `<section class="front wrap">
-  <div class="lead">
-    <p class="kicker">Week of ${esc(latest.week.label)}</p>
-    <h1 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h1>
-    <p class="byline"><span>By ${esc(site.author)}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
-    ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
-    <a class="read-on" href="${issueUrl(latest)}">Read the full issue ${ARROW}</a>
-    <div class="contents">
-      <h2 class="sec-h">In this issue</h2>
-      <ol>${stories.map((s, i) => `<li><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`).join('')}</ol>
-    </div>
-    <div class="figures">
-      <div class="fig"><b class="num">${issues.length}</b><span>issues</span></div>
-      <div class="fig"><b class="num">${termCount || '—'}</b><span>terms explained</span></div>
-      <div class="fig"><b class="num">8:45</b><span>Mondays, ET</span></div>
-    </div>
-  </div>
-  <div class="vr" aria-hidden="true"></div>
-  <aside class="rail">
-    <div class="subbox">
-      <p class="kicker">Free every Monday</p>
-      <h2>Start the week knowing what changed in AI.</h2>
-      <p>The biggest developments, what they add up to, and what they mean for you, in one email at 8:45 a.m. Eastern.</p>
-      ${signupForm('home-hero', 'Subscribe free', site)}
-      <p class="fine">One email a week. No ads. Unsubscribe in one click.</p>
-    </div>
-    <h2 class="sec-h">Earlier issues</h2>
-    <ol class="past">${earlier.map((i) => `<li><a href="${issueUrl(i)}"><span class="no num">${pad2(i.number)}</span><span class="body"><span class="wk">${esc(i.week.label)}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
-    <a class="all" href="/issues/">All ${issues.length} issues ${ARROW}</a>
-  </aside>
+  const strip = (seen) => `<span class="strip" aria-hidden="true">${seen.map((x) => `<i${x ? ' class="on"' : ''}></i>`).join('')}</span>`;
+  const body = `<div class="paper wrap">
+<p class="fp-opening">${esc((front.opening || site.description).replace('{issues}', String(issues.length)))}</p>
+
+<section class="fp-sec" aria-labelledby="s-big">
+  <h2 id="s-big" class="fp-h">The Biggest Developments</h2>
+  <p class="kicker">This week · Issue No. ${latest.number}</p>
+  <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
+  <p class="byline"><span>By ${esc(site.author)}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
+  ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
+  ${stories.length ? `<ol class="fp-stories">${stories.map((s, i) => `<li><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`).join('')}</ol>` : ''}
+  <a class="sub-btn read-btn" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
 </section>
 
-${indexData ? `<section class="band"><div class="wrap">
-  <div class="band-head"><h2>From the Prompted Index</h2><p>The AI terms Prompted keeps using, explained in plain English and counted across every issue.</p><a class="btn-line" href="/index/">Open the Index ${ARROW}</a></div>
-  <div class="band-grid">
-    <div><h3 class="sec-h">What keeps coming up</h3>${leaderboard(indexData, issues.length)}<p class="note">Share of the ${indexData.issuesTracked || issues.length} issues that used each term.</p></div>
-    <div class="vr" aria-hidden="true"></div>
-    <div><h3 class="sec-h">Terms in this week's issue</h3><div class="tiles">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div>
-      <form class="search" action="/index/" role="search">${SEARCH_ICON}<label class="vh" for="iq">Search the Index</label><input id="iq" name="q" type="search" placeholder="Look up an AI term" autocomplete="off"></form></div>
-  </div>
-</div></section>` : ''}
+<section class="fp-sec" aria-labelledby="s-brief">
+  <h2 id="s-brief" class="fp-h">Worth Knowing Briefly</h2>
+  ${earlier.map((i) => `<p class="brief"><a href="${issueUrl(i)}"><b>Week of ${esc(i.week.label)}.</b> ${esc(i.subtitle)}</a></p>`).join('\n  ')}
+  <p class="brief more"><a href="/issues/"><b>The full archive.</b> All ${issues.length} issues, searchable by any word.</a> ${termCount ? `<a href="/index/"><b>The Prompted Index.</b> ${termCount} AI terms from these issues, explained in plain English.</a>` : ''}</p>
+</section>
 
-<section class="inside wrap">
-  <h2 class="sec-big">Inside every issue</h2>
-  <div class="cols">
-    <div><span class="n num">01</span><h3>The Biggest Developments</h3><p>The handful of stories that changed something, with the facts, the caveats and why each one matters.</p></div>
-    <div><span class="n num">02</span><h3>Worth Knowing Briefly</h3><p>The smaller stories you would want to have heard about, in a paragraph each.</p></div>
-    <div><span class="n num">03</span><h3>Patterns Worth Watching</h3><p>What the week's news adds up to, so you see the direction and not only the headlines.</p></div>
-    <div><span class="n num">04</span><h3>Why This Week Matters</h3><p>Plain takeaways for students, founders, faculty, staff and administrators.</p></div>
+<section class="fp-sec" aria-labelledby="s-pat">
+  <h2 id="s-pat" class="fp-h">Patterns Worth Watching</h2>
+  ${(front.patterns || []).map((p) => `<p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>`).join('\n  ')}
+  ${trends?.terms.length ? `<figure class="rising">
+    <figcaption><b>Rising across ${trends.issues} issues.</b> Each square is one issue, oldest on the left; filled means the issue used the term. Counted from the Prompted Index.</figcaption>
+    <ol>${trends.terms.map((t) => `<li><a href="/index/#${encodeURIComponent(t.anchor)}"><span class="rt">${esc(t.term)}</span><span class="rc num">${t.early} of the first ${trends.k} <i>→</i> ${t.late} of the last ${trends.k}</span>${strip(t.seen)}</a></li>`).join('')}</ol>
+  </figure>` : ''}
+</section>
+
+<section class="fp-sec" aria-labelledby="s-why">
+  <h2 id="s-why" class="fp-h">Why Prompted Matters to You</h2>
+  ${(front.lenses || []).map((l) => `<p class="lens"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('\n  ')}
+  <div class="fp-sub">
+    <p><b>Free, every Monday at 8:45 a.m. Eastern.</b> One email a week. No ads. Unsubscribe in one click.</p>
+    ${signupForm('home-hero', 'Subscribe free', site)}
   </div>
 </section>
 
-<section class="closer"><div class="wrap">
-  <p class="closer-q">${esc(site.promise)}</p>
-  <div class="closer-act">${signupForm('home-footer', 'Subscribe free', site)}<p class="fine">Prepared for the John W. Altman Institute for Entrepreneurship at Miami University.</p></div>
-</div></section>`;
+<p class="fp-closing">That’s the week. See you next Monday.</p>
+<p class="fp-signoff">— Prompted</p>
+</div>`;
   return layout(site, { title: `${site.name} — ${site.tagline}`, description: site.description, pathName: '/', body, current: 'home', latest,
     jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: site.name, url: site.url + '/', description: site.description } });
 }

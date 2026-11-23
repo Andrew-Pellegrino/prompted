@@ -193,3 +193,17 @@ test('public site before cutover: indexed, no preview banner, every signup goes 
   await build({ SITE_URL: 'https://preview.example', SITE_ENV: 'preview' });
 });
 
+
+test('patterns: rising Index terms are counted per issue, skip everyday words, and show each Index entry once', async () => {
+  const { risingTerms } = await import('../src/lib/trends.mjs');
+  const mk = (n, text) => ({ number: n, blocks: [{ type: 'paragraph', children: [{ text }] }] });
+  const issues = Array.from({ length: 9 }, (_, i) => mk(i + 1, i < 3 ? 'The board approved a budget.' : 'Open models and open weights rose; the board approved it.'));
+  const idx = { terms: [
+    { term: 'Open model', anchor: 'open-model', dest: 'D1', surfaces: ['open models'] },
+    { term: 'Open weight', anchor: 'open-weight', dest: 'D1', surfaces: ['open weights'] },
+    { term: 'Human approval', anchor: 'human-approval', dest: 'D2', surfaces: ['approved'] },
+  ] };
+  const r = risingTerms(issues, idx, { minLate: 3 });
+  assert.deepEqual(r.terms.map((t) => [t.term, t.early, t.late]), [['Open model', 0, 3]], 'one entry per destination; "approved" alone is never counted');
+  assert.equal(r.terms[0].seen.length, 9);
+});

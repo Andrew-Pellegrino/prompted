@@ -318,3 +318,66 @@ footer.site{margin-top:70px;border-top:3px solid var(--ink);padding:30px 0 34px;
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 @media print{body::before,.plate-nav,.toc-side,.toc,.progress,.gate,.after .subbox,.share,.pager,footer.site,.band,.closer{display:none!important}.gate-fade{max-height:none;mask-image:none;-webkit-mask-image:none}}
+
+/* ---------- front page set as an issue of Prompted ---------- */
+.mast-tag{font:italic 15px var(--head);color:var(--muted);margin-top:-4px}
+.mast-week{font:15px var(--head);color:var(--muted);margin:3px 0 14px}
+.mast-week i{font-style:normal;margin:0 6px;color:var(--hair)}
+.mast-rule{border-top-width:3px}
+.mnav.solo{display:none;padding:9px 0;border-bottom:1px solid var(--hair);font:14px var(--head)}
+.paper{max-width:calc(var(--read) + 56px);padding-top:30px}
+.fp-opening{font-size:23px;line-height:1.55;margin-bottom:6px}
+.fp-opening::first-letter{font-family:var(--head);font-weight:700;float:left;font-size:3.5em;line-height:.8;padding:.05em .1em 0 0;color:var(--red)}
+.fp-sec{margin-top:48px}
+.fp-h{font-size:30px;letter-spacing:-.03em;line-height:1.1;border-top:3px solid var(--ink);padding-top:14px;margin-bottom:22px}
+.paper .lead-h{font-size:clamp(28px,3.6vw,40px);line-height:1.08;margin:4px 0 12px}
+.fp-stories{list-style:none;margin:22px 0 0;padding:0;border-top:1px solid var(--ink)}
+.fp-stories a{display:flex;gap:14px;align-items:baseline;padding:11px 0;border-bottom:1px solid var(--hair);text-decoration:none;font:700 17px/1.3 var(--head);letter-spacing:-.01em}
+.fp-stories a:hover{color:var(--red)}
+.read-btn{display:inline-flex;align-items:center;gap:8px;margin-top:22px;padding:12px 18px;font-size:15px}
+.brief,.pattern,.lens{font-size:20px;line-height:1.6;margin-bottom:20px}
+.brief a{text-decoration:none}
+.brief b,.pattern b{font-family:var(--head);font-weight:700;letter-spacing:-.01em}
+.brief a:hover{color:var(--red)}
+.brief.more{display:flex;flex-direction:column;gap:12px;border-top:1px solid var(--hair);padding-top:18px;font-size:18px}
+.see{font:14px var(--head);color:var(--muted);white-space:normal}
+.see a{text-decoration-color:var(--red)}
+.lens strong{font-weight:500;background:linear-gradient(transparent 62%,color-mix(in srgb,var(--red) 20%,transparent) 62%)}
+.rising{margin:30px 0 0;border-top:3px solid var(--ink)}
+.rising figcaption{font:14px/1.45 var(--head);color:var(--muted);padding:10px 0 4px}
+.rising figcaption b{color:var(--ink)}
+.rising ol{list-style:none;margin:0;padding:0}
+.rising a{display:grid;grid-template-columns:1fr auto;gap:6px 16px;align-items:baseline;padding:13px 0;border-bottom:1px solid var(--hair);text-decoration:none}
+.rt{font:700 18px var(--head);letter-spacing:-.01em}
+.rc{font:13px var(--head);color:var(--muted)}
+.rc i{font-style:normal;color:var(--red);margin:0 3px}
+.rising a:hover .rt{color:var(--red)}
+.strip{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fit,minmax(4px,1fr));gap:3px;height:12px}
+.strip i{background:var(--hair);opacity:.55}
+.strip i.on{background:var(--ink);opacity:1}
+.rising a:hover .strip i.on{background:var(--red)}
+.fp-sub{margin-top:28px;background:var(--sheet);border:1.5px solid var(--ink);padding:22px}
+.fp-sub p{font:15px/1.45 var(--head);color:var(--muted);margin-bottom:14px}
+.fp-sub p b{color:var(--ink)}
+.fp-closing{font-size:20px;border-top:1px solid var(--ink);padding-top:18px;margin-top:52px}
+.fp-signoff{font-style:italic;margin-top:10px;font-size:20px}
+
+/* compact footer */
+footer.site{margin-top:64px;border-top:3px solid var(--ink);padding:22px 0 30px}
+.foot{display:flex;gap:22px;align-items:center}
+.foot-lockup img{width:72px;display:block}
+.foot-main nav{display:flex;flex-wrap:wrap;gap:6px 20px;font:700 15px var(--head);margin-bottom:8px}
+.foot-main nav a{text-decoration:none}
+.foot-main p{font:13px/1.45 var(--head);color:var(--muted)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .foot-lockup img{background:#fff;padding:5px}}
+@media (max-width:760px){
+  .mnav.solo{display:flex}
+  .mast-week .dl-for,.mast-week i{display:none}
+  .fp-opening{font-size:20px}
+  .brief,.pattern,.lens{font-size:18px}
+  .fp-h{font-size:26px}
+  .foot{align-items:flex-start}
+}
+.pg-home .plate .wrap{max-width:calc(var(--read) + 56px)}
+.pg-home footer.site .wrap{max-width:calc(var(--read) + 56px)}
+.pg-home .nameplate{font-size:clamp(44px,8vw,76px)}
