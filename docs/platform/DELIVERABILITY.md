@@ -90,8 +90,11 @@ fix is for Miami security to allow the domain before launch, not a change on our
 
 **Cause confirmed (November 23).** Miami's security team found that its third-party AI email filter was
 moving the messages to Spam, and changed it so it "shouldn't happen now". The account's "You reported this
-message as spam" wording came from that filter acting on the mailbox. Next: one owner-approved test to the
-Miami inbox, recorded in the placement log.
+message as spam" wording came from that filter acting on the mailbox. Owner-approved tests on November 23: the owner's
+Miami inbox (Inbox, still there three minutes later) and a second, consenting Miami student's inbox (received;
+the address was added to the test list only for that send and removed afterwards). Miami IT then confirmed the
+security team "vouched for the sending address" for **all** Miami accounts and closed the ticket; IT can review
+delivery logs on request through a new ticket.
 
 Other observations: Miami shows external images only after "Show images", so the lockup image is at first
 an empty box; one tracking-on copy recorded an image fetch 5 seconds after delivery while images were still
