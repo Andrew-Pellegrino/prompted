@@ -381,3 +381,19 @@ footer.site{margin-top:64px;border-top:3px solid var(--ink);padding:22px 0 30px}
 .pg-home .plate .wrap{max-width:calc(var(--read) + 56px)}
 .pg-home footer.site .wrap{max-width:calc(var(--read) + 56px)}
 .pg-home .nameplate{font-size:clamp(44px,8vw,76px)}
+
+/* front-page masthead: one block */
+.mast-tag i{font-style:normal;margin:0 6px;color:var(--hair)}
+.mast-tag span{font-style:normal;white-space:nowrap}
+.mast-tag{margin:0 0 14px}
+.mast-promise{font-size:clamp(23px,2.6vw,30px);line-height:1.3;letter-spacing:-.005em;padding:18px 0 16px;max-width:30em}
+.mast-meta{display:flex;justify-content:space-between;align-items:center;gap:16px;border-top:1px solid var(--hair);border-bottom:1px solid var(--hair);padding:8px 0;font:13px var(--head);color:var(--muted)}
+.mast-meta .mnav{display:none}
+.paper{padding-top:6px}
+@media (max-width:760px){
+  .mast-meta .dl-for{display:none}
+  .mast-meta .mnav{display:flex;gap:16px}
+  .mast-promise{font-size:22px;padding:14px 0 14px}
+}
+
+.paper>.fp-sec:first-child{margin-top:34px}

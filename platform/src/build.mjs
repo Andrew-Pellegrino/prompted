@@ -127,10 +127,10 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
       <a class="sub-btn" href="${esc(subscribeHref(site, 'header'))}">Subscribe free</a>
     </nav>
   </div>
-  ${current === 'home' && latest ? `<p class="mast-tag">${esc(site.tagline)}</p>
-  <p class="mast-week">Week of ${esc(latest.week.label)} <i>·</i> <span class="dl-for">${esc(site.attribution)}</span></p>
+  ${current === 'home' && latest ? `<p class="mast-tag">${esc(site.tagline)} <i>·</i> <span>Week of ${esc(latest.week.label)}</span></p>
   <div class="plate-rule mast-rule"></div>
-  <nav class="mnav solo" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav>` : `<div class="plate-rule"></div>
+  <p class="mast-promise">${esc(site.promise)}</p>
+  <div class="mast-meta"><span>Free every Monday, 8:45 a.m. ET</span><span class="dl-for">${esc(site.attribution)}</span><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>` : `<div class="plate-rule"></div>
   <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>`}
 </div></header>
 <main id="main">
@@ -171,7 +171,6 @@ function homePage(site, issues, indexData) {
   const termCount = indexData?.terms?.length || 0;
   const strip = (seen) => `<span class="strip" aria-hidden="true">${seen.map((x) => `<i${x ? ' class="on"' : ''}></i>`).join('')}</span>`;
   const body = `<div class="paper wrap">
-<p class="fp-opening">${esc((front.opening || site.description).replace('{issues}', String(issues.length)))}</p>
 
 <section class="fp-sec" aria-labelledby="s-big">
   <h2 id="s-big" class="fp-h">The Biggest Developments</h2>

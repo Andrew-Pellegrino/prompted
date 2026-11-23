@@ -69,7 +69,6 @@
   ],
   "front": {
     "_status": "DRAFT for the owner's approval (written November 23, 2026). Editorial site copy, not issue text.",
-    "opening": "Prompted is a free weekly brief on artificial intelligence for students, founders, faculty, staff and administrators. Every Monday at 8:45 a.m. Eastern it explains the developments that mattered, what they add up to, and what they mean for you. This page is laid out like an issue: this week's lead, the issues before it, and the patterns that have emerged across all {issues} so far.",
     "patterns": [
       {
         "lead": "Chatbots turned into agents.",
