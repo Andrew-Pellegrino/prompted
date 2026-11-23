@@ -68,7 +68,7 @@
     }
   ],
   "front": {
-    "_status": "DRAFT for the owner's approval (written November 23, 2026). Editorial site copy, not issue text.",
+    "_status": "DRAFT for the owner's approval (rewritten November 23, 2026). Editorial site copy, not issue text.",
     "patterns": [
       {
         "lead": "Chatbots turned into agents.",
@@ -82,10 +82,6 @@
           {
             "anchor": "permissions",
             "label": "Agent permissions"
-          },
-          {
-            "anchor": "logging",
-            "label": "Logging and audit trails"
           }
         ]
       },
@@ -117,10 +113,8 @@
         ],
         "terms": [
           {
-            "anchor": "ai-safety"
-          },
-          {
-            "anchor": "preparedness-framework"
+            "anchor": "ai-safety",
+            "label": "AI safety"
           }
         ]
       },
@@ -134,10 +128,8 @@
         ],
         "terms": [
           {
-            "anchor": "proof-checking"
-          },
-          {
-            "anchor": "lean"
+            "anchor": "proof-checking",
+            "label": "Proof checking"
           }
         ]
       },
@@ -151,9 +143,6 @@
         ],
         "terms": [
           {
-            "anchor": "cost-per-task"
-          },
-          {
             "anchor": "output-token",
             "label": "Per-token pricing"
           }
@@ -163,23 +152,23 @@
     "lenses": [
       {
         "label": "If you are a student or future knowledge worker,",
-        "text": "Prompted is the one read a week that keeps you ahead of the tools your classes and your first job will assume you understand, explained without the hype."
+        "text": "you will walk into class, interviews and your first job already knowing what changed in AI that week and why it matters. Most of the people next to you will not."
       },
       {
         "label": "If you are a founder or builder,",
-        "text": "you get the changes in price, capability and access that decide what you can build this quarter, and what just became a feature of someone else's product."
+        "text": "you hear about the price cut, the new capability or the platform rule while it can still change your plan, not after a competitor has shipped around it."
       },
       {
         "label": "If you are faculty,",
-        "text": "you get ready-made teaching cases and a calm read on what AI means for assessment and research in your field."
+        "text": "you know what your students can already do with AI before it shows up in their assignments, with a teaching case or two each week to bring to class."
       },
       {
         "label": "If you are staff,",
-        "text": "you get the practical changes headed for your desk: new tools, new policies and new security risks, before they arrive."
+        "text": "you see the new tools, policies and security risks coming before they land on your desk, which makes you the person colleagues ask."
       },
       {
         "label": "If you are an administrator,",
-        "text": "you get the governance, budget and vendor questions early enough to plan for them instead of reacting to them."
+        "text": "the budget, vendor and governance questions reach you months before they turn into decisions you have to make in a hurry."
       }
     ]
   }

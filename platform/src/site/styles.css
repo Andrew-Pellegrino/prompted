@@ -503,3 +503,65 @@ footer.site{margin-top:64px;border-top:3px solid var(--ink);padding:22px 0 30px}
 html,body{overflow-x:clip}
 .mnav{font-family:var(--head);font-size:14px}
 .mast-line .mnav{gap:16px}
+
+/* ---------- front page, round 4 ---------- */
+.paper>.fp-sec:first-child .fp-h{margin-bottom:18px}
+.paper .lead-h{margin-top:0}
+.fp-sub-h{font-size:19px;letter-spacing:-.02em;margin:30px 0 0;padding-bottom:8px;border-bottom:1px solid var(--ink)}
+.fp-stories{border-top:0;margin-top:0}
+.fp-stories.collapsed li.extra{display:none}
+.more-btn{background:none;border:0;padding:12px 0 2px;cursor:pointer;font:700 14px var(--head);color:var(--red);display:inline-flex;align-items:center;gap:6px}
+.more-btn::after{content:"";width:7px;height:7px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translateY(-3px);transition:transform .2s}
+.more-btn[aria-expanded="true"]::after{transform:rotate(-135deg) translateY(-1px)}
+.more-btn .open,.more-btn[aria-expanded="true"] .closed{display:none}
+.more-btn[aria-expanded="true"] .open{display:inline}
+.read-btn{display:flex;width:max-content}
+.brief-list{list-style:none;margin:0;padding:0;border-top:1px solid var(--ink)}
+.brief-list a{display:flex;gap:16px;align-items:flex-start;padding:14px 0;border-bottom:1px solid var(--hair);text-decoration:none}
+.brief-list .no{font-size:30px;min-width:40px;color:var(--ink);padding-top:2px}
+.brief-list a:hover .no,.brief-list a:hover .st{color:var(--red)}
+.brief-list .st{font-size:19px}
+.card-link b{display:block}
+.bars{display:flex;align-items:flex-end;gap:2px;height:58px;margin-top:4px}
+.bars i{flex:1;background:var(--ink);opacity:.85;transition:background .2s}
+.bars i.now{background:var(--red);opacity:1}
+.card-link:hover .bars i{opacity:1}
+.bars-cap{display:flex;justify-content:space-between;font:12px var(--head);color:var(--muted)}
+.idx-card{cursor:default}
+.idx-card:hover{transform:none;box-shadow:none}
+.idx-terms{display:flex;flex-direction:column}
+.it{display:block;text-decoration:none;padding:8px 0;border-top:1px solid var(--hair)}
+.it b{font:700 15px var(--head);display:block}
+.it span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:15px;line-height:1.4;color:var(--muted)}
+.it:hover b{color:var(--red)}
+.legend{display:block;margin:-6px 0 22px}
+.tl2{display:grid;grid-template-columns:120px 1fr;gap:18px;align-items:start;margin-top:6px;padding:14px 0 0;border-top:1px solid var(--hair)}
+.tl2-stat b{display:block;font:700 34px var(--head);letter-spacing:-.04em;line-height:1}
+.tl2-stat b i{font-style:normal;color:var(--red);margin:0 4px;font-size:.7em;vertical-align:.12em}
+.tl2-stat span{font:12px/1.3 var(--head);color:var(--muted)}
+.tl2-term{font:700 15px var(--head);text-decoration:none;display:block;margin-bottom:8px}
+.tl2-term:hover{color:var(--red)}
+.tl2-strip{display:grid;grid-template-columns:repeat(var(--n),1fr);gap:2px;height:26px}
+.tl2-strip i{background:var(--hair);opacity:.45}
+.tl2-strip a.on{background:var(--ink);position:relative;transition:background .15s,transform .15s}
+.tl2-strip a.on:hover,.tl2-strip a.on:focus-visible{background:var(--red);transform:scaleY(1.25);outline:0}
+.tl2-strip a.on::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--ink);color:var(--paper);font:700 12px var(--head);padding:5px 8px;pointer-events:none;z-index:5;display:none}
+.tl2-strip a.on:hover::after,.tl2-strip a.on:focus-visible::after{display:block}
+.tl2-strip a.on:nth-child(-n+6)::after{left:0;transform:none}
+.tl2-strip a.on:nth-last-child(-n+6)::after{left:auto;right:0;transform:none}
+.tl2-ticks{display:grid;grid-template-columns:repeat(var(--n),1fr);font:11px var(--head);color:var(--muted);margin-top:5px;white-space:nowrap}
+.finale{border-bottom:0;padding:30px 0 0;text-align:left}
+.finale::before{display:none}
+.fin-closing{font:20px var(--serif);color:var(--ink)}
+.fin-h{font-size:clamp(30px,4vw,40px);letter-spacing:-.035em;margin:28px 0 8px}
+.fin-next{margin-bottom:18px}
+.finale .signup{justify-content:flex-start;margin:0}
+.finale .fp-signoff{margin-top:26px}
+@media (max-width:760px){
+  .tl2{grid-template-columns:1fr;gap:8px}
+  .tl2-stat{display:flex;align-items:baseline;gap:10px}
+  .tl2-stat b{font-size:28px}
+  .tl2-strip{height:22px;gap:1.5px}
+  .brief-list .st{font-size:17px}
+  .brief-list .no{font-size:24px;min-width:32px}
+}

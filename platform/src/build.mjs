@@ -7,7 +7,7 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { esc, renderRuns, localIndexHref } from './lib/html.mjs';
-import { validateIssue, runsText, readMinutes, blocksText, sections } from './lib/issue-model.mjs';
+import { validateIssue, runsText, readMinutes, wordCount, blocksText, sections } from './lib/issue-model.mjs';
 import { renderIssueWeb, renderMasthead } from './lib/render-web.mjs';
 import { renderIssueEmail, fillRecipient } from './lib/render-email.mjs';
 import { termsInIssue } from './lib/index-terms.mjs';
@@ -165,50 +165,63 @@ function homePage(site, issues, indexData) {
   const opening = latest.blocks.find((b) => b.role === 'opening');
   const stories = storyAnchors(latest);
   const byNo = new Map(issues.map((i) => [i.number, i]));
-  const termCount = indexData?.terms?.length || 0;
   const SHOW = 4;
-  const story = (s, i) => `<li><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
-  const strip = (seen) => `<span class="strip">${seen.map((x, i) => x ? `<a class="on" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : '<i></i>').join('')}</span>`;
-  const timelines = (p) => (p.terms || []).map((t) => termTimeline(issues, indexData, t)).filter(Boolean).map((t) => `<div class="tl"><div class="tl-head"><a class="rt" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a><span class="rc num">${t.early} of the first ${t.k} issues <i>→</i> ${t.late} of the last ${t.k}</span></div>${strip(t.seen)}</div>`).join('');
-  // archive card: one square per issue, grouped by month
-  const months = new Map();
-  for (const i of issues) { const m = shortMonth(i.week.nominal_send_date || i.publication.date); if (!months.has(m)) months.set(m, []); months.get(m).push(i); }
+  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''}><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
+  const monthOf = (i) => shortMonth(i.publication.date).slice(0, 3);
+  // one timeline per pattern: one square per issue, month labels under the first issue of each month
+  const timeline = (t) => {
+    const sq = t.seen.map((x, i) => x ? `<a class="on" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : '<i></i>').join('');
+    const ticks = issues.map((i, n) => (n === 0 || monthOf(i) !== monthOf(issues[n - 1])) ? `<span style="grid-column:${n + 1}">${esc(monthOf(i))}</span>` : '').join('');
+    return `<div class="tl2"><div class="tl2-stat"><b class="num">${t.early}<i>→</i>${t.late}</b><span>of ${t.k} issues, first vs. latest</span></div><div class="tl2-body"><a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a><div class="tl2-strip" style="--n:${issues.length}">${sq}</div><div class="tl2-ticks" style="--n:${issues.length}">${ticks}</div></div></div>`;
+  };
+  // archive card: one bar per issue, height = length
+  const words = issues.map((i) => wordCount(i)), maxW = Math.max(...words);
+  const bars = issues.map((i, n) => `<i style="height:${Math.round(25 + 75 * words[n] / maxW)}%"${n === issues.length - 1 ? ' class="now"' : ''}></i>`).join('');
+  // Index card: a pool of mid-frequency terms readers meet often enough to wonder about; three shown at random
+  const dests = new Map((indexData?.destinations || []).map((d) => [d.id, d]));
+  const total = indexData?.issuesTracked || issues.length;
+  const pool = (indexData?.terms || []).filter((t) => t.issues >= Math.round(total * 0.12) && t.issues <= Math.round(total * 0.5) && dests.get(t.dest)?.def && t.term.length > 3)
+    .map((t) => ({ t: t.term, a: t.anchor, d: dests.get(t.dest).def }));
+  const pick = pool.slice(0, 3);
+  const termHtml = (x) => `<a class="it" href="/index/#${encodeURIComponent(x.a)}"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></a>`;
   const body = `<div class="paper wrap">
 <section class="fp-sec" aria-labelledby="s-big">
-  <h2 id="s-big" class="fp-h">The Biggest Developments</h2>
-  <p class="kicker">This week · Issue No. ${latest.number} · Week of ${esc(latest.week.label)}</p>
+  <h2 id="s-big" class="fp-h">This Week in AI</h2>
   <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
-  <p class="byline"><span>By ${esc(site.author)}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
+  <p class="byline"><span>Week of ${esc(latest.week.label.replace(/, \d{4}$/, ''))}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
   ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
-  ${stories.length ? `<p class="fp-label">In this issue</p><ol class="fp-stories">${stories.slice(0, SHOW).map(story).join('')}</ol>${stories.length > SHOW ? `<details class="more-stories"><summary><span class="closed">Show all ${stories.length} stories</span><span class="open">Show fewer</span></summary><ol class="fp-stories" start="${SHOW + 1}">${stories.slice(SHOW).map((s, i) => story(s, i + SHOW)).join('')}</ol></details>` : ''}` : ''}
+  ${stories.length ? `<h3 class="fp-sub-h">The Biggest Developments</h3><ol class="fp-stories" data-more>${stories.map(story).join('')}</ol>${stories.length > SHOW ? `<button class="more-btn" type="button" data-more-btn aria-expanded="false"><span class="closed">Show all ${stories.length} stories</span><span class="open">Show fewer</span></button>` : ''}` : ''}
   <a class="sub-btn read-btn" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
 </section>
 
 <section class="fp-sec" aria-labelledby="s-brief">
   <h2 id="s-brief" class="fp-h">Worth Knowing Briefly</h2>
-  ${earlier.map((i) => `<p class="brief"><a href="${issueUrl(i)}"><b>Week of ${esc(i.week.label)}.</b> ${esc(i.subtitle)}</a></p>`).join('\n  ')}
+  <ol class="brief-list">${earlier.map((i) => `<li><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
+  <h3 class="fp-sub-h">Worth Knowing at Length</h3>
   <div class="cards">
     <a class="card-link" href="/issues/">
       <span class="kicker">The archive</span>
-      <b>All ${issues.length} issues, on a calendar.</b>
-      <span class="mini-cal">${[...months].map(([m, list]) => `<span class="mc-m"><em>${esc(m.slice(0, 3))}</em>${list.map(() => '<i></i>').join('')}</span>`).join('')}</span>
-      <span class="go">Browse and search the archive ${ARROW}</span>
+      <b>Every issue since April, one bar each.</b>
+      <span class="bars" aria-hidden="true">${bars}</span>
+      <span class="bars-cap"><span>No. 1 · ${esc(issues[0].week.label.replace(/[–-].*/, ''))}</span><span>No. ${latest.number} · this week</span></span>
+      <span class="go">Browse all ${issues.length} issues ${ARROW}</span>
     </a>
-    ${termCount ? `<a class="card-link" href="/index/">
+    ${indexData ? `<div class="card-link idx-card">
       <span class="kicker">The Prompted Index</span>
-      <b>${termCount} AI terms, in plain English.</b>
-      <span class="idx-sample">${[...indexData.terms].sort((x, y) => y.issues - x.issues).slice(0, 4).map((t) => `<span>${esc(t.term)}</span>`).join('')}</span>
-      <span class="go">Look up a term ${ARROW}</span>
-    </a>` : ''}
+      <b>${indexData.terms.length} AI terms, without the jargon.</b>
+      <span class="idx-terms" data-terms>${pick.map(termHtml).join('')}</span>
+      <a class="go" href="/index/">Open the Index ${ARROW}</a>
+      <script type="application/json" id="term-pool">${JSON.stringify(pool).replace(/</g, '\\u003c')}</script>
+    </div>` : ''}
   </div>
 </section>
 
 <section class="fp-sec" aria-labelledby="s-pat">
   <h2 id="s-pat" class="fp-h">Patterns Worth Watching</h2>
-  <p class="legend"><span class="strip demo"><a class="on" tabindex="-1" aria-hidden="true"></a><i></i></span> Each square is one issue, oldest first. Filled squares used the term; tap one to read it.</p>
+  <p class="legend">Each square is one issue, oldest first. Filled means the issue used the term; tap one to read it.</p>
   ${(front.patterns || []).map((p) => `<div class="pattern-block">
     <p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>
-    ${indexData ? timelines(p) : ''}
+    ${indexData ? (p.terms || []).slice(0, 1).map((t) => termTimeline(issues, indexData, t)).filter(Boolean).map(timeline).join('') : ''}
   </div>`).join('\n  ')}
 </section>
 
@@ -218,12 +231,11 @@ function homePage(site, issues, indexData) {
 </section>
 
 <section class="finale" aria-labelledby="s-end">
-  <p class="fin-closing">That’s the week.</p>
-  <h2 id="s-end" class="fin-h">See you next Monday.</h2>
-  <p class="fin-promise">${esc(site.promise)}</p>
+  <p class="fin-closing">That’s the week. See you next Monday.</p>
+  <h2 id="s-end" class="fin-h">Get the next one in your inbox.</h2>
   <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
   ${signupForm('home-hero', 'Subscribe free', site)}
-  <ul class="fin-facts"><li><b>Free</b> always</li><li><b>1</b> email a week</li><li><b>0</b> ads</li><li><b>${issues.length}</b> issues so far</li></ul>
+  <p class="fine">Free. One email a week. No ads. Unsubscribe in one click.</p>
   <p class="fp-signoff">— Prompted</p>
 </section>
 </div>`;

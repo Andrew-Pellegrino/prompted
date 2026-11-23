@@ -185,4 +185,17 @@
     var label = add === 0 ? 'this morning' : add === 1 ? 'tomorrow' : 'Monday, ' + next.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     nx.textContent = 'The next issue arrives ' + label + ' at 8:45 a.m. Eastern' + (add > 1 ? ', in ' + add + ' days.' : '.');
   } catch (e) {}
+
+  // ---------- front page: show more stories (button stays under the list) ----------
+  var mb = document.querySelector('[data-more-btn]'), ml = document.querySelector('[data-more]');
+  if (mb && ml) { ml.classList.add('collapsed'); mb.addEventListener('click', function () { var o = ml.classList.toggle('collapsed'); mb.setAttribute('aria-expanded', o ? 'false' : 'true'); }); }
+
+  // ---------- front page: three random Index terms from the mid-frequency pool ----------
+  var tw = document.querySelector('[data-terms]'), tp = document.getElementById('term-pool');
+  if (tw && tp) try {
+    var pool = JSON.parse(tp.textContent), out = [];
+    while (pool.length && out.length < 3) out.push(pool.splice(Math.floor(Math.random() * pool.length), 1)[0]);
+    var e2 = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    tw.innerHTML = out.map(function (x) { return '<a class="it" href="/index/#' + encodeURIComponent(x.a) + '"><b>' + e2(x.t) + '</b><span>' + e2(x.d) + '</span></a>'; }).join('');
+  } catch (e) {}
 })();
