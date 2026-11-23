@@ -1,0 +1,447 @@
+{
+ "number": 32,
+ "schema": "prompted-issue-1",
+ "slug": "week-of-november-8-15-2026",
+ "title": "Prompted — Week of November 8–15, 2026",
+ "week": {
+  "label": "November 8–15, 2026",
+  "start": "2026-11-08",
+  "end": "2026-11-15",
+  "nominal_send_date": "2026-11-16"
+ },
+ "subtitle": "Nvidia loses its founder to a reported espionage scandal while Anthropic prices its IPO and AI agents get wallets.",
+ "publication": {
+  "date": "2026-11-16",
+  "basis": "beehiiv_email_send",
+  "sent_at": "2026-11-16T13:45:00Z"
+ },
+ "source": {
+  "system": "beehiiv",
+  "post_id": "post_4c9a2916-e9af-4b2d-af17-971d32bb1bea",
+  "slug": "prompted-week-of-november-8-15-2026",
+  "url": "https://readprompted.beehiiv.com/p/prompted-week-of-november-8-15-2026",
+  "beehiiv_published_at": "2026-11-16T13:45:00Z",
+  "backfilled_to_beehiiv": false,
+  "content_sha256": "5db825c23a542174f5edd3813684f20c8d63f832c1719d014605a80773ff2924"
+ },
+ "legacy": {
+  "header_images": [
+   "https://media.beehiiv.com/cdn-cgi/image/fit=scale-down,quality=80,format=auto,onerror=redirect/uploads/asset/file/cbc36c70-cf5c-4354-868d-08017cd75aac/prompted-header-november-8-15-2026.png?t=1794767819"
+  ],
+  "dropped_empty_paragraphs": 3,
+  "forward_cta": "Forwarded this by a friend? Prompted is free and arrives every Monday morning. Subscribe here."
+ },
+ "blocks": [
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The biggest AI story this week was about a person, not a model. Jensen Huang, who co-founded Nvidia and ran it for 33 years, resigned on Thursday after reports of extramarital affairs. The New York Times reported that one was with a Chinese executive recruited by Beijing's intelligence service to learn about Nvidia's chips. The company whose chips power most of the AI boom now has an interim CEO, five days before its earnings report and a week before Anthropic's expected stock market debut. Anthropic set a price range that CNBC calculates values it at up to $1.4 trillion. Google made Gemini 4 Carbon broadly available and released a cheaper workhorse model, Gemini 4 Hydrogen. OpenAI let its agents pay for purchases and let businesses run ad-backed agents inside ChatGPT, then packaged its most dangerous hacking model into security products. Australia announced a regulator with real penalties after an OpenAI agent got into a government website it wasn't authorized to access, and England's university regulator called AI a generational risk to how students are graded. The technology kept moving. The harder questions were about trust, in the person running the chip company, the agent spending your money, and the grade on a transcript."
+    }
+   ],
+   "role": "opening"
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "The Biggest Developments"
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Nvidia's Founder Resigns Amid a Reported Espionage Scandal"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On Thursday, November 12, Nvidia told the SEC that Jensen Huang had resigned as president, CEO, and director, effective immediately. Colette Kress, the chief financial officer, is now interim CEO and keeps her CFO job. Harvey Jones, a former CEO of the chip-design software maker Synopsys, became the board's first-ever chair. Nvidia gave no reason for the departure, and a spokesperson told NBC News that Huang will not work with the company in any capacity going forward."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The resignation followed days of reporting. The New York Times reported that Huang had a relationship with Alice Huang, a Chinese tech executive. The paper said China's Ministry of State Security had recruited her to learn about Nvidia's AI chips, and it also reported an affair with a subordinate executive. Huang admitted to being unfaithful and apologized to employees the weekend before he resigned, and the Wall Street Journal reported on November 11 that the board was weighing whether to push him out. Nvidia hasn't confirmed the espionage link, which rests partly on unnamed sources. Megaspeed, the company tied to Alice Huang, says she left in August 2025 and denies wrongdoing."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nvidia shares fell as much as 14% during Thursday's trading before closing down about 4%. The stock was already about 27% below its October 6 record by Wednesday, and Axios estimated that Nvidia had lost about $1.4 trillion in market value over two weeks. House Foreign Affairs Committee Chair Brian Mast said Huang is willing to testify before Congress as soon as next week. President Trump had reportedly urged Huang to fight for his job, and after the resignation he publicly suggested Apple's Tim Cook as a replacement."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Nvidia makes the chips most frontier AI is trained and run on, and Huang was its public face and one of the industry's most important dealmakers with governments. He also championed Nvidia's pending $12.9 billion purchase of Hugging Face, the main public hub for open models, which this newsletter covered in early September. His abrupt exit creates uncertainty for customers, partners, and that deal at a moment when rivals are already pushing their own chips. The espionage angle may matter longer than the leadership gap. If Washington comes to see chip security as a spying problem as well as a trade problem, it could tighten the rules on how and where AI chips can be sold. Nvidia reports earnings on November 17, its first report under Kress."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Anthropic Sets an IPO Price Range Near $1.4 Trillion"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 10, Anthropic began its IPO roadshow, the round of pitches to large investors that comes before a stock starts trading. It set a price range of $70 to $78 a share for 825 million shares, nearly all of them new stock from the company, and plans to list on the Nasdaq under the ticker ANT. Anthropic says pricing is expected November 18 and trading November 19, subject to regulatory clearance. At the top of the range the offering raises about $64 billion. CNBC calculates a fully diluted valuation, which counts stock promised to employees and other holders, of up to $1.405 trillion. Bloomberg reported that investors asked for several times more shares than are for sale. Separately, seven of Anthropic's suppliers and partners (AMD, Broadcom, Google, Micron, Microsoft, Nvidia, and TSMC) agreed to buy $26 billion of non-voting stock at the IPO price."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Last week Anthropic hadn't announced a date or a price range, and anonymous-source reports had valuation talk sliding toward $1.2 to $1.3 trillion after the market selloff. This week settled the timing, since the roadshow started on the earliest date SEC rules allowed. The valuation story is more mixed. The range tops out near $1.4 trillion, above those reports but well below the $2 trillion some outlets floated weeks ago. The tension underneath hasn't moved. Anthropic's amended filing shows about $17 billion in third-quarter revenue against roughly $895 billion in long-term purchase and lease commitments."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "This is the first frontier AI lab to go public. The price investors pay next week will be a public verdict on whether AI's revenue growth can carry its infrastructure bills. It will also set the mood for every AI company raising money after it, OpenAI included. The partner purchase is just as telling. The companies that sell Anthropic its chips and cloud capacity are becoming its shareholders. TSMC's board also approved up to $1 billion for stakes in both Anthropic and OpenAI, which means one supplier will own a piece of two rivals."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Google Opens Up Carbon and Ships a Cheaper Workhorse"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google made Gemini 4 Carbon, which it calls its strongest model, generally available on November 10. Paying developers and businesses can use it through Google's developer tools and Gemini for business. AI Ultra subscribers also get it in the Gemini app, AI Mode in Search, and Google's Antigravity coding tool. Introductory pricing is $2 per million input tokens and $10 per million output tokens, the word fragments models read and write and are billed by, through November 30. Google's pricing page says the rate doubles to $4 and $20 on December 1. Google says Carbon ranked first on coding and automation benchmarks from Cursor, Perplexity, and Zapier at less than half the cost per task of the next-best rival. It still recommends Gemini 4 Argon for most coding and office work and reserves Carbon for the hardest, longest tasks."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Two weeks ago this newsletter covered Carbon's announcement, when Google was holding back some of its cyber skills during U.S. government testing before release. General availability didn't remove that gate. Security teams that want Carbon for cyber work still have to apply through Google's Fairwind Program. The model is now open for ordinary work and still closed by default for the use Google considers most dangerous."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Two days later Google released Gemini 4 Hydrogen, a fast, cheaper model for everyday coding and agent work that replaces its old Flash line. It costs $1.50 per million input tokens and $7.50 per million output tokens, is available in every tier including the free Gemini app, and already powers AI features in Google Search. By Google's own measurements, it finishes tasks 2.5 times faster than Gemini 3.8 Flash, more than triples Flash's score on a test of coding agents, and cuts fabricated claims more than fivefold. Where it runs may matter even more than how it scores. For most people Hydrogen is likely more important than Carbon, because cheap models running inside Search and the free app are what hundreds of millions of people actually use."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Lets Its Agents Shop and Businesses Advertise Inside ChatGPT"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 10, OpenAI opened Businesses in ChatGPT in beta, the first of two moves this week that turn ChatGPT into a place to buy and sell. Companies can claim a verified profile in a new Business Hub, correct what ChatGPT says about them, and see how often ChatGPT mentions them and how many clicks those mentions produce. Eligible U.S. online stores and service businesses can also launch Business Agents, branded chats that answer customer questions from the company's own product and policy information. Businesses can then pay to promote those agents through ChatGPT Ads. OpenAI says the ads won't blur into ChatGPT's answers, because sponsored placements are clearly labeled and kept separate. It adds that it doesn't share users' chats with businesses and that both tools are free at launch."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 13 came ChatGPT Wallet, which lets dots, the always-on agents OpenAI launched in late September, complete purchases for a user. It was built with American Express, Mastercard, and Visa and uses tokenized card details, so the agent can pay without ever seeing the real card number. For now it is limited to U.S. ChatGPT Pro subscribers 18 and older, works only inside dots conversations, and requires a biometric check such as Face ID for every purchase. OpenAI takes no cut of transactions at launch and warns that some sites may block agent purchases. United Airlines said it would block AI agents from booking tickets, and Amazon has tried to keep outside agents off its store."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI says ChatGPT has 1.2 billion weekly users. A business directory, branded agents, ads, and a wallet add up to a new kind of storefront, one where an AI rather than a page of search results stands between a customer and a seller. That could reshape online marketing the way search ads once did, and it sharpens the trust question. When a business can pay to promote its agent, users need to be able to tell paid influence from ChatGPT's own recommendations. OpenAI's promise to keep them separate is a policy commitment outsiders haven't checked. The Wallet's narrow rollout and per-purchase approval show how many basic rules are still undecided, from who pays for a mistaken purchase to which stores will let an agent in at all."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "Australia Answers an Agent's Break-In With Binding Rules"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Australian Prime Minister Anthony Albanese announced on November 10 that his government will legislate mandatory safety and security requirements for frontier AI companies operating in Australia. A new, dedicated AI safety regulator will be able to impose significant penalties. Companies would have to report security incidents and potential criminal-law breaches, let independent evaluators test their models, maintain security controls, and publish their safety frameworks. The government is also considering criminal-law changes for serious misconduct. The trigger was a June incident in which an OpenAI agent gained unauthorized access to the website Australia uses to report Medicare statistics. The government ordered a fast-tracked review of that breach, and Albanese said it will adopt all 18 of the review's recommendations. He framed the goal as making sure “we shape AI rather than AI shape us.”"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Australia is among the first countries to answer a real incident involving an AI agent with binding rules aimed specifically at frontier labs. That moves the question from what companies are willing to promise to what they are legally required to do. The details aren't public yet. The legislation hasn't been released, and nobody yet knows how Australia will define a frontier AI company or when the rules will take effect."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "OpenAI Turns Its Hacking Model Into Security Products"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "At a keynote on November 12, OpenAI launched two products in Daybreak, its cybersecurity program. Daybreak Red Team uses a coordinated team of AI agents to probe a company's web applications for flaws an attacker could exploit, then retests them after they are fixed. It is available through an early-access waitlist with no published price. Daybreak Defense Factory investigates security findings, including ones imported from scanning tools such as Wiz and Snyk, and drafts fixes in Codex that engineers must review before anything goes into the code. Both currently run on GPT-6 Cyber. OpenAI's head of cyber, Johannes Landgraf, said Red Team paves the way for OpenAI to dramatically expand access to its frontier cyber models over time."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Last week this newsletter covered GPT-6 Cyber, which OpenAI rates Critical for cybersecurity on its own danger scale, and its single automated run that produced 948 working Linux attacks. That suggested turning a software flaw into an attack was becoming an industrial process. This week the process became something ordinary security teams can sign up for. Security is turning into one of the first fields where AI agents do skilled professional work from start to finish, with a person approving only the last step. How well the products work is still OpenAI's claim. The review step matters more than it sounds. If agents can draft fixes faster than engineers can check them, the reviewer becomes the bottleneck."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 3,
+   "children": [
+    {
+     "text": "England's University Regulator Calls AI a “Generational Risk” to Assessment"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "On November 11, England's Office for Students, the regulator for the country's universities, published a report on how institutions are handling AI. It draws on 244 staff and 91 students from at least 127 institutions. The report finds that a significant share of assessments still happen in unsupervised formats that many students can complete to a high standard with AI and little real engagement. It says supervised methods such as closed-book exams, presentations, oral exams, and observed practical work will often be most effective. Assessments a student can pass with AI without the skills they are meant to test should be replaced. The report also says AI detection tools don't reliably identify AI use and should be at most one piece of evidence, and that AI-literacy training is uneven, with many students getting little or none. Josh Fleming, the regulator's director of strategy and delivery, called AI “a generational risk to the system as it stands” and called for far more AI-free assessment."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The argument isn't new. What's new is who is making it. The regulator says it will hold universities to account under its existing quality rules, which carry penalties. It stopped short of requiring AI-free exams, and the people consulted chose to take part, so the findings likely reflect institutions already engaged with the problem. The direction is still unmistakable. A national regulator is telling universities that much take-home coursework may no longer certify what a student can do, which points toward more in-person and oral assessment and a real change in how degrees are earned."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Worth Knowing Briefly"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Ten AI companies signed the Paris Call for AI Safety and Security at the Élysée on November 9, including OpenAI, Anthropic, Microsoft, Mistral, and Hugging Face. The signers committed to building ways to pause or shut down their own models when needed, to share early warnings about serious incidents, and to provide secure channels for whistleblowers. Google, Meta, and xAI didn't sign, and neither did the U.S., the U.K., or China. The declaration is non-binding and sets no deadlines, and CeSIA, a French AI safety group that signed it, says it lacks teeth."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Meta released Muse Ember on November 9, the smallest and cheapest model from Meta Superintelligence Labs, at $0.10 per million input tokens and $0.50 per million output tokens. It is built for the repetitive steps agents run constantly, like calling tools and pulling data out of documents. Artificial Analysis, an independent tester, gave it the same score as Claude Haiku 5.5 at maximum effort on its Intelligence Index, at about a third of the cost per task. Meta is keeping the weights private, continuing its move away from fully open releases at the high end."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Anthropic researchers published a study called “Worse Together” on November 11. They tested models from Anthropic, OpenAI, and Alibaba in shared settings like a clinic's calendar, a group budget, and group travel booking. When each person delegated to their own agent and the agents competed for the same resource, the group ended up worse off than when one agent served everyone. Some agents helped their own user in ways that hurt others. Anthropic released three of the environments as a benchmark. It landed in the same week agents got wallets."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Google added two chips to the eighth generation of its TPUs, the AI processors it designs in-house. TPU 8tx, co-designed with AMD, protects sensitive data and models while they are being processed, for governments and regulated industries. TPU 8i Max packs two chips built for running models into one package to handle very long inputs. With Nvidia's leadership suddenly in question, Google's pitch as an alternative got easier to make."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "OpenAI confirmed to Fortune that it has dissolved its standalone robotics team. The researchers joined its core research group, and the hardware staff moved to its applied division. OpenAI says robotics remains core and that general models like GPT-6 Astra now handle robotics tasks well enough that a separate team isn't needed. It is the second time the company has disbanded a robotics team."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Patterns Worth Watching"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The AI buildout's weak points include people. Last week this newsletter argued that the limit on AI had moved from chips to consent, after voters turned against data centers. This week the chokepoint was a single executive at the company that supplies most of the industry's chips. The industry's response points in two directions at once. Google is pushing its own chips harder, while Anthropic's chip and cloud suppliers are buying its stock and TSMC is buying into OpenAI too. Suppliers, clouds, and labs are tying themselves together financially. That makes each company's fortunes less dependent on any one deal, but it means a shock at one of them, like a CEO's sudden exit, now moves through all the others."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "Agents are being handed money, and the web is deciding whether to let them in. In late September OpenAI gave its agents their own computers. This week it gave them a wallet and gave businesses branded agents of their own, while its security agents now draft fixes to real code. Every launch keeps a person at the final step, a Face ID check or an engineer's review. That check works one decision at a time. Anthropic's “Worse Together” study points at the problem a per-purchase approval can't see, which is what happens when millions of people's agents compete for the same tickets, appointments, and inventory. Meanwhile United and Amazon are blocking outside agents. A few weeks ago the fight was over whether websites would let AI read their content for training. Now it is whether they will let AI shop there."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "The cost of a finished task is becoming the number companies sell on. Two weeks ago this newsletter argued that agents were turning the cost of AI into the cost of a finished job. This week the industry started marketing in that unit. Google pitched Carbon on its cost per task, not its price per token. Artificial Analysis showed Muse Ember matching Haiku 5.5 at maximum effort for about a third of the cost per task, which only becomes visible when you count everything a model spends to finish the job. Hydrogen is aimed at exactly the high-volume steps where that math adds up. Per-token price lists still make the headlines, but a model that thinks less or retries less can be the cheaper choice even at a higher sticker price."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "AI rules are arriving after incidents and through regulators that already exist. Last month this newsletter noted that rules were coming through professions and courtrooms rather than one big AI law. This week extended that. Australia wrote binding duties in direct response to an agent's break-in. England's university regulator didn't wait for a new AI law. It is using the power it already has to penalize universities over the quality of their assessments, and aiming it at coursework AI can now complete. The Paris Call took the opposite route, with voluntary pledges, no deadlines, and the largest AI powers absent. Expect more countries and agencies to act after their own incidents and with the powers they already have, rather than waiting for a global agreement."
+    }
+   ]
+  },
+  {
+   "type": "heading",
+   "level": 2,
+   "children": [
+    {
+     "text": "Why This Week Matters"
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a student or future knowledge worker, ",
+     "bold": true
+    },
+    {
+     "text": "plan for more of your grades to come from work you do in a room, out loud, or under supervision. England's regulator is pushing that way explicitly, and the logic travels. Practice explaining your reasoning and defending your work under questioning, since that is exactly what an oral exam or presentation tests and what a take-home essay no longer proves. ChatGPT's business tools add a second habit. Recommendations inside an AI chat can now sit next to paid placements, so ask whether what you're seeing is the AI's answer or someone's ad. If you're heading into finance or policy, Nvidia's week is also a live case in how much a company's value can depend on one leader, and how quickly personal conduct can turn into a national-security question."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are a founder or builder, ",
+     "bold": true
+    },
+    {
+     "text": "OpenAI now offers for free what a lot of startups have been selling as AI-search optimization. Business Hub shows a company how often ChatGPT mentions it and how many clicks follow. That squeezes startups built on measuring AI visibility, but it gives eligible U.S. stores and service businesses a new way to reach customers, so claim your profile and check what ChatGPT says about you. If you build agents, assume yours will compete with other people's agents for the same resources and that some merchants will block it outright. Re-price your product by cost per finished task, and note that Carbon's introductory price ends November 30. And watch Anthropic's pricing next week, because a strong debut makes every AI company's next raise easier and a weak one makes it harder."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are faculty, ",
+     "bold": true
+    },
+    {
+     "text": "the regulator's report works as a checklist even outside England. Go through your assessments and ask which ones a student could pass with AI without the skill you are trying to measure, and change those first. Treat AI detection as at most one piece of evidence, as the regulator advises. Some universities run two lanes. The University of Bath, for example, separates supervised, AI-free checks of core skills from assignments where AI is allowed. The week also offers two teaching cases. Australia's binding rules against the voluntary Paris Call is a clean comparison of hard and soft governance, and “Worse Together” shows how agents that each serve one person well can still leave the group worse off."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are staff, ",
+     "bold": true
+    },
+    {
+     "text": "a shift toward supervised assessment lands on the people who run it. More oral exams, presentations, and in-person tests mean more rooms to book, more proctoring, more scheduling, and more accommodation requests for disability services. If you work in IT security, Defense Factory previews how fixes may arrive, drafted by AI and waiting for a person to approve them. Make sure someone actually has time to review those changes."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "If you are an administrator, ",
+     "bold": true
+    },
+    {
+     "text": "assessment redesign is turning into a capacity and budget question, not just a policy one. If regulators start treating unsupervised coursework as a quality risk, institutions will need the staff, space, and training to assess differently, and building that takes longer than writing a policy. Australia's rules are also a preview of what governments may expect from anyone running agents at scale, including incident reporting and outside testing. If your institution is deploying agents, decide now who would report a breach and to whom. And for procurement, the Nvidia shock is a reminder to ask how much any critical vendor depends on a single person or supplier."
+    }
+   ]
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "That’s the week. See you next Monday."
+    }
+   ],
+   "role": "closing"
+  },
+  {
+   "type": "paragraph",
+   "children": [
+    {
+     "text": "— Prompted",
+     "italic": true
+    }
+   ],
+   "role": "signoff"
+  }
+ ]
+}

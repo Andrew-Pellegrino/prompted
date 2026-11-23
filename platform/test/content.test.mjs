@@ -36,10 +36,10 @@ test('Monday 8:45 a.m. Eastern is DST-correct', () => {
   assert.equal(nextSendSlot(new Date('2026-11-16T13:45:00Z')).utc, '2026-11-23T13:45:00.000Z'); // strictly after
 });
 
-test('all 31 migrated issues are valid, ordered, unique and unchanged since extraction', () => {
-  assert.equal(issues.length, 31);
-  assert.equal(new Set(issues.map((i) => i.slug)).size, 31);
-  assert.equal(new Set(issues.map((i) => i.source.post_id)).size, 31);
+test('all 33 migrated issues are valid, ordered, unique and unchanged since extraction', () => {
+  assert.equal(issues.length, 33);
+  assert.equal(new Set(issues.map((i) => i.slug)).size, 33);
+  assert.equal(new Set(issues.map((i) => i.source.post_id)).size, 33);
   for (const [n, i] of issues.entries()) {
     validateIssue(i);
     assert.equal(i.number, n + 1);
@@ -49,11 +49,12 @@ test('all 31 migrated issues are valid, ordered, unique and unchanged since extr
   }
   assert.equal(issues[0].week.label, 'April 6–12, 2026');
   assert.equal(issues[30].week.label, 'November 1–8, 2026');
+  assert.equal(issues[32].week.label, 'November 15–22, 2026');
 });
 
 test('scheduled send for a migrated beehiiv-era issue matches the real send time', () => {
   for (const i of issues.filter((x) => x.publication.basis === 'beehiiv_email_send')) assert.equal(scheduledSendFor(i.week).utc.slice(0, 16), i.publication.sent_at.slice(0, 16), i.slug);
-  assert.equal(issues.filter((x) => x.publication.basis === 'beehiiv_email_send').length, 11);
+  assert.equal(issues.filter((x) => x.publication.basis === 'beehiiv_email_send').length, 13);
 });
 
 test('web and email renderings carry exactly the approved words', () => {
@@ -121,7 +122,7 @@ test('build output: pages, redirects, preview is not indexable, no private data'
   assert.ok((await d('issues/week-of-november-1-8-2026/index.html')).includes('AI ran into limits this week'));
   assert.ok((await d('p/prompted-9d9f892956451611/index.html')).includes('/issues/week-of-october-25-november-1-2026/'));
   assert.ok((await d('s/founders/index.html')).includes('utm_source=founders&amp;utm_medium=partner&amp;utm_campaign=founders_2026'));
-  assert.equal(Object.keys(JSON.parse(await d('data/search.json'))).length, 31);
+  assert.equal(Object.keys(JSON.parse(await d('data/search.json'))).length, 33);
   const prod = await build({ SITE_URL: 'https://prompted.example', SITE_ENV: 'production' });
   assert.equal(prod.site.env, 'production');
   assert.ok(!(await d('index.html')).includes('noindex'));

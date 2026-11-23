@@ -5,12 +5,12 @@
   "version": "0.1.0",
   "description": "Prompted publishing platform: site, archive, subscriber database, sending engine.",
   "scripts": {
-    "build": "node src/build.mjs && node scripts/embed-assets.mjs",
+    "build": "INDEX_SOURCE=main node src/build.mjs && node scripts/embed-assets.mjs",
     "test": "node --test --experimental-sqlite --test-concurrency=1 test/*.test.mjs",
     "dev": "npm run build && wrangler d1 migrations apply DB --local && wrangler dev",
     "deploy:preview": "npm run build && wrangler deploy",
     "extract": "node scripts/extract-beehiiv.mjs --fetch",
-    "qa": "node scripts/qa.mjs",
+    "qa": "INDEX_SOURCE=main node scripts/qa.mjs",
     "admin-secret": "node scripts/make-admin-secret.mjs",
     "new-issue": "node scripts/new-issue.mjs"
   },

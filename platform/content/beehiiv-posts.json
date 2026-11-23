@@ -1,7 +1,7 @@
 {
  "_note": "Snapshot of published beehiiv posts (read via the beehiiv connector, 2026-11-10). email_sent_at is set only where beehiiv shows a Monday 8:45 a.m. ET scheduled send; other posts were back-filled to the beehiiv archive after the fact.",
  "publication_id": "pub_bdc13836-4740-4bea-827d-e076f2059ca4",
- "captured_at": "2026-11-10",
+ "captured_at": "2026-11-23",
  "posts": [
   {
    "id": "post_a68b58b7-2e8e-49b6-b9c0-3a36cdf50b30",
@@ -219,6 +219,20 @@
    "title": "Prompted — Week of November 1–8, 2026",
    "published_at": "2026-11-09T13:45:00Z",
    "email_sent_at": "2026-11-09T13:45:00Z"
+  },
+  {
+   "id": "post_4c9a2916-e9af-4b2d-af17-971d32bb1bea",
+   "slug": "prompted-week-of-november-8-15-2026",
+   "title": "Prompted — Week of November 8–15, 2026",
+   "published_at": "2026-11-16T13:45:00Z",
+   "email_sent_at": "2026-11-16T13:45:00Z"
+  },
+  {
+   "id": "post_7b880cec-783e-4c9c-b0bc-b3ff7311e3dc",
+   "slug": "prompted-week-of-november-15-22-2026",
+   "title": "Prompted — Week of November 15–22, 2026",
+   "published_at": "2026-11-23T13:45:00Z",
+   "email_sent_at": "2026-11-23T13:45:00Z"
   }
  ]
 }

@@ -3,6 +3,16 @@
 How one approved issue becomes a web page and an email on the platform. Until cutover is approved,
 steps 6 to 8 are done in dry-run mode only, and beehiiv sends the real issue as usual.
 
+## Until cutover: keep the archive current from beehiiv
+
+While beehiiv still sends, each Monday's issue reaches the platform after it is published there: add the
+post (id, slug, title, send time from the beehiiv connector) to `platform/content/beehiiv-posts.json`, run
+`npm run extract` (it re-downloads every public post and fails if any word differs), `npm test`, then build and
+deploy. Issues 32 and 33 were added this way on November 23.
+
+The build and QA read the Index from `origin/main` (`INDEX_SOURCE=main` in `npm run build` and `npm run qa`),
+not from this branch's older copy in `index/`, so Index links always match the live page.
+
 ## Sunday
 
 1. **Approved text in.** Save the approved issue as a text file in the small format described at the top

@@ -2,6 +2,7 @@
 // Static site build: content/issues/*.json + ../index -> dist/
 //   SITE_URL=https://example.workers.dev SITE_ENV=preview|production node src/build.mjs
 import { readFile, writeFile, mkdir, readdir, rm, cp } from 'node:fs/promises';
+import { readIndexData } from './lib/index-source.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { esc } from './lib/html.mjs';
@@ -237,8 +238,9 @@ async function out(rel, content) {
 export async function build(env = process.env) {
   const site = await loadSite(env);
   const issues = await loadIssues();
-  let indexData = null;
-  try { indexData = JSON.parse(await readFile(path.join(REPO, 'index', 'data.json'), 'utf8')); } catch { console.warn('Index data not found; issue pages will not show Index terms.'); }
+  const { data: indexData, source: indexSource } = await readIndexData(REPO, env);
+  if (!indexData) console.warn('Index data not found; issue pages will not show Index terms.');
+  else if (env.INDEX_SOURCE) console.log(`Index data: ${indexSource}`);
 
   await rm(DIST, { recursive: true, force: true });
   await mkdir(DIST, { recursive: true });
