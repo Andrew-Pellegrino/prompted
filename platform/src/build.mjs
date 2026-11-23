@@ -4,6 +4,7 @@
 import { readFile, writeFile, mkdir, readdir, rm, cp } from 'node:fs/promises';
 import { readIndexData } from './lib/index-source.mjs';
 import path from 'node:path';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { esc, renderRuns } from './lib/html.mjs';
 import { validateIssue, runsText, readMinutes, blocksText, sections } from './lib/issue-model.mjs';
@@ -109,7 +110,7 @@ ${noindex ? '<meta name="robots" content="noindex, nofollow">' : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/styles.css">
+<link rel="stylesheet" href="/assets/styles.css?v=${site.asset_v?.css || ''}">
 ${jsonLd ? `<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g, '\\u003c')}</script>` : ''}
 ${extraHead}
 </head>
@@ -148,7 +149,7 @@ ${body}
   </div>
   <p class="foot-fine">© ${new Date().getUTCFullYear()} ${esc(site.name)}. Written by ${esc(site.author)}. Free, every Monday at 8:45 a.m. Eastern.</p>
 </div></footer>
-<script src="/assets/site.js" defer></script>
+<script src="/assets/site.js?v=${site.asset_v?.js || ''}" defer></script>
 </body>
 </html>`;
 }
@@ -323,6 +324,9 @@ async function out(rel, content) {
 
 export async function build(env = process.env) {
   const site = await loadSite(env);
+  // Versioned asset addresses: a changed stylesheet or script gets a new URL, so browsers never pair new pages with old styles.
+  const hash10 = async (f) => createHash('sha256').update(await readFile(path.join(ROOT, 'src', 'site', f))).digest('hex').slice(0, 10);
+  site.asset_v = { css: await hash10('styles.css'), js: await hash10('site.js') };
   const issues = await loadIssues();
   const { data: indexData, source: indexSource } = await readIndexData(REPO, env);
   if (!indexData) console.warn('Index data not found; issue pages will not show Index terms.');
