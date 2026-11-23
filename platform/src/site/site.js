@@ -108,4 +108,81 @@
     var b = document.querySelector('[data-search]');
     if (b && e.key === '/' && document.activeElement !== b && !/input|textarea/i.test(document.activeElement.tagName)) { e.preventDefault(); b.focus(); }
   });
+
+  // ---------- archive calendar: hover or tap a Monday to unfold that issue below its month ----------
+  var cal = document.querySelector('[data-cal]');
+  if (cal) {
+    var data = {}; try { data = JSON.parse(document.getElementById('cal-data').textContent); } catch (e) {}
+    var panel = cal.querySelector('.cal-panel'), months = [].slice.call(cal.querySelectorAll('.cal-m')), pinned = null, shown = null, hideT = null;
+    var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    var place = function (btn) {
+      var m = btn.closest('.cal-m'), top = m.offsetTop, after = m;
+      months.forEach(function (x) { if (x.offsetTop === top) after = x; });
+      if (panel.previousElementSibling !== after) after.parentNode.insertBefore(panel, after.nextSibling);
+    };
+    var show = function (btn, pin) {
+      clearTimeout(hideT);
+      var n = btn.dataset.n, d = data[n]; if (!d) return;
+      cal.querySelectorAll('.cd.iss.sel').forEach(function (b) { b.classList.remove('sel'); });
+      btn.classList.add('sel'); btn.setAttribute('aria-expanded', 'true');
+      if (shown !== n) {
+        panel.innerHTML = '<button class="cp-x" type="button" aria-label="Close">×</button><p class="kicker">Issue No. ' + n + ' · Week of ' + escH(d.week) + ' · ' + escH(d.date) + '</p>' +
+          '<h3><a href="' + d.url + '">' + escH(d.title) + '</a></h3>' +
+          (d.stories.length ? '<ol>' + d.stories.map(function (s, i) { return '<li><a href="' + d.url + '#' + s[0] + '"><span class="rk">' + (i + 1) + '</span><span>' + escH(s[1]) + '</span></a></li>'; }).join('') + '</ol>' : '') +
+          '<a class="sub-btn" href="' + d.url + '">Read issue ' + n + ' →</a>';
+        panel.querySelector('.cp-x').addEventListener('click', function () { close(true); });
+        shown = n;
+      }
+      place(btn); panel.hidden = false;
+      requestAnimationFrame(function () { panel.classList.add('open'); });
+      if (pin) pinned = n;
+    };
+    var close = function (force) {
+      if (pinned && !force) return;
+      pinned = null; shown = null; panel.classList.remove('open'); panel.hidden = true;
+      cal.querySelectorAll('.cd.iss.sel').forEach(function (b) { b.classList.remove('sel'); b.setAttribute('aria-expanded', 'false'); });
+    };
+    var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+    cal.querySelectorAll('.cd.iss').forEach(function (b) {
+      b.setAttribute('aria-expanded', 'false');
+      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true); if (!fine) panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } });
+      if (fine) {
+        b.addEventListener('mouseenter', function () { if (!pinned) show(b, false); });
+        b.addEventListener('mouseleave', function () { if (!pinned) hideT = setTimeout(function () { close(false); }, 900); });
+      }
+    });
+    panel.addEventListener('mouseenter', function () { clearTimeout(hideT); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) close(true); });
+    // search: light up matching Mondays
+    var qbox = document.querySelector('[data-search]'), fullText = null;
+    if (qbox) qbox.addEventListener('input', function () {
+      var t = qbox.value.trim().toLowerCase();
+      var apply = function () {
+        cal.querySelectorAll('.cd.iss').forEach(function (b) {
+          var d = data[b.dataset.n] || {}, hay = (d.hay || '') + ' ' + ((fullText && fullText[d.slug]) || '');
+          b.classList.toggle('dim', !!t && hay.indexOf(t) < 0); b.classList.toggle('hit', !!t && hay.indexOf(t) >= 0);
+        });
+      };
+      apply();
+      if (t && !fullText) fetch(qbox.dataset.search).then(function (r) { return r.json(); }).then(function (j) { fullText = j; apply(); }).catch(function () {});
+    });
+  }
+
+  // ---------- front page: audience paragraphs unfold as they scroll into view ----------
+  var reveals = [].slice.call(document.querySelectorAll('.reveal'));
+  if (reveals.length && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-reveal');
+    var io = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } }); }, { rootMargin: '0px 0px -12% 0px' });
+    reveals.forEach(function (r) { io.observe(r); });
+  }
+
+  // ---------- front page: when the next issue arrives (next Monday 8:45 a.m. New York time) ----------
+  var nx = document.querySelector('[data-next-issue]');
+  if (nx) try {
+    var now = new Date(), ny = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    var add = (8 - ny.getDay()) % 7; if (add === 0 && (ny.getHours() > 8 || (ny.getHours() === 8 && ny.getMinutes() >= 45))) add = 7;
+    var next = new Date(ny); next.setDate(ny.getDate() + add);
+    var label = add === 0 ? 'this morning' : add === 1 ? 'tomorrow' : 'Monday, ' + next.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+    nx.textContent = 'The next issue arrives ' + label + ' at 8:45 a.m. Eastern' + (add > 1 ? ', in ' + add + ' days.' : '.');
+  } catch (e) {}
 })();

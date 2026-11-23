@@ -77,6 +77,16 @@
           14,
           24,
           32
+        ],
+        "terms": [
+          {
+            "anchor": "permissions",
+            "label": "Agent permissions"
+          },
+          {
+            "anchor": "logging",
+            "label": "Logging and audit trails"
+          }
         ]
       },
       {
@@ -86,6 +96,15 @@
           2,
           25,
           31
+        ],
+        "terms": [
+          {
+            "anchor": "compute",
+            "label": "Computing power",
+            "phrases": [
+              "computing power"
+            ]
+          }
         ]
       },
       {
@@ -95,6 +114,14 @@
           12,
           22,
           30
+        ],
+        "terms": [
+          {
+            "anchor": "ai-safety"
+          },
+          {
+            "anchor": "preparedness-framework"
+          }
         ]
       },
       {
@@ -104,6 +131,32 @@
           7,
           23,
           33
+        ],
+        "terms": [
+          {
+            "anchor": "proof-checking"
+          },
+          {
+            "anchor": "lean"
+          }
+        ]
+      },
+      {
+        "lead": "AI started being priced by the finished job.",
+        "body": "Price lists still quote a cost per word, but from the summer on, the labs and independent testers increasingly compared models on what it costs to finish a whole task, and cheaper models were sold as the better deal for the repetitive steps agents run all day.",
+        "issues": [
+          16,
+          30,
+          32
+        ],
+        "terms": [
+          {
+            "anchor": "cost-per-task"
+          },
+          {
+            "anchor": "output-token",
+            "label": "Per-token pricing"
+          }
         ]
       }
     ],

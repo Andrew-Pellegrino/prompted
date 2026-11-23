@@ -11,7 +11,7 @@ import { validateIssue, runsText, readMinutes, blocksText, sections } from './li
 import { renderIssueWeb, renderMasthead } from './lib/render-web.mjs';
 import { renderIssueEmail, fillRecipient } from './lib/render-email.mjs';
 import { termsInIssue } from './lib/index-terms.mjs';
-import { risingTerms } from './lib/trends.mjs';
+import { risingTerms, termTimeline } from './lib/trends.mjs';
 import { scheduledSendFor } from './lib/weeks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -127,10 +127,8 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
       <a class="sub-btn" href="${esc(subscribeHref(site, 'header'))}">Subscribe free</a>
     </nav>
   </div>
-  ${current === 'home' && latest ? `<p class="mast-tag">${esc(site.tagline)} <i>·</i> <span>Week of ${esc(latest.week.label)}</span></p>
-  <div class="plate-rule mast-rule"></div>
-  <p class="mast-promise">${esc(site.promise)}</p>
-  <div class="mast-meta"><span>Free every Monday, 8:45 a.m. ET</span><span class="dl-for">${esc(site.attribution)}</span><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>` : `<div class="plate-rule"></div>
+  ${current === 'home' && latest ? `<div class="mast-line"><p class="mast-tag">${esc(site.tagline)} <i>·</i> <span>Every Monday, 8:45 a.m. ET</span></p><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>
+  <div class="plate-rule mast-rule"></div>` : `<div class="plate-rule"></div>
   <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>`}
 </div></header>
 <main id="main">
@@ -166,68 +164,110 @@ function homePage(site, issues, indexData) {
   const front = site.front || {};
   const opening = latest.blocks.find((b) => b.role === 'opening');
   const stories = storyAnchors(latest);
-  const trends = risingTerms(issues, indexData, { n: 5 });
   const byNo = new Map(issues.map((i) => [i.number, i]));
   const termCount = indexData?.terms?.length || 0;
-  const strip = (seen) => `<span class="strip" aria-hidden="true">${seen.map((x) => `<i${x ? ' class="on"' : ''}></i>`).join('')}</span>`;
+  const SHOW = 4;
+  const story = (s, i) => `<li><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
+  const strip = (seen) => `<span class="strip">${seen.map((x, i) => x ? `<a class="on" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : '<i></i>').join('')}</span>`;
+  const timelines = (p) => (p.terms || []).map((t) => termTimeline(issues, indexData, t)).filter(Boolean).map((t) => `<div class="tl"><div class="tl-head"><a class="rt" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a><span class="rc num">${t.early} of the first ${t.k} issues <i>→</i> ${t.late} of the last ${t.k}</span></div>${strip(t.seen)}</div>`).join('');
+  // archive card: one square per issue, grouped by month
+  const months = new Map();
+  for (const i of issues) { const m = shortMonth(i.week.nominal_send_date || i.publication.date); if (!months.has(m)) months.set(m, []); months.get(m).push(i); }
   const body = `<div class="paper wrap">
-
 <section class="fp-sec" aria-labelledby="s-big">
   <h2 id="s-big" class="fp-h">The Biggest Developments</h2>
-  <p class="kicker">This week · Issue No. ${latest.number}</p>
+  <p class="kicker">This week · Issue No. ${latest.number} · Week of ${esc(latest.week.label)}</p>
   <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
   <p class="byline"><span>By ${esc(site.author)}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
   ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
-  ${stories.length ? `<ol class="fp-stories">${stories.map((s, i) => `<li><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`).join('')}</ol>` : ''}
+  ${stories.length ? `<p class="fp-label">In this issue</p><ol class="fp-stories">${stories.slice(0, SHOW).map(story).join('')}</ol>${stories.length > SHOW ? `<details class="more-stories"><summary><span class="closed">Show all ${stories.length} stories</span><span class="open">Show fewer</span></summary><ol class="fp-stories" start="${SHOW + 1}">${stories.slice(SHOW).map((s, i) => story(s, i + SHOW)).join('')}</ol></details>` : ''}` : ''}
   <a class="sub-btn read-btn" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
 </section>
 
 <section class="fp-sec" aria-labelledby="s-brief">
   <h2 id="s-brief" class="fp-h">Worth Knowing Briefly</h2>
   ${earlier.map((i) => `<p class="brief"><a href="${issueUrl(i)}"><b>Week of ${esc(i.week.label)}.</b> ${esc(i.subtitle)}</a></p>`).join('\n  ')}
-  <p class="brief more"><a href="/issues/"><b>The full archive.</b> All ${issues.length} issues, searchable by any word.</a> ${termCount ? `<a href="/index/"><b>The Prompted Index.</b> ${termCount} AI terms from these issues, explained in plain English.</a>` : ''}</p>
+  <div class="cards">
+    <a class="card-link" href="/issues/">
+      <span class="kicker">The archive</span>
+      <b>All ${issues.length} issues, on a calendar.</b>
+      <span class="mini-cal">${[...months].map(([m, list]) => `<span class="mc-m"><em>${esc(m.slice(0, 3))}</em>${list.map(() => '<i></i>').join('')}</span>`).join('')}</span>
+      <span class="go">Browse and search the archive ${ARROW}</span>
+    </a>
+    ${termCount ? `<a class="card-link" href="/index/">
+      <span class="kicker">The Prompted Index</span>
+      <b>${termCount} AI terms, in plain English.</b>
+      <span class="idx-sample">${[...indexData.terms].sort((x, y) => y.issues - x.issues).slice(0, 4).map((t) => `<span>${esc(t.term)}</span>`).join('')}</span>
+      <span class="go">Look up a term ${ARROW}</span>
+    </a>` : ''}
+  </div>
 </section>
 
 <section class="fp-sec" aria-labelledby="s-pat">
   <h2 id="s-pat" class="fp-h">Patterns Worth Watching</h2>
-  ${(front.patterns || []).map((p) => `<p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>`).join('\n  ')}
-  ${trends?.terms.length ? `<figure class="rising">
-    <figcaption><b>Rising across ${trends.issues} issues.</b> Each square is one issue, oldest on the left; filled means the issue used the term. Counted from the Prompted Index.</figcaption>
-    <ol>${trends.terms.map((t) => `<li><a href="/index/#${encodeURIComponent(t.anchor)}"><span class="rt">${esc(t.term)}</span><span class="rc num">${t.early} of the first ${trends.k} <i>→</i> ${t.late} of the last ${trends.k}</span>${strip(t.seen)}</a></li>`).join('')}</ol>
-  </figure>` : ''}
+  <p class="legend"><span class="strip demo"><a class="on" tabindex="-1" aria-hidden="true"></a><i></i></span> Each square is one issue, oldest first. Filled squares used the term; tap one to read it.</p>
+  ${(front.patterns || []).map((p) => `<div class="pattern-block">
+    <p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>
+    ${indexData ? timelines(p) : ''}
+  </div>`).join('\n  ')}
 </section>
 
 <section class="fp-sec" aria-labelledby="s-why">
   <h2 id="s-why" class="fp-h">Why Prompted Matters to You</h2>
-  ${(front.lenses || []).map((l) => `<p class="lens"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('\n  ')}
-  <div class="fp-sub">
-    <p><b>Free, every Monday at 8:45 a.m. Eastern.</b> One email a week. No ads. Unsubscribe in one click.</p>
-    ${signupForm('home-hero', 'Subscribe free', site)}
-  </div>
+  ${(front.lenses || []).map((l) => `<p class="lens reveal"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('\n  ')}
 </section>
 
-<p class="fp-closing">That’s the week. See you next Monday.</p>
-<p class="fp-signoff">— Prompted</p>
+<section class="finale" aria-labelledby="s-end">
+  <p class="fin-closing">That’s the week.</p>
+  <h2 id="s-end" class="fin-h">See you next Monday.</h2>
+  <p class="fin-promise">${esc(site.promise)}</p>
+  <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
+  ${signupForm('home-hero', 'Subscribe free', site)}
+  <ul class="fin-facts"><li><b>Free</b> always</li><li><b>1</b> email a week</li><li><b>0</b> ads</li><li><b>${issues.length}</b> issues so far</li></ul>
+  <p class="fp-signoff">— Prompted</p>
+</section>
 </div>`;
   return layout(site, { title: `${site.name} — ${site.tagline}`, description: site.description, pathName: '/', body, current: 'home', latest,
     jsonLd: { '@context': 'https://schema.org', '@type': 'WebSite', name: site.name, url: site.url + '/', description: site.description } });
 }
 
 function archivePage(site, issues) {
+  const sendDate = (i) => i.week.nominal_send_date || i.publication.date;
   const byMonth = new Map();
   for (const i of [...issues].reverse()) { const m = shortMonth(i.publication.date); if (!byMonth.has(m)) byMonth.set(m, []); byMonth.get(m).push(i); }
-  const first = issues[0];
+  // calendar: every month from the first issue to the latest, newest first; each issue on its Monday
+  const bySend = new Map(issues.map((i) => [sendDate(i), i]));
+  const first = new Date(sendDate(issues[0]) + 'T12:00:00Z'), last = new Date(sendDate(issues.at(-1)) + 'T12:00:00Z');
+  const cal = [];
+  for (let y = last.getUTCFullYear(), m = last.getUTCMonth(); y > first.getUTCFullYear() || (y === first.getUTCFullYear() && m >= first.getUTCMonth()); m === 0 ? (y--, m = 11) : m--) {
+    const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7;
+    const cells = Array.from({ length: lead }, () => '<span class="cd blank"></span>');
+    let n = 0;
+    for (let d = 1; d <= days; d++) {
+      const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, i = bySend.get(iso);
+      if (i) { n++; cells.push(`<button class="cd iss" type="button" data-n="${i.number}" aria-label="Issue ${i.number}, week of ${esc(i.week.label)}: ${esc(i.subtitle)}"><span class="dn">${d}</span><span class="in num">${i.number}</span></button>`); }
+      else cells.push(`<span class="cd">${d}</span>`);
+    }
+    cal.push(`<div class="cal-m${n ? '' : ' empty'}"><h3>${new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })} <span>${y}</span><small>${n} ${n === 1 ? 'issue' : 'issues'}</small></h3><div class="cal-days" role="group"><b>M</b><b>T</b><b>W</b><b>T</b><b>F</b><b>S</b><b>S</b>${cells.join('')}</div></div>`);
+  }
+  const data = Object.fromEntries(issues.map((i) => [i.number, { url: issueUrl(i), week: i.week.label, date: longDate(sendDate(i)), title: i.subtitle, stories: storyAnchors(i).map((t) => [t.id, t.text]), slug: i.slug, hay: (i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ')).toLowerCase() }]));
   const body = `<header class="page-head wrap">
   <p class="kicker">The archive</p>
   <h1>Every issue of ${esc(site.name)}.</h1>
-  <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(first.publication.date))}, newest first. Search covers every word of every issue.</p>
+  <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick a Monday to unfold it, or search every word of every issue.</p>
   <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"><span class="kbd">/</span></div>
   <p class="count" data-count aria-live="polite">${issues.length} issues</p>
 </header>
+<section class="wrap cal" data-cal aria-label="Issues by date">
+  <div class="cal-grid">${cal.join('')}</div>
+  <div class="cal-panel" hidden></div>
+  <script type="application/json" id="cal-data">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>
+</section>
 <div class="wrap arch">
+  <h2 class="sec-big">Every issue, newest first</h2>
   ${[...byMonth].map(([m, list]) => `<h2 class="month" data-year><span>${esc(m)}</span></h2><ol class="arch-list">${list.map(issueLi).join('')}</ol>`).join('\n')}
 </div>`;
-  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, searchable.`, pathName: '/issues/', body, current: 'issues' });
+  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, on a calendar and searchable.`, pathName: '/issues/', body, current: 'issues' });
 }
 
 function issuePage(site, issue, issues, indexData) {

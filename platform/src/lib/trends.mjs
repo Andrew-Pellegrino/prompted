@@ -26,3 +26,16 @@ export function risingTerms(issues, indexData, { n = 6, minLate = 5 } = {}) {
   for (const r of rows) { if (dests.has(r.dest)) continue; dests.add(r.dest); out.push(r); if (out.length === n) break; }
   return { k, issues: issues.length, terms: out };
 }
+
+// Per-issue timeline for one Index term (used under each written pattern). Ordinary verbs that the newsletter also uses
+// in their everyday sense are never counted; a pattern can name the exact phrasings to count instead.
+const VERBS = /^(approve|approved|approval|approvals|approving|contain|contained|containing|serve|served|serving|train|trained|training|reason|reasoning|log|logs|logged)$/;
+export function termTimeline(issues, indexData, { anchor, label, phrases } = {}) {
+  const t = (indexData?.terms || []).find((x) => x.anchor === anchor);
+  if (!t) return null;
+  const phr = phrases?.length ? phrases : [...new Set([t.term, ...(t.surfaces || [])].map((s) => s.toLowerCase().trim()))].filter((s) => s && !VERBS.test(s));
+  const res = phr.map((s) => new RegExp(`(?<![A-Za-z0-9])${escRe(s)}(?![A-Za-z0-9])`, 'i'));
+  const seen = issues.map((i) => { const x = blocksText(i.blocks); return res.some((r) => r.test(x)); });
+  const k = Math.floor(issues.length / 3);
+  return { term: label || t.term, anchor: t.anchor, seen, early: seen.slice(0, k).filter(Boolean).length, late: seen.slice(-k).filter(Boolean).length, k };
+}
