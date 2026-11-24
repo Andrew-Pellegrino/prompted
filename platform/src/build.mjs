@@ -127,7 +127,7 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
       <a class="sub-btn" href="${esc(subscribeHref(site, 'header'))}">Subscribe free</a>
     </nav>
   </div>
-  ${current === 'home' && latest ? `<div class="mast-line"><p class="mast-tag">${esc(site.tagline)} <i>·</i> <span>Every Monday, 8:45 a.m. ET</span></p><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>
+  ${current === 'home' && latest ? `<div class="mast-line"><p class="mast-tag2">${esc(site.tagline)}</p><p class="mast-when"><span class="dot"></span>Every Monday · 8:45 a.m. ET</p><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>
   <div class="plate-rule mast-rule"></div>` : `<div class="plate-rule"></div>
   <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>`}
 </div></header>
@@ -135,7 +135,7 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
 ${body}
 </main>
 <footer class="site"><div class="wrap foot">
-  <a class="foot-lockup" href="/"><img src="/img/miami-altman-lockup.png" width="80" height="63" alt="Miami University, John W. Altman Institute for Entrepreneurship"></a>
+  <a class="foot-lockup" href="/"><picture><source srcset="/img/lockup-dark.png" media="(prefers-color-scheme: dark)"><img src="/img/lockup-light.png" width="80" height="63" alt="Miami University, John W. Altman Institute for Entrepreneurship"></picture></a>
   <div class="foot-main">
     <nav aria-label="Footer"><a href="/">This week</a><a href="/issues/">Archive</a><a href="/index/">Index</a><a href="${esc(subscribeHref(site, 'footer'))}">Subscribe</a><a href="/feed.xml">RSS</a><a href="/privacy/">Privacy</a></nav>
     <p>© ${new Date().getUTCFullYear()} ${esc(site.name)}. Written by ${esc(site.author)}. ${esc(site.attribution)}.</p>
@@ -165,78 +165,96 @@ function homePage(site, issues, indexData) {
   const opening = latest.blocks.find((b) => b.role === 'opening');
   const stories = storyAnchors(latest);
   const byNo = new Map(issues.map((i) => [i.number, i]));
-  const SHOW = 4;
-  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''}><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
-  const monthOf = (i) => shortMonth(i.publication.date).slice(0, 3);
-  // one timeline per pattern: one square per issue, month labels under the first issue of each month
+  const N = issues.length, SHOW = 4;
+  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''} style="--d:${i}"><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
+  const mon = (i) => shortMonth(i.publication.date).slice(0, 3);
+  const span = (a, b) => (mon(a) === mon(b) ? mon(a) : `${mon(a)}–${mon(b)}`);
   const timeline = (t) => {
-    const sq = t.seen.map((x, i) => x ? `<a class="on" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : '<i></i>').join('');
-    const ticks = issues.map((i, n) => (n === 0 || monthOf(i) !== monthOf(issues[n - 1])) ? `<span style="grid-column:${n + 1}">${esc(monthOf(i))}</span>` : '').join('');
-    return `<div class="tl2"><div class="tl2-stat"><b class="num">${t.early}<i>→</i>${t.late}</b><span>of ${t.k} issues, first vs. latest</span></div><div class="tl2-body"><a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a><div class="tl2-strip" style="--n:${issues.length}">${sq}</div><div class="tl2-ticks" style="--n:${issues.length}">${ticks}</div></div></div>`;
+    const sq = t.seen.map((x, i) => x ? `<a class="on" style="--i:${i}" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : `<i style="--i:${i}"></i>`).join('');
+    const ticks = issues.map((i, n) => (n === 0 || mon(i) !== mon(issues[n - 1])) ? `<span style="grid-column:${n + 1}">${esc(mon(i))}</span>` : '').join('');
+    return `<div class="tl2">
+      <div class="tl2-stat"><div><b class="num">${t.early}</b><span>${span(issues[0], issues[t.k - 1])}</span></div><i>→</i><div><b class="num">${t.late}</b><span>${span(issues[N - t.k], issues[N - 1])}</span></div></div>
+      <div class="tl2-body"><a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)} <small>issues using it, first ${t.k} vs. latest ${t.k}</small></a><div class="tl2-strip" style="--n:${N}">${sq}</div><div class="tl2-ticks" style="--n:${N}">${ticks}</div></div>
+    </div>`;
   };
-  // archive card: one bar per issue, height = length
-  const words = issues.map((i) => wordCount(i)), maxW = Math.max(...words);
-  const bars = issues.map((i, n) => `<i style="height:${Math.round(25 + 75 * words[n] / maxW)}%"${n === issues.length - 1 ? ' class="now"' : ''}></i>`).join('');
-  // Index card: a pool of mid-frequency terms readers meet often enough to wonder about; three shown at random
+  // archive card: an exponential arrow with ever-taller books under it, one per issue
+  const books = issues.map((_, n) => {
+    const w = 260 / N, x = 20 + n * w, h = 10 + 78 * (Math.exp(3 * n / (N - 1)) - 1) / (Math.exp(3) - 1);
+    return `<rect class="bk${n === N - 1 ? ' now' : ''}" style="--i:${n}" x="${(x + 0.6).toFixed(1)}" y="${(104 - h).toFixed(1)}" width="${(w - 1.4).toFixed(1)}" height="${h.toFixed(1)}"/>`;
+  }).join('');
+  const curve = Array.from({ length: 41 }, (_, j) => { const t = j / 40, x = 18 + t * 266, y = 96 - (10 + 82 * (Math.exp(3 * t) - 1) / (Math.exp(3) - 1)); return `${j ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }).join(' ');
   const dests = new Map((indexData?.destinations || []).map((d) => [d.id, d]));
-  const total = indexData?.issuesTracked || issues.length;
+  const total = indexData?.issuesTracked || N;
   const pool = (indexData?.terms || []).filter((t) => t.issues >= Math.round(total * 0.12) && t.issues <= Math.round(total * 0.5) && dests.get(t.dest)?.def && t.term.length > 3)
     .map((t) => ({ t: t.term, a: t.anchor, d: dests.get(t.dest).def }));
-  const pick = pool.slice(0, 3);
   const termHtml = (x) => `<a class="it" href="/index/#${encodeURIComponent(x.a)}"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></a>`;
-  const body = `<div class="paper wrap">
-<section class="fp-sec" aria-labelledby="s-big">
-  <h2 id="s-big" class="fp-h">This Week in AI</h2>
-  <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
-  <p class="byline"><span>Week of ${esc(latest.week.label.replace(/, \d{4}$/, ''))}</span><i>·</i><span>${readMinutes(latest)} min read</span></p>
-  ${opening ? `<div class="deck clamp"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
-  ${stories.length ? `<h3 class="fp-sub-h">The Biggest Developments</h3><ol class="fp-stories" data-more>${stories.map(story).join('')}</ol>${stories.length > SHOW ? `<button class="more-btn" type="button" data-more-btn aria-expanded="false"><span class="closed">Show all ${stories.length} stories</span><span class="open">Show fewer</span></button>` : ''}` : ''}
-  <a class="sub-btn read-btn" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
-</section>
-
-<section class="fp-sec" aria-labelledby="s-brief">
-  <h2 id="s-brief" class="fp-h">Worth Knowing Briefly</h2>
-  <ol class="brief-list">${earlier.map((i) => `<li><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
-  <h3 class="fp-sub-h">Worth Knowing at Length</h3>
-  <div class="cards">
-    <a class="card-link" href="/issues/">
-      <span class="kicker">The archive</span>
-      <b>Every issue since April, one bar each.</b>
-      <span class="bars" aria-hidden="true">${bars}</span>
-      <span class="bars-cap"><span>No. 1 · ${esc(issues[0].week.label.replace(/[–-].*/, ''))}</span><span>No. ${latest.number} · this week</span></span>
-      <span class="go">Browse all ${issues.length} issues ${ARROW}</span>
-    </a>
-    ${indexData ? `<div class="card-link idx-card">
-      <span class="kicker">The Prompted Index</span>
-      <b>${indexData.terms.length} AI terms, without the jargon.</b>
-      <span class="idx-terms" data-terms>${pick.map(termHtml).join('')}</span>
-      <a class="go" href="/index/">Open the Index ${ARROW}</a>
-      <script type="application/json" id="term-pool">${JSON.stringify(pool).replace(/</g, '\\u003c')}</script>
+  const body = `<div class="fp wrap">
+<section class="fp-sec fp-top" aria-labelledby="s-big">
+  <div class="fp-top-head"><h2 id="s-big" class="fp-label">This Week in AI</h2><p class="chips"><span>No. ${latest.number}</span><span>${esc(latest.week.label.replace(/, \d{4}$/, ''))}</span><span>${readMinutes(latest)} min read</span></p></div>
+  <div class="fp-top-grid">
+    <div class="fp-lead">
+      <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
+      ${opening ? `<div class="deck clamp in-anim"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
+      <a class="sub-btn read-btn in-anim" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
+    </div>
+    ${stories.length ? `<div class="fp-side">
+      <h3 class="fp-sub-h">The Biggest Developments</h3>
+      <ol class="fp-stories" data-more>${stories.map(story).join('')}</ol>
+      ${stories.length > SHOW ? `<button class="more-btn" type="button" data-more-btn aria-expanded="false"><span class="closed">Show all ${stories.length} stories</span><span class="open">Show fewer</span></button>` : ''}
     </div>` : ''}
   </div>
 </section>
 
+<section class="fp-sec" aria-labelledby="s-brief">
+  <div class="split">
+    <div class="split-side">
+      <h2 class="fp-h sd">Worth Knowing at Length</h2>
+      <a class="card-link arch-card sd" href="/issues/">
+        <span class="kicker">The archive</span>
+        <b>${N} issues and counting.</b>
+        <svg class="books" viewBox="0 0 300 112" role="img" aria-label="An upward curve over a row of books, one per issue, each taller than the last">
+          <path class="axis" d="M18 104 H288"/>${books}
+          <path class="curve" d="${curve}" pathLength="1"/><path class="head" d="M276 6 L288 4 L283 15"/>
+        </svg>
+        <span class="go">Browse every issue on a calendar ${ARROW}</span>
+      </a>
+      ${indexData ? `<div class="card-link idx-card sd">
+        <span class="kicker">The Prompted Index</span>
+        <b>${indexData.terms.length} AI terms, without the jargon.</b>
+        <span class="idx-terms" data-terms>${pool.slice(0, 3).map(termHtml).join('')}</span>
+        <a class="go" href="/index/">Open the Index ${ARROW}</a>
+        <script type="application/json" id="term-pool">${JSON.stringify(pool).replace(/</g, '\\u003c')}</script>
+      </div>` : ''}
+    </div>
+    <div class="split-main">
+      <h2 id="s-brief" class="fp-h sd">Worth Knowing Briefly</h2>
+      <ol class="brief-list">${earlier.map((i) => `<li class="sd"><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
+    </div>
+  </div>
+</section>
+
 <section class="fp-sec" aria-labelledby="s-pat">
-  <h2 id="s-pat" class="fp-h">Patterns Worth Watching</h2>
-  <p class="legend">Each square is one issue, oldest first. Filled means the issue used the term; tap one to read it.</p>
-  ${(front.patterns || []).map((p) => `<div class="pattern-block">
+  <h2 id="s-pat" class="fp-h sd">Patterns Worth Watching</h2>
+  <p class="legend sd">Each square is one issue, oldest first. Filled means the issue used the term; tap one to read it.</p>
+  ${(front.patterns || []).map((p) => `<div class="pattern-block sd">
     <p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>
     ${indexData ? (p.terms || []).slice(0, 1).map((t) => termTimeline(issues, indexData, t)).filter(Boolean).map(timeline).join('') : ''}
   </div>`).join('\n  ')}
 </section>
 
 <section class="fp-sec" aria-labelledby="s-why">
-  <h2 id="s-why" class="fp-h">Why Prompted Matters to You</h2>
-  ${(front.lenses || []).map((l) => `<p class="lens reveal"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('\n  ')}
+  <h2 id="s-why" class="fp-h sd">Why Prompted Matters to You</h2>
+  <div class="lenses">${(front.lenses || []).map((l) => `<p class="lens sd"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('')}</div>
 </section>
 
-<section class="finale" aria-labelledby="s-end">
-  <p class="fin-closing">That’s the week. See you next Monday.</p>
-  <h2 id="s-end" class="fin-h">Get the next one in your inbox.</h2>
-  <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
-  ${signupForm('home-hero', 'Subscribe free', site)}
-  <p class="fine">Free. One email a week. No ads. Unsubscribe in one click.</p>
-  <p class="fp-signoff">— Prompted</p>
+<section class="finale sd" aria-labelledby="s-end">
+  <div class="fin-act">
+    <h2 id="s-end" class="fin-h">Get the next one in your inbox.</h2>
+    <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
+    ${signupForm('home-hero', 'Subscribe free', site)}
+    <p class="fin-facts"><span>Free</span><span>One email a week</span><span>No ads</span><span>Unsubscribe in one click</span></p>
+  </div>
+  <div class="fin-close"><p>That’s the week. See you next Monday.</p><p class="fp-signoff">— Prompted</p></div>
 </section>
 </div>`;
   return layout(site, { title: `${site.name} — ${site.tagline}`, description: site.description, pathName: '/', body, current: 'home', latest,

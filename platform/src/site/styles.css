@@ -565,3 +565,122 @@ html,body{overflow-x:clip}
   .brief-list .st{font-size:17px}
   .brief-list .no{font-size:24px;min-width:32px}
 }
+
+/* ======================= front page, round 5 ======================= */
+.pg-home .plate .wrap,.pg-home footer.site .wrap{max-width:var(--w)}
+.fp{padding-top:4px}
+/* masthead: the tagline gets real weight; one rule only */
+.mast-line{align-items:center;margin:2px 0 12px}
+.mast-tag2{font:italic 500 clamp(20px,2.2vw,26px)/1.1 var(--serif);color:var(--ink);letter-spacing:-.005em}
+.mast-when{display:inline-flex;align-items:center;gap:8px;font:700 13px var(--head);color:var(--muted);margin-left:auto}
+.mast-when .dot{width:8px;height:8px;border-radius:50%;background:var(--red);box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 60%,transparent);animation:pulse 2.4s ease-out infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--red) 55%,transparent)}70%,100%{box-shadow:0 0 0 9px transparent}}
+/* section heads */
+.fp .fp-sec{margin-top:56px}
+.fp .fp-top{margin-top:26px}
+.fp-top-head{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+.fp-label{font:700 14px var(--head);letter-spacing:.02em;text-transform:uppercase;color:var(--red);display:flex;align-items:center;gap:10px}
+.fp-label::before{content:"";width:18px;height:3px;background:var(--red)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips span{font:700 12px var(--head);border:1px solid var(--ink);padding:4px 9px;letter-spacing:.01em}
+.chips span:first-child{background:var(--ink);color:var(--paper)}
+.fp-top-grid{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:44px;align-items:start}
+.fp .lead-h{font-size:clamp(32px,3.9vw,52px);line-height:1.04;letter-spacing:-.04em;margin:0 0 18px}
+.fp .deck p{font-size:20px}
+.fp-side .fp-sub-h{margin-top:0}
+.fp-side{border-left:1px solid var(--hair);padding-left:28px}
+.fp-stories a{font-size:16px;padding:12px 0}
+/* load-in for the lead */
+@media (prefers-reduced-motion:no-preference){
+  .fp-top .lead-h{animation:rise .7s cubic-bezier(.2,.7,.2,1) both}
+  .fp-top .in-anim{animation:rise .7s .15s cubic-bezier(.2,.7,.2,1) both}
+  .fp-top .read-btn.in-anim{animation-delay:.3s}
+  .fp-top .fp-stories li{animation:rise .55s calc(.25s + var(--d) * .07s) cubic-bezier(.2,.7,.2,1) both}
+  .fp-top .chips span{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+/* split sections */
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.35fr);gap:44px;align-items:start}
+.split-side{display:flex;flex-direction:column;gap:16px}
+.split-side .fp-h{margin-bottom:6px}
+.fp .cards{display:none}
+.card-link{gap:8px}
+.books{width:100%;height:auto;display:block;margin:4px 0 2px;overflow:visible}
+.books .axis{stroke:var(--hair);stroke-width:1}
+.books .bk{fill:var(--ink);transform-box:fill-box;transform-origin:bottom}
+.books .bk:nth-child(3n){fill:color-mix(in srgb,var(--ink) 78%,var(--paper))}
+.books .bk:nth-child(3n+1){fill:color-mix(in srgb,var(--ink) 90%,var(--paper))}
+.books .bk.now{fill:var(--red)}
+.books .curve{fill:none;stroke:var(--red);stroke-width:2.5;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.books .head{fill:none;stroke:var(--red);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.arch-card:hover .books .bk:not(.now){fill:var(--ink)}
+.brief-list{border-top:3px solid var(--ink)}
+/* patterns: text beside its chart */
+.pattern-block{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:40px;align-items:center;padding:22px 0;margin:0;border-bottom:1px solid var(--hair)}
+.pattern-block .pattern{margin:0}
+.legend{font:14px/1.45 var(--head);color:var(--muted);margin:-8px 0 4px}
+.see{font-size:14px}
+.tl2{grid-template-columns:auto 1fr;gap:22px;border:0;padding:0;margin:0;align-items:center}
+.tl2-stat{display:flex;align-items:center;gap:8px}
+.tl2-stat>div{display:flex;flex-direction:column;align-items:center}
+.tl2-stat b{font:700 40px var(--head);letter-spacing:-.04em;line-height:1}
+.tl2-stat>i{font-style:normal;color:var(--red);font:700 22px var(--head)}
+.tl2-stat span{font:700 12px var(--head);color:var(--muted);margin-top:4px}
+.tl2-term{font-size:16px;margin-bottom:10px}
+.tl2-term small{display:block;font:13px var(--head);color:var(--muted);margin-top:2px}
+.tl2-strip{height:30px;gap:2px}
+.tl2-strip i{background:color-mix(in srgb,var(--ink) 13%,transparent);opacity:1}
+.tl2-strip a.on{background:var(--ink)}
+.tl2-ticks{font:700 12px var(--head);color:var(--muted);margin-top:6px}
+/* why: a grid, bold labels */
+.lenses{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0 34px}
+.lens{font-size:18px;line-height:1.55;margin:0;padding:18px 0;border-top:1px solid var(--hair)}
+.lens strong,.fp .lens strong{display:block;font:700 18px/1.25 var(--head);letter-spacing:-.01em;background:none;margin-bottom:6px;color:var(--ink)}
+/* ending */
+.finale{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:44px;align-items:end;margin-top:64px;border-top:3px solid var(--ink);border-bottom:0;padding:30px 0 0;text-align:left}
+.fin-h{font-size:clamp(32px,4.2vw,50px);letter-spacing:-.04em;line-height:1.02;margin:0 0 10px}
+.fin-next{font:700 17px var(--head);color:var(--ink);margin:0 0 20px}
+.fin-facts{display:flex;flex-wrap:wrap;gap:6px 0;margin-top:16px;font:15px var(--head);color:var(--ink)}
+.fin-facts span+span::before{content:"";display:inline-block;width:5px;height:5px;background:var(--red);border-radius:50%;margin:0 12px;vertical-align:middle}
+.fin-close{border-left:1px solid var(--hair);padding-left:28px}
+.fin-close p{font-size:21px;line-height:1.4}
+.fin-close .fp-signoff{margin-top:6px;font-style:italic}
+.foot-lockup img{width:76px}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .foot-lockup img{background:none;padding:0}}
+
+/* ----- scroll-linked motion: tied to scroll position, so it runs as fast as you scroll, both ways ----- */
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline: view()){
+    .sd{animation:sd-in linear both;animation-timeline:view();animation-range:entry 0% entry 90%}
+    .tl2-strip>*{animation:sq-in linear both;animation-timeline:view();animation-range:entry calc(var(--i) * 1.6%) entry calc(var(--i) * 1.6% + 45%);transform-origin:bottom}
+    .books .bk{animation:bk-in linear both;animation-timeline:--books;animation-range:entry calc(10% + var(--i) * 2%) cover calc(25% + var(--i) * 1.4%)}
+    .books{view-timeline-name:--books}
+    .books .curve{animation:draw linear both;animation-timeline:--books;animation-range:entry 40% cover 75%}
+    .books .head{animation:fade linear both;animation-timeline:--books;animation-range:cover 65% cover 78%}
+  }
+}
+@keyframes sd-in{from{opacity:0;transform:translateY(34px)}to{opacity:1;transform:none}}
+@keyframes sq-in{from{transform:scaleY(0)}to{transform:none}}
+@keyframes bk-in{from{transform:scaleY(0)}to{transform:none}}
+@keyframes draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+/* fallback where scroll-linked animation is not supported: reveal on entering, reverse on leaving */
+.js-io .sd{opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease}
+.js-io .sd.in{opacity:1;transform:none}
+
+@media (max-width:1000px){
+  .fp-top-grid,.split,.finale{grid-template-columns:1fr;gap:28px}
+  .fp-side{border-left:0;padding-left:0}
+  .split-main{order:-1}
+  .pattern-block{grid-template-columns:1fr;gap:16px}
+  .lenses{grid-template-columns:1fr 1fr}
+  .fin-close{border-left:0;padding-left:0;border-top:1px solid var(--hair);padding-top:20px}
+}
+@media (max-width:760px){
+  .mast-when{display:none}
+  .lenses{grid-template-columns:1fr}
+  .tl2{grid-template-columns:1fr;gap:12px}
+  .tl2-stat b{font-size:32px}
+  .tl2-strip{height:24px;gap:1.5px}
+  .fp .deck p{font-size:18px}
+}

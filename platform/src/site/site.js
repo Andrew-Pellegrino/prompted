@@ -168,6 +168,15 @@
     });
   }
 
+  // ---------- scroll motion fallback (browsers without scroll-linked animation) ----------
+  var sds = [].slice.call(document.querySelectorAll('.sd'));
+  var noSD = !(window.CSS && CSS.supports && CSS.supports('animation-timeline', 'view()'));
+  if (sds.length && noSD && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    document.documentElement.classList.add('js-io');
+    var io2 = new IntersectionObserver(function (es) { es.forEach(function (e) { e.target.classList.toggle('in', e.isIntersecting); }); }, { rootMargin: '0px 0px -8% 0px' });
+    sds.forEach(function (r) { io2.observe(r); });
+  }
+
   // ---------- front page: audience paragraphs unfold as they scroll into view ----------
   var reveals = [].slice.call(document.querySelectorAll('.reveal'));
   if (reveals.length && 'IntersectionObserver' in window && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
