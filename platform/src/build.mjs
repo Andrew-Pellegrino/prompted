@@ -339,20 +339,26 @@ ${rest}
 }
 
 function subscribePage(site, issues) {
-  const latest = issues.at(-1);
-  const body = `<header class="page-head wrap center">
-  <p class="kicker">Free Every Monday</p>
-  <h1>Subscribe to ${esc(site.name)}</h1>
-  <p class="dek">${esc(site.promise)}</p>
-  ${signupForm('subscribe-page', 'Subscribe free', site)}
-  <p class="fine">One email, ${esc(site.send_slot_label)}. Unsubscribe any time with one click.</p>
-</header>
-<section class="inside wrap">
-  <div class="cols three">
-    <div><span class="n num">01</span><h3>What Arrives</h3><p>One issue a week: the biggest developments, what they add up to, and what they mean for you.</p></div>
-    <div><span class="n num">02</span><h3>What Does Not</h3><p>No ads, no sponsored links, no daily mail. Your address is never shared.</p></div>
-    <div><span class="n num">03</span><h3>Try It First</h3><p><a href="${issueUrl(latest)}">Read this week's issue</a> or browse <a href="/issues/">all ${issues.length}</a>.</p></div>
+  const latest = issues.at(-1), stories = storyAnchors(latest);
+  const lenses = (site.front?.lenses || []);
+  const body = `<section class="sub-hero wrap">
+  <div class="sub-copy">
+    <p class="kicker">Free Every Monday</p>
+    <h1>Start the week knowing what changed in AI.</h1>
+    <p class="dek">${esc(site.promise)}</p>
+    ${signupForm('subscribe-page', 'Subscribe free', site)}
+    <p class="fin-facts">Free, one email a week at 8:45 a.m. Eastern, no ads, and one click to unsubscribe.</p>
   </div>
+  <a class="sub-sample" href="${issueUrl(latest)}">
+    <span class="kicker">This Week’s Issue · No. ${latest.number}</span>
+    <b>${esc(latest.subtitle)}</b>
+    <ol>${stories.slice(0, 5).map((t, i) => `<li><span class="rk">${i + 1}</span>${esc(t.text)}</li>`).join('')}</ol>
+    <span class="go">Read it before you subscribe ${ARROW}</span>
+  </a>
+</section>
+<section class="wrap fp-sec">
+  <h2 class="fp-h">Why Readers Subscribe</h2>
+  <div class="lenses">${lenses.map((l) => `<p class="lens"><strong>${esc(l.label)}</strong> ${esc(l.text)}</p>`).join('')}</div>
 </section>`;
   return layout(site, { title: `Subscribe — ${site.name}`, description: site.description, pathName: '/subscribe/', body, current: 'subscribe' });
 }

@@ -767,3 +767,21 @@ html,body{overflow-x:clip}
 :root,:root[data-theme="dark"]{--accent:var(--red)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accent:var(--red)}}
 .cd.iss{border-radius:3px}
+
+/* ======================= round 9 ======================= */
+:root{--red:#d42a40;--soft:#d42a40}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--red:#d63146;--soft:#ee6274}}
+:root[data-theme="dark"]{--red:#d63146;--soft:#ee6274}
+.brief-list a:hover .st,.arch-list a:hover .st,.past a:hover .st,.fp-stories a:hover,.cal-panel li a:hover,.it:hover b,.lead-h a:hover{color:var(--soft)}
+.brief-list a:hover .no,.arch-list a:hover .no{color:var(--red)}
+.cd.iss,.tl2-strip i,.tl2-strip a.on{border-radius:0}
+.sub-hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:48px;align-items:center;padding-top:44px}
+.sub-hero h1{font-size:clamp(38px,5vw,64px);line-height:1.02;letter-spacing:-.045em;margin:0 0 16px;text-wrap:balance}
+.sub-hero .dek{font-size:21px;line-height:1.45;margin-bottom:24px;max-width:28em}
+.sub-sample{display:flex;flex-direction:column;gap:10px;text-decoration:none;border:1.5px solid var(--ink);background:var(--sheet);padding:24px;transition:transform .2s,box-shadow .2s}
+.sub-sample:hover{color:inherit;transform:translateY(-2px);box-shadow:5px 5px 0 var(--ink)}
+.sub-sample b{font:700 24px/1.15 var(--head);letter-spacing:-.025em}
+.sub-sample ol{list-style:none;margin:6px 0 4px;padding:0;border-top:1px solid var(--ink)}
+.sub-sample li{display:flex;gap:10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--hair);font:700 14px/1.3 var(--head)}
+.sub-sample .go{font:700 14px var(--head);color:var(--red);display:inline-flex;gap:6px;align-items:center}
+@media (max-width:900px){.sub-hero{grid-template-columns:1fr;gap:28px}}
