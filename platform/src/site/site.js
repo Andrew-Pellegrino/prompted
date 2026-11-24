@@ -212,10 +212,6 @@
     nx.textContent = 'The next issue arrives ' + label + ' at 8:45 a.m. Eastern' + (add > 1 ? ', in ' + add + ' days.' : '.');
   } catch (e) {}
 
-  // ---------- masthead: the tagline is set to the exact width of the nameplate, like a logo lockup ----------
-  var np = document.querySelector('.pg-home .nameplate'), tg = document.querySelector('.mast-tag2');
-  if (np && tg) { var fit = function () { tg.style.fontSize = ''; var w = np.getBoundingClientRect().width, t = tg.getBoundingClientRect().width; if (w && t) tg.style.fontSize = (parseFloat(getComputedStyle(tg).fontSize) * w / t) + 'px'; }; fit(); if (document.fonts) document.fonts.ready.then(fit); window.addEventListener('resize', fit); }
-
   // ---------- front page: show more stories (button stays under the list) ----------
   var mb = document.querySelector('[data-more-btn]'), ml = document.querySelector('[data-more]');
   if (mb && ml && window.matchMedia('(max-width: 1000px)').matches) { ml.classList.add('collapsed'); mb.addEventListener('click', function () { var o = ml.classList.toggle('collapsed'); mb.setAttribute('aria-expanded', o ? 'false' : 'true'); }); }
@@ -228,4 +224,5 @@
     var e2 = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
     tw.innerHTML = out.map(function (x) { return '<a class="it" href="/index/#' + encodeURIComponent(x.a) + '"><b>' + e2(x.t) + '</b><span>' + e2(x.d) + '</span></a>'; }).join('');
   } catch (e) {}
+
 })();
