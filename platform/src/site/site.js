@@ -141,7 +141,7 @@
       if (shown !== n) {
         panel.innerHTML = '<button class="cp-x" type="button" aria-label="Close">×</button><p class="kicker">Issue No. ' + n + ' · Week of ' + escH(d.week) + ' · ' + escH(d.date) + '</p>' +
           '<h3><a href="' + d.url + '"><span class="u">' + escH(d.title) + '</span></a></h3>' +
-          (d.stories.length ? '<ol>' + d.stories.map(function (s, i) { return '<li><a href="' + d.url + '#' + s[0] + '"><span class="rk">' + (i + 1) + '</span><span><span class="u">' + escH(s[1]) + '</span></span></a></li>'; }).join('') + '</ol>' : '') +
+          (d.stories.length ? '<ol>' + d.stories.map(function (s, i) { return '<li><a href="' + d.url + (s[0] ? '#' + s[0] : '') + '"><span class="rk">' + (i + 1) + '</span><span><span class="u">' + escH(s[1]) + '</span></span></a></li>'; }).join('') + '</ol>' : '') +
           '<a class="sub-btn" href="' + d.url + '">Read issue ' + n + ' →</a>';
         panel.querySelector('.cp-x').addEventListener('click', function () { close(true); });
         shown = n;
@@ -211,6 +211,10 @@
     var label = add === 0 ? 'this morning' : add === 1 ? 'tomorrow' : 'Monday, ' + next.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
     nx.textContent = 'The next issue arrives ' + label + ' at 8:45 a.m. Eastern' + (add > 1 ? ', in ' + add + ' days.' : '.');
   } catch (e) {}
+
+  // ---------- masthead: the tagline is set to the exact width of the nameplate, like a logo lockup ----------
+  var np = document.querySelector('.pg-home .nameplate'), tg = document.querySelector('.mast-tag2');
+  if (np && tg) { var fit = function () { tg.style.fontSize = ''; var w = np.getBoundingClientRect().width, t = tg.getBoundingClientRect().width; if (w && t) tg.style.fontSize = (parseFloat(getComputedStyle(tg).fontSize) * w / t) + 'px'; }; fit(); if (document.fonts) document.fonts.ready.then(fit); window.addEventListener('resize', fit); }
 
   // ---------- front page: show more stories (button stays under the list) ----------
   var mb = document.querySelector('[data-more-btn]'), ml = document.querySelector('[data-more]');

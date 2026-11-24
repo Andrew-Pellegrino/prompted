@@ -80,7 +80,17 @@ const subscribeHref = (site, campaign) => (site.signup_url ? externalSignup(site
 const longDate = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 const shortMonth = (iso) => new Date(iso + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 const pad2 = (n) => String(n).padStart(2, '0');
-const storyAnchors = (issue) => renderIssueWeb(issue).toc.filter((t) => t.level === 3);
+const storyAnchors = (issue) => {
+  const h3 = renderIssueWeb(issue).toc.filter((t) => t.level === 3);
+  if (h3.length) return h3;
+  // Early issues used bold lead-ins instead of story headings: list those from The Biggest Developments.
+  const out = []; let inBig = false;
+  for (const b of issue.blocks) {
+    if (b.type === 'heading' && b.level === 2) { inBig = /biggest developments/i.test(runsText(b.children)); continue; }
+    if (inBig && b.type === 'paragraph' && b.children?.[0]?.bold) out.push({ id: '', text: b.children[0].text.trim().split(/(?<=[.:”])\s+(?=[A-Z])/)[0].replace(/[:.]\s*$/, '') });
+  }
+  return out;
+};
 const ARROW = '<svg class="arr" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M2 8h11M9 4l4 4-4 4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>';
 const SEARCH_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M15.5 15.5 21 21" stroke="currentColor" stroke-width="2"/></svg>';
 
@@ -166,7 +176,7 @@ function homePage(site, issues, indexData) {
   const stories = storyAnchors(latest);
   const byNo = new Map(issues.map((i) => [i.number, i]));
   const N = issues.length, SHOW = 4;
-  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''} style="--d:${i}"><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span><span class="u">${esc(s.text)}</span></span></a></li>`;
+  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''} style="--d:${i}"><a href="${issueUrl(latest)}${s.id ? '#' + s.id : ''}"><span class="rk">${i + 1}</span><span><span class="u">${esc(s.text)}</span></span></a></li>`;
   const mon = (i) => shortMonth(i.publication.date).slice(0, 3);
   const span = (a, b) => (mon(a) === mon(b) ? mon(a) : `${mon(a)}–${mon(b)}`);
   const timeline = (t) => {
@@ -242,7 +252,7 @@ function homePage(site, issues, indexData) {
 
 <section class="fp-sec" aria-labelledby="s-pat">
   <h2 id="s-pat" class="fp-h sd">Patterns Worth Watching</h2>
-  <p class="legend sd">Each square is one issue, oldest first. Filled means the issue used the term; tap one to read it.</p>
+  <p class="legend sd">Each square is one issue, oldest first. Filled means that issue covered it; tap one to read it.</p>
   ${(front.patterns || []).map((p) => `<div class="pattern-block sd">
     <p class="pattern"><b>${esc(p.lead)}</b> ${esc(p.body)}${p.issues?.length ? ` <span class="see">See ${p.issues.map((n) => byNo.get(n)).filter(Boolean).map((i) => `<a href="${issueUrl(i)}">${esc(i.week.label.replace(/, \d{4}$/, ''))}</a>`).join(', ')}.</span>` : ''}</p>
     ${indexData ? (p.terms || []).slice(0, 1).map((t) => termTimeline(issues, indexData, t)).filter(Boolean).map(timeline).join('') : ''}
@@ -322,7 +332,7 @@ function issuePage(site, issue, issues, indexData) {
 <nav class="toc-side" aria-label="In this issue"><p>In This Issue</p>${tocList}</nav>
 <article class="issue">
 ${head}
-${gated ? `<div class="gate" data-gate hidden><p class="kicker">Free Every Monday</p><h2>Keep Reading. It Is Free.</h2><p>Get ${esc(site.name)} in your inbox every Monday morning.</p>${signupForm('issue-gate', 'Subscribe free', site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
+${gated ? `<div class="gate" data-gate hidden><p class="kicker">Free Every Monday</p><h2>Keep Reading. It’s Free.</h2><p>Get ${esc(site.name)} in your inbox every Monday morning.</p>${signupForm('issue-gate', 'Subscribe free', site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
 <div data-gated>
 ${rest}
 </div>` : ''}

@@ -855,3 +855,11 @@ article.issue h3{font-size:20px;margin:30px 0 10px}
 article.issue strong{background:none;font-weight:700}
 article.issue p.closing{border-top:1px solid var(--muted)}
 .issue-layout{padding-top:26px}
+
+/* ======================= round 13 ======================= */
+.fp .lead-h{font-size:clamp(28px,2.75vw,38px);line-height:1.1;text-wrap:pretty;max-width:none}
+.mast-tag2{display:inline-block;white-space:nowrap;font:italic 400 22px/1.15 var(--head);color:var(--muted);letter-spacing:.005em}
+.mast-line{align-items:flex-end}
+.u{padding-bottom:5px}
+.lead-h .ul{padding-bottom:6px}
+article.issue h2{border-bottom:2px solid var(--red)}
