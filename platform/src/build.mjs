@@ -174,7 +174,6 @@ function homePage(site, issues, indexData) {
     const ticks = issues.map((i, n) => (n === 0 || mon(i) !== mon(issues[n - 1])) ? `<span style="grid-column:${n + 1}">${esc(mon(i))}</span>` : '').join('');
     return `<div class="tl2">
       <a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>
-      <p class="tl2-note">In ${t.early} of the first ${t.k} issues and ${t.late} of the latest ${t.k}</p>
       <div class="tl2-strip" style="--n:${N}">${sq}</div><div class="tl2-ticks" style="--n:${N}">${ticks}</div>
     </div>`;
   };
@@ -228,7 +227,7 @@ function homePage(site, issues, indexData) {
         <span class="kicker">The archive</span>
         <b>${N} issues and counting.</b>
         ${chart}
-        <span class="go">Browse every issue on a calendar ${ARROW}</span>
+        <span class="go">Browse and search every issue ${ARROW}</span>
       </a>
       ${indexData ? `<div class="card-link idx-card sd">
         <span class="kicker">The Prompted Index</span>
@@ -273,26 +272,14 @@ function archivePage(site, issues) {
   const sendDate = (i) => i.week.nominal_send_date || i.publication.date;
   const byMonth = new Map();
   for (const i of [...issues].reverse()) { const m = shortMonth(i.publication.date); if (!byMonth.has(m)) byMonth.set(m, []); byMonth.get(m).push(i); }
-  // calendar: every month from the first issue to the latest, newest first; each issue on its Monday
-  const bySend = new Map(issues.map((i) => [sendDate(i), i]));
-  const first = new Date(sendDate(issues[0]) + 'T12:00:00Z'), last = new Date(sendDate(issues.at(-1)) + 'T12:00:00Z');
-  const cal = [];
-  for (let y = last.getUTCFullYear(), m = last.getUTCMonth(); y > first.getUTCFullYear() || (y === first.getUTCFullYear() && m >= first.getUTCMonth()); m === 0 ? (y--, m = 11) : m--) {
-    const days = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7;
-    const cells = Array.from({ length: lead }, () => '<span class="cd blank"></span>');
-    let n = 0;
-    for (let d = 1; d <= days; d++) {
-      const iso = `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`, i = bySend.get(iso);
-      if (i) { n++; cells.push(`<button class="cd iss" type="button" data-n="${i.number}" aria-label="Issue ${i.number}, week of ${esc(i.week.label)}: ${esc(i.subtitle)}"><span class="dn">${d}</span><span class="in num">${i.number}</span></button>`); }
-      else cells.push(`<span class="cd">${d}</span>`);
-    }
-    cal.push(`<div class="cal-m${n ? '' : ' empty'}"><h3>${new Date(Date.UTC(y, m, 1)).toLocaleDateString('en-US', { month: 'long', timeZone: 'UTC' })} <span>${y}</span><small>${n} ${n === 1 ? 'issue' : 'issues'}</small></h3><div class="cal-days" role="group"><b>M</b><b>T</b><b>W</b><b>T</b><b>F</b><b>S</b><b>S</b>${cells.join('')}</div></div>`);
-  }
+  const byMon = new Map();
+  for (const i of issues) { const m = shortMonth(i.publication.date); if (!byMon.has(m)) byMon.set(m, []); byMon.get(m).push(i); }
+  const cal = [...byMon].map(([m, list]) => `<div class="cal-m"><h3>${esc(m.replace(/ \d{4}$/, ''))}</h3><div class="dots">${list.map((i) => `<button class="cd iss" type="button" data-n="${i.number}" aria-label="Issue ${i.number}, week of ${esc(i.week.label)}: ${esc(i.subtitle)}"><span class="in num">${i.number}</span></button>`).join('')}</div></div>`);
   const data = Object.fromEntries(issues.map((i) => [i.number, { url: issueUrl(i), week: i.week.label, date: longDate(sendDate(i)), title: i.subtitle, stories: storyAnchors(i).map((t) => [t.id, t.text]), slug: i.slug, hay: (i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ')).toLowerCase() }]));
   const body = `<header class="page-head wrap">
   <p class="kicker">The archive</p>
   <h1>Every issue of ${esc(site.name)}.</h1>
-  <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick a Monday to unfold it, or search every word of every issue.</p>
+  <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick an issue to unfold it, or search every word of every issue.</p>
   <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"><span class="kbd">/</span></div>
   <p class="count" data-count aria-live="polite">${issues.length} issues</p>
 </header>
@@ -305,7 +292,7 @@ function archivePage(site, issues) {
   <h2 class="sec-big">Every issue, newest first</h2>
   ${[...byMonth].map(([m, list]) => `<h2 class="month" data-year><span>${esc(m)}</span></h2><ol class="arch-list">${list.map(issueLi).join('')}</ol>`).join('\n')}
 </div>`;
-  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, on a calendar and searchable.`, pathName: '/issues/', body, current: 'issues' });
+  return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, searchable.`, pathName: '/issues/', body, current: 'issues' });
 }
 
 function issuePage(site, issue, issues, indexData) {
@@ -427,8 +414,8 @@ export async function build(env = process.env) {
     await out('index/data.json', JSON.stringify({ ...indexData, subscribeUrl: sub }));
     const page = await readFile(path.join(REPO, 'index', 'index.html'), 'utf8');
     // The live Index's subscribe button overflows narrow phones (same on GitHub Pages); fix it in this copy only.
-    const phoneFix = '<style>@media (max-width:480px){.plate-mid{flex-wrap:wrap;row-gap:8px}a.sub-btn{white-space:normal;max-width:100%;box-sizing:border-box;text-align:center}}</style></head>';
-    await out('index/index.html', page.replace('</head>', phoneFix).replace(/(<a class="sub-btn" href=")[^"]*(")/, `$1${sub}$2`).replace('<a class="nameplate"', '<a href="/" style="position:absolute;left:16px;top:10px;font:13px Arial,sans-serif;text-decoration:none;z-index:3">← Prompted</a><a class="nameplate"'));
+    const phoneFix = '<style>@media (max-width:480px){.plate-mid{flex-wrap:wrap;row-gap:8px}a.sub-btn{white-space:normal;max-width:100%;box-sizing:border-box;text-align:center}}.site-bar{border-bottom:1px solid var(--hair);font-family:Arial,"Helvetica Neue",Helvetica,sans-serif}.site-bar div{max-width:var(--w);margin:0 auto;padding:10px 28px;display:flex;gap:22px;align-items:center;font-size:14px;font-weight:700}.site-bar a{text-decoration:none;color:var(--ink)}.site-bar a:hover{color:var(--red)}.site-bar .sb-name{margin-right:auto;font-size:18px;letter-spacing:-.03em}.site-bar a[aria-current]{box-shadow:0 2px 0 var(--red)}@media (max-width:680px){.site-bar div{padding:10px 18px}}</style></head>';
+    await out('index/index.html', page.replace('</head>', phoneFix).replace(/(<a class="sub-btn" href=")[^"]*(")/, `$1${sub}$2`).replace(/<body([^>]*)>/, `<body$1><nav class="site-bar" aria-label="Prompted"><div><a class="sb-name" href="/">Prompted</a><a href="/issues/">Archive</a><a href="/index/" aria-current="page">Index</a></div></nav>`));
   }
 
   const rssItems = [...issues].reverse().slice(0, 20).map((i) => `<item><title>${esc(i.title)}</title><link>${site.url}${issueUrl(i)}</link><guid isPermaLink="true">${site.url}${issueUrl(i)}</guid><pubDate>${new Date(i.publication.sent_at || i.publication.date + 'T12:45:00Z').toUTCString()}</pubDate><description>${esc(i.subtitle)}</description></item>`).join('\n');

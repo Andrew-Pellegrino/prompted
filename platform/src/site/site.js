@@ -197,7 +197,7 @@
 
   // ---------- front page: show more stories (button stays under the list) ----------
   var mb = document.querySelector('[data-more-btn]'), ml = document.querySelector('[data-more]');
-  if (mb && ml) { ml.classList.add('collapsed'); mb.addEventListener('click', function () { var o = ml.classList.toggle('collapsed'); mb.setAttribute('aria-expanded', o ? 'false' : 'true'); }); }
+  if (mb && ml && window.matchMedia('(max-width: 1000px)').matches) { ml.classList.add('collapsed'); mb.addEventListener('click', function () { var o = ml.classList.toggle('collapsed'); mb.setAttribute('aria-expanded', o ? 'false' : 'true'); }); }
 
   // ---------- front page: three random Index terms from the mid-frequency pool ----------
   var tw = document.querySelector('[data-terms]'), tp = document.getElementById('term-pool');

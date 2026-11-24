@@ -739,3 +739,25 @@ html,body{overflow-x:clip}
 @keyframes pop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
 .cap-chart .dt{transform-box:fill-box;transform-origin:center}
 @media (max-width:1000px){.split-main{order:0}}
+
+/* ======================= round 7 ======================= */
+.fp-label{font-size:21px}
+.more-btn{display:none}
+@media (max-width:1000px){.more-btn{display:inline-flex}}
+.see a{color:inherit}
+.legend{margin:-8px 0 0}
+.pattern-block:first-of-type{padding-top:14px}
+.tl2-term{display:inline-block;margin-bottom:10px}
+.tl2-strip{margin-top:0}
+.lens strong,.fp .lens strong{display:inline;font:700 18px/1.55 var(--head);margin:0}
+.fin-facts{border-top:0;margin:14px 0 0;max-width:none;padding:0;justify-content:flex-start}
+@media (min-width:1001px){.finale{grid-template-columns:minmax(0,1.7fr) minmax(0,1fr)}.fin-h{white-space:nowrap;font-size:clamp(32px,3.4vw,48px)}}
+/* archive: one row of numbered dots, grouped by month, oldest first */
+.cal-grid{display:flex;flex-wrap:wrap;gap:18px 28px;align-items:flex-start}
+.cal-m{display:flex;flex-direction:column;gap:8px}
+.cal-m h3{font:700 13px var(--head);color:var(--muted);border:0;padding:0;margin:0;letter-spacing:.02em;text-transform:uppercase}
+.dots{display:flex;gap:6px}
+.cd.iss{width:38px;height:38px;aspect-ratio:auto;border-radius:50%;flex:none}
+.cd.iss .in{font-size:14px}
+.cal-panel{flex-basis:100%}
+@media (max-width:760px){.cal-grid{gap:14px 18px}.cd.iss{width:34px;height:34px}}
