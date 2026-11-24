@@ -761,3 +761,9 @@ html,body{overflow-x:clip}
 .cd.iss .in{font-size:14px}
 .cal-panel{flex-basis:100%}
 @media (max-width:760px){.cal-grid{gap:14px 18px}.cd.iss{width:34px;height:34px}}
+
+/* ======================= round 8 ======================= */
+/* one red everywhere: the Subscribe button's */
+:root,:root[data-theme="dark"]{--accent:var(--red)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accent:var(--red)}}
+.cd.iss{border-radius:3px}

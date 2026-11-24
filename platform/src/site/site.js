@@ -145,7 +145,7 @@
     var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     cal.querySelectorAll('.cd.iss').forEach(function (b) {
       b.setAttribute('aria-expanded', 'false');
-      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true); if (!fine) panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); } });
+      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true); setTimeout(function () { panel.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60); } });
       if (fine) {
         b.addEventListener('mouseenter', function () { if (!pinned) show(b, false); });
         b.addEventListener('mouseleave', function () { if (!pinned) hideT = setTimeout(function () { close(false); }, 900); });

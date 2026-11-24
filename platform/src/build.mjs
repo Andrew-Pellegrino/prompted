@@ -160,7 +160,7 @@ function leaderboard(indexData, issuesTracked, n = 6) {
 }
 
 function homePage(site, issues, indexData) {
-  const latest = issues.at(-1), earlier = issues.slice(-6, -1).reverse();
+  const latest = issues.at(-1), earlier = issues.slice(-8, -1).reverse();
   const front = site.front || {};
   const opening = latest.blocks.find((b) => b.role === 'opening');
   const stories = storyAnchors(latest);
@@ -224,14 +224,14 @@ function homePage(site, issues, indexData) {
     </div>
     <div class="split-side">
       <a class="card-link arch-card sd" href="/issues/">
-        <span class="kicker">The archive</span>
-        <b>${N} issues and counting.</b>
+        <span class="kicker">The Archive</span>
+        <b>${N} Issues and Counting</b>
         ${chart}
         <span class="go">Browse and search every issue ${ARROW}</span>
       </a>
       ${indexData ? `<div class="card-link idx-card sd">
         <span class="kicker">The Prompted Index</span>
-        <b>${indexData.terms.length} AI terms, without the jargon.</b>
+        <b>${indexData.terms.length} AI Terms, Without the Jargon</b>
         <span class="idx-terms" data-terms>${pool.slice(0, 3).map(termHtml).join('')}</span>
         <a class="go" href="/index/">Open the Index ${ARROW}</a>
         <script type="application/json" id="term-pool">${JSON.stringify(pool).replace(/</g, '\\u003c')}</script>
@@ -256,7 +256,7 @@ function homePage(site, issues, indexData) {
 
 <section class="finale sd" aria-labelledby="s-end">
   <div class="fin-act">
-    <h2 id="s-end" class="fin-h">Get the next one in your inbox.</h2>
+    <h2 id="s-end" class="fin-h">Get the Next One in Your Inbox</h2>
     <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
     ${signupForm('home-hero', 'Subscribe free', site)}
     <p class="fin-facts">Free, one email a week, no ads, and one click to unsubscribe.</p>
@@ -277,10 +277,10 @@ function archivePage(site, issues) {
   const cal = [...byMon].map(([m, list]) => `<div class="cal-m"><h3>${esc(m.replace(/ \d{4}$/, ''))}</h3><div class="dots">${list.map((i) => `<button class="cd iss" type="button" data-n="${i.number}" aria-label="Issue ${i.number}, week of ${esc(i.week.label)}: ${esc(i.subtitle)}"><span class="in num">${i.number}</span></button>`).join('')}</div></div>`);
   const data = Object.fromEntries(issues.map((i) => [i.number, { url: issueUrl(i), week: i.week.label, date: longDate(sendDate(i)), title: i.subtitle, stories: storyAnchors(i).map((t) => [t.id, t.text]), slug: i.slug, hay: (i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ')).toLowerCase() }]));
   const body = `<header class="page-head wrap">
-  <p class="kicker">The archive</p>
-  <h1>Every issue of ${esc(site.name)}.</h1>
+  <p class="kicker">The Archive</p>
+  <h1>Every Issue of ${esc(site.name)}</h1>
   <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick an issue to unfold it, or search every word of every issue.</p>
-  <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"><span class="kbd">/</span></div>
+  <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"></div>
   <p class="count" data-count aria-live="polite">${issues.length} issues</p>
 </header>
 <section class="wrap cal" data-cal aria-label="Issues by date">
@@ -289,7 +289,7 @@ function archivePage(site, issues) {
   <script type="application/json" id="cal-data">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>
 </section>
 <div class="wrap arch">
-  <h2 class="sec-big">Every issue, newest first</h2>
+  <h2 class="sec-big">Every Issue, Newest First</h2>
   ${[...byMonth].map(([m, list]) => `<h2 class="month" data-year><span>${esc(m)}</span></h2><ol class="arch-list">${list.map(issueLi).join('')}</ol>`).join('\n')}
 </div>`;
   return layout(site, { title: `Archive — ${site.name}`, description: `All ${issues.length} issues of ${site.name}, searchable.`, pathName: '/issues/', body, current: 'issues' });
@@ -316,21 +316,21 @@ function issuePage(site, issue, issues, indexData) {
   </div>
 </header>
 <div class="wrap">
-<details class="toc"><summary>In this issue</summary>${tocList}</details>
+<details class="toc"><summary>In This Issue</summary>${tocList}</details>
 <div class="issue-layout">
-<nav class="toc-side" aria-label="In this issue"><p>In this issue</p>${tocList}</nav>
+<nav class="toc-side" aria-label="In this issue"><p>In This Issue</p>${tocList}</nav>
 <article class="issue">
 ${head}
-${gated ? `<div class="gate" data-gate hidden><p class="kicker">Free every Monday</p><h2>Keep reading. It is free.</h2><p>Get ${esc(site.name)} in your inbox every Monday morning.</p>${signupForm('issue-gate', 'Subscribe free', site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
+${gated ? `<div class="gate" data-gate hidden><p class="kicker">Free Every Monday</p><h2>Keep Reading. It Is Free.</h2><p>Get ${esc(site.name)} in your inbox every Monday morning.</p>${signupForm('issue-gate', 'Subscribe free', site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
 <div data-gated>
 ${rest}
 </div>` : ''}
 </article>
 </div>
 <div class="after">
-  ${terms.length ? `<section class="terms" aria-labelledby="terms-h"><h2 id="terms-h" class="sec-h">Terms from this issue in the Prompted Index</h2><div class="tiles">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div></section>` : ''}
+  ${terms.length ? `<section class="terms" aria-labelledby="terms-h"><h2 id="terms-h" class="sec-h">Terms From This Issue in the Prompted Index</h2><div class="tiles">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div></section>` : ''}
   <div class="share"><span>Share this issue</span><a href="https://www.linkedin.com/sharing/share-offsite/?url=${share}" rel="noopener">LinkedIn</a><a href="mailto:?subject=${encodeURIComponent(issue.title)}&body=${share}">Email</a><a href="${esc(url)}">Permalink</a></div>
-  <div class="subbox wide"><div><p class="kicker">Free every Monday</p><h2>Get the next issue in your inbox.</h2><p>${esc(site.promise)}</p></div><div>${signupForm('issue-end', 'Subscribe free', site)}<p class="fine">One email a week. No ads. Unsubscribe in one click.</p></div></div>
+  <div class="subbox wide"><div><p class="kicker">Free Every Monday</p><h2>Get the Next Issue in Your Inbox</h2><p>${esc(site.promise)}</p></div><div>${signupForm('issue-end', 'Subscribe free', site)}<p class="fine">One email a week. No ads. Unsubscribe in one click.</p></div></div>
   <nav class="pager" aria-label="Issues">${prev ? `<a href="${issueUrl(prev)}"><small>← Previous issue</small><b>Week of ${esc(prev.week.label)}</b><span>${esc(prev.subtitle)}</span></a>` : '<span></span>'}${next ? `<a class="next" href="${issueUrl(next)}"><small>Next issue →</small><b>Week of ${esc(next.week.label)}</b><span>${esc(next.subtitle)}</span></a>` : '<span></span>'}</nav>
 </div>
 </div>`;
@@ -341,17 +341,17 @@ ${rest}
 function subscribePage(site, issues) {
   const latest = issues.at(-1);
   const body = `<header class="page-head wrap center">
-  <p class="kicker">Free every Monday</p>
-  <h1>Subscribe to ${esc(site.name)}.</h1>
+  <p class="kicker">Free Every Monday</p>
+  <h1>Subscribe to ${esc(site.name)}</h1>
   <p class="dek">${esc(site.promise)}</p>
   ${signupForm('subscribe-page', 'Subscribe free', site)}
   <p class="fine">One email, ${esc(site.send_slot_label)}. Unsubscribe any time with one click.</p>
 </header>
 <section class="inside wrap">
   <div class="cols three">
-    <div><span class="n num">01</span><h3>What arrives</h3><p>One issue a week: the biggest developments, what they add up to, and what they mean for you.</p></div>
-    <div><span class="n num">02</span><h3>What does not</h3><p>No ads, no sponsored links, no daily mail. Your address is never shared.</p></div>
-    <div><span class="n num">03</span><h3>Try it first</h3><p><a href="${issueUrl(latest)}">Read this week's issue</a> or browse <a href="/issues/">all ${issues.length}</a>.</p></div>
+    <div><span class="n num">01</span><h3>What Arrives</h3><p>One issue a week: the biggest developments, what they add up to, and what they mean for you.</p></div>
+    <div><span class="n num">02</span><h3>What Does Not</h3><p>No ads, no sponsored links, no daily mail. Your address is never shared.</p></div>
+    <div><span class="n num">03</span><h3>Try It First</h3><p><a href="${issueUrl(latest)}">Read this week's issue</a> or browse <a href="/issues/">all ${issues.length}</a>.</p></div>
   </div>
 </section>`;
   return layout(site, { title: `Subscribe — ${site.name}`, description: site.description, pathName: '/subscribe/', body, current: 'subscribe' });
@@ -387,8 +387,8 @@ export async function build(env = process.env) {
   await out('index.html', homePage(site, issues, indexData));
   await out('issues/index.html', archivePage(site, issues));
   await out('subscribe/index.html', subscribePage(site, issues));
-  await out('subscribe/confirmed/index.html', simplePage(site, '/subscribe/confirmed/', 'You are subscribed', `<p>Thanks for confirming. ${esc(site.name)} arrives ${esc(site.send_slot_label)}.</p><p><a href="/issues/">Read the archive</a> while you wait.</p>`));
-  await out('unsubscribed/index.html', simplePage(site, '/unsubscribed/', 'You are unsubscribed', `<p>You will not receive further issues of ${esc(site.name)}. If this was a mistake, you can <a href="/subscribe/">subscribe again</a>.</p>`));
+  await out('subscribe/confirmed/index.html', simplePage(site, '/subscribe/confirmed/', 'You Are Subscribed', `<p>Thanks for confirming. ${esc(site.name)} arrives ${esc(site.send_slot_label)}.</p><p><a href="/issues/">Read the archive</a> while you wait.</p>`));
+  await out('unsubscribed/index.html', simplePage(site, '/unsubscribed/', 'You Are Unsubscribed', `<p>You will not receive further issues of ${esc(site.name)}. If this was a mistake, you can <a href="/subscribe/">subscribe again</a>.</p>`));
   await out('privacy/index.html', simplePage(site, '/privacy/', 'Privacy', `<p>${esc(site.name)} stores the email address you give us, when and where you signed up (including campaign tags in the link you followed), and whether each issue was delivered to you.</p><h2>Opens and clicks</h2><p>Issues may contain a small image and links that pass through ${esc(site.name)}'s own website on the way to their destination, so we can see roughly how many readers open an issue and which links they find useful. These addresses contain a random code that is different for every issue; they do not contain your email address. We record the time, which link was followed, and a general kind of device (for example "browser" or "security scanner"). We do not store your IP address or detailed browser information, and we use no outside tracking or advertising service.</p><p>Detailed open and click records are deleted after 90 days; only totals per issue are kept after that. Figures are approximate because mail apps and security scanners can open emails and links automatically, and some readers block images. Reports show totals and groups of at least five readers. Only the editor can see, inside the private subscriber record, whether a particular issue was delivered, opened or clicked for you; that is used to sort out delivery problems.</p><h2>Your choices</h2><p>We use this information only to send the newsletter and understand what readers find useful. We do not sell or share your address. Every email has a one-click unsubscribe link, which works whether or not anything else does. You can ask for your data to be deleted by replying to any issue.</p>`));
   await out('404.html', simplePage(site, '/404.html', 'Page not found', '<p>That page does not exist. Try the <a href="/issues/">archive</a> or the <a href="/">home page</a>.</p>'));
 
