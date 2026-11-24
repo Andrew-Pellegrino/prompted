@@ -115,11 +115,24 @@
     var data = {}; try { data = JSON.parse(document.getElementById('cal-data').textContent); } catch (e) {}
     var panel = cal.querySelector('.cal-panel'), months = [].slice.call(cal.querySelectorAll('.cal-m')), pinned = null, shown = null, hideT = null;
     var escH = function (t) { return String(t).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
+    // the unfolded issue floats above or below the chosen square, whichever side has more room, sized to fit
+    var cur = null;
     var place = function (btn) {
-      var m = btn.closest('.cal-m'), top = m.offsetTop, after = m;
-      months.forEach(function (x) { if (x.offsetTop === top) after = x; });
-      if (panel.previousElementSibling !== after) after.parentNode.insertBefore(panel, after.nextSibling);
+      cur = btn || cur; if (!cur) return;
+      if (panel.parentNode !== cal) cal.appendChild(panel);
+      var c = cal.getBoundingClientRect(), r = cur.getBoundingClientRect(), vh = window.innerHeight, gap = 10, pad = 12;
+      var below = vh - r.bottom - gap - pad, above = r.top - gap - pad;
+      panel.style.maxHeight = ''; var h = panel.scrollHeight;
+      var down = below >= Math.min(h, above) || below >= above;
+      var room = Math.max(160, down ? below : above);
+      panel.style.maxHeight = room + 'px';
+      var hh = Math.min(h, room);
+      panel.style.top = (down ? r.bottom - c.top + gap : r.top - c.top - gap - hh) + 'px';
+      panel.classList.toggle('up', !down);
     };
+    var onMove = function () { if (!panel.hidden) place(); };
+    window.addEventListener('scroll', onMove, { passive: true });
+    window.addEventListener('resize', onMove);
     var show = function (btn, pin) {
       clearTimeout(hideT);
       var n = btn.dataset.n, d = data[n]; if (!d) return;
@@ -133,7 +146,7 @@
         panel.querySelector('.cp-x').addEventListener('click', function () { close(true); });
         shown = n;
       }
-      place(btn); panel.hidden = false;
+      panel.hidden = false; place(btn);
       requestAnimationFrame(function () { panel.classList.add('open'); });
       if (pin) pinned = n;
     };
@@ -145,11 +158,7 @@
     var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     cal.querySelectorAll('.cd.iss').forEach(function (b) {
       b.setAttribute('aria-expanded', 'false');
-      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true); requestAnimationFrame(function () { requestAnimationFrame(function () {
-            var r = panel.getBoundingClientRect(), vh = window.innerHeight, by = 0;
-            if (r.bottom > vh - 16) by = Math.min(r.bottom - vh + 24, r.top - 90);
-            if (by > 0) window.scrollBy({ top: by, behavior: 'smooth' });
-          }); }); } });
+      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true);  } });
       if (fine) {
         b.addEventListener('mouseenter', function () { if (!pinned) show(b, false); });
         b.addEventListener('mouseleave', function () { if (!pinned) hideT = setTimeout(function () { close(false); }, 900); });
