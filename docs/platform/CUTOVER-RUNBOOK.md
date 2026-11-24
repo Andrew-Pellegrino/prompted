@@ -50,7 +50,8 @@ A cutover is one deploy that changes the first three switches together, after ev
 
 ## Cutover (Monday morning, before 8:30 a.m. Eastern)
 
-1. In `wrangler.toml`: `SITE_ENV = "production"`, `SEND_MODE = "live"`, `AUDIENCE_SENDING = "enabled"`,
+1. In `wrangler.toml`: `READER_GATE = "on"` (issue pages then carry only the opening; subscribers sign in with an
+   emailed link to read the rest), `SITE_ENV = "production"`, `SEND_MODE = "live"`, `AUDIENCE_SENDING = "enabled"`,
    `SES_USE_IN_SANDBOX = ""`, `DRYRUN_BULK = ""`, `SES_BULK = "on"`, and `SITE_URL` stays
    `https://readprompted.org`. Then:
    `export CLOUDFLARE_API_TOKEN=placeholder` and

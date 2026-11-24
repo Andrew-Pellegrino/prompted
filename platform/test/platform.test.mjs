@@ -1319,3 +1319,33 @@ test('before cutover with SIGNUP_URL set, the signup endpoint sends people to th
   assert.equal(page.headers.get('x-robots-tag'), null, 'public pages are not marked noindex');
 });
 
+
+test('reader gate: the rest of an issue is never public; a subscriber signs in with an emailed link and only then can read it', async () => {
+  const { default: worker } = await import('../src/worker/index.mjs');
+  const env = await makeEnv({ READER_GATE: 'on', SESSION_SECRET: 'reader-test-secret' });
+  const get = (u, h = {}) => worker.fetch(new Request('https://preview.example' + u, { headers: h }), env);
+  const slug = 'week-of-november-1-8-2026';
+  for (const u of [`/gated/${slug}.html`, `/email/${slug}.html`, '/data/search.json']) assert.equal((await get(u)).status, 404, u + ' stays inside');
+  assert.equal((await get(`/api/reader/rest/${slug}`)).status, 401);
+  const s = await worker.fetch(new Request('https://preview.example/api/search?q=riemann'), env);
+  assert.ok(Array.isArray((await s.json()).slugs), 'search answers with issue names only');
+  env.DB.sqlite.prepare("INSERT INTO people (email, email_norm, status, token, created_at, updated_at) VALUES ('reader@example.com','reader@example.com','active',lower(hex(randomblob(20))),'2026-01-01','2026-01-01')").run();
+  const ask = (email) => worker.fetch(new Request('https://preview.example/api/reader/link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email, next: `/issues/${slug}/` }) }), env);
+  const a = await (await ask('reader@example.com')).json(), b = await (await ask('stranger@example.com')).json();
+  assert.equal(a.message, b.message, 'the answer never reveals who is subscribed');
+  // forge-proof: a made-up link and a tampered cookie do nothing
+  assert.match((await get('/reader/verify?t=abc.def')).headers.get('location'), /signin=expired/);
+  assert.equal((await get(`/api/reader/rest/${slug}`, { cookie: 'prompted_reader=abc.def' })).status, 401);
+  // a valid link (built the way the Worker builds it) signs in, and the cookie unlocks the rest
+  const { hmac } = await import('../src/worker/core.mjs');
+  const id = env.DB.sqlite.prepare("SELECT id FROM people WHERE email_norm='reader@example.com'").get().id;
+  const body = btoa(JSON.stringify({ id, next: `/issues/${slug}/`, exp: Date.now() + 60000 })).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const v = await get(`/reader/verify?t=${body}.${(await hmac('reader-test-secret', 'link.' + body)).slice(0, 40)}`);
+  assert.equal(v.status, 303);
+  const cookie = v.headers.get('set-cookie').split(';')[0];
+  const rest = await get(`/api/reader/rest/${slug}`, { cookie });
+  assert.equal(rest.status, 200);
+  assert.ok((await rest.text()).length > 500);
+  env.DB.sqlite.prepare("UPDATE people SET status='unsubscribed' WHERE id=?").run(id);
+  assert.equal((await get(`/api/reader/rest/${slug}`, { cookie })).status, 401, 'unsubscribing ends access');
+});

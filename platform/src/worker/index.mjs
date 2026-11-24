@@ -5,6 +5,7 @@ import { planImport, commitImport, reconcile } from './imports.mjs';
 import { sendTransactional } from './sending.mjs';
 import { checkDomain } from './dnscheck.mjs';
 import { brevoStatus, brevoSetup } from './brevo.mjs';
+import { readerRoute } from './reader.mjs';
 import { sesStatus, sesEvents, refreshSesAccount } from './ses.mjs';
 import { cutoverReadiness } from './readiness.mjs';
 import { handleInbound, authVerdicts } from './inbound.mjs';
@@ -501,6 +502,15 @@ async function route(request, env) {
   if ((m = /^\/r\/(\d+)\/(\d+)\/([a-f0-9]{20,64}|test)$/.exec(p))) return legacyClickRoute(env, Number(m[1]), Number(m[2]), siteUrlOf(env, url));
   if ((m = /^\/api\/hooks\/([a-z]+)$/.exec(p)) && request.method === 'POST') return webhookRoute(request, env, m[1]);
   if (p.startsWith('/api/admin/')) return adminApi(request, env, p.slice('/api/admin/'.length), url);
+  if (p.startsWith('/api/reader/') || p.startsWith('/reader/')) { const r = await readerRoute(request, env, p); if (r) return r; }
+  // Full issue text never leaves through static files: the gated halves, the email copies and the search index stay inside.
+  if (p === '/api/search') {
+    const q = (url.searchParams.get('q') || '').trim().toLowerCase().slice(0, 80);
+    if (q.length < 2) return json({ ok: true, slugs: [] });
+    const idx = await (await env.ASSETS.fetch(new Request('https://assets.local/data/search.json'))).json();
+    return json({ ok: true, slugs: Object.keys(idx).filter((k) => idx[k].includes(q)) }, 200, { 'cache-control': 'public, max-age=300' });
+  }
+  if (p.startsWith('/gated/') || p.startsWith('/email/') || p === '/data/search.json') { const nf = await env.ASSETS.fetch(new Request(new URL('/404.html', url))); return new Response(nf.body, { status: 404, headers: nf.headers }); }
   if (p.startsWith('/api/')) return fail(404, 'Unknown endpoint.');
   return env.ASSETS.fetch(request);
 }

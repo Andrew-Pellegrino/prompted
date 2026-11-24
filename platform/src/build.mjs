@@ -22,7 +22,7 @@ async function wranglerVars() {
   try {
     const text = await readFile(path.join(ROOT, 'wrangler.toml'), 'utf8');
     const out = {};
-    for (const m of text.matchAll(/^(SITE_PUBLIC|SIGNUP_URL)\s*=\s*"([^"]*)"/gm)) out[m[1]] = m[2];
+    for (const m of text.matchAll(/^(SITE_PUBLIC|SIGNUP_URL|READER_GATE)\s*=\s*"([^"]*)"/gm)) out[m[1]] = m[2];
     return out;
   } catch { return {}; }
 }
@@ -43,6 +43,7 @@ export async function loadSite(env = process.env) {
   const vars = env === process.env ? await wranglerVars() : {}; // explicit env objects (tests) stay self-contained
   const pick = (k) => (env[k] !== undefined ? env[k] : vars[k]) || '';
   site.public = site.env === 'production' || pick('SITE_PUBLIC') === 'true';
+  site.reader_gate = pick('READER_GATE') === 'on';
   site.signup_url = site.env === 'production' ? '' : pick('SIGNUP_URL').replace(/\/$/, '');
   site.asset_base_url = site.url;
   site.index_url = site.url + '/index/';
@@ -289,7 +290,7 @@ function archivePage(site, issues) {
   const body = `<header class="page-head wrap arch-head">
   <h1>Every Issue of ${esc(site.name)}</h1>
   <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick an issue to unfold it, or search every word of every issue.</p>
-  <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"></div>
+  <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/api/search" autocomplete="off"></div>
   <p class="count" data-count aria-live="polite">${issues.length} issues</p>
 </header>
 <section class="wrap cal" data-cal aria-label="Issues by date">
@@ -332,10 +333,16 @@ function issuePage(site, issue, issues, indexData) {
 <nav class="toc-side" aria-label="In this issue"><p>In This Issue</p>${tocList}</nav>
 <article class="issue">
 ${head}
-${gated ? `<div class="gate" data-gate hidden><p class="kicker">Free Every Monday</p><h2>Keep Reading. It’s Free.</h2><p>Get ${esc(site.name)} in your inbox every Monday morning.</p>${signupForm('issue-gate', 'Subscribe free', site)}<button class="skip-gate" type="button">I already subscribe. Continue reading.</button></div>
-<div data-gated>
+${gated ? `<div class="gate" id="keep-reading" data-gate${site.reader_gate ? ` data-slug="${issue.slug}"` : ''}>
+  <p class="kicker">Free Every Monday</p><h2>Keep Reading. It’s Free.</h2>
+  ${site.reader_gate ? `<p>Subscribers can read the whole issue here. Enter the email you subscribed with and we’ll send you a sign-in link.</p>
+  <form class="signup reader-in" data-reader-form><label class="vh" for="rin">Email address</label><input id="rin" name="email" type="email" required autocomplete="email" placeholder="you@example.com"><button class="btn" type="submit">Send sign-in link</button><p class="signup-msg" role="status" aria-live="polite"></p></form>
+  <p class="gate-alt">Not subscribed yet? <a href="${esc(subscribeHref(site, 'issue-gate'))}">Subscribe free</a> and the full issue arrives in your inbox every Monday.</p>`
+  : `<p>Get ${esc(site.name)} in your inbox every Monday morning, with every issue in full.</p>${signupForm('issue-gate', 'Subscribe free', site)}`}
+</div>
+${site.reader_gate ? '<div data-gated hidden></div>' : `<div data-gated class="gate-fade" aria-hidden="true">
 ${rest}
-</div>` : ''}
+</div>`}` : ''}
 </article>
 </div>
 <div class="after">
@@ -412,6 +419,7 @@ export async function build(env = process.env) {
   const search = {};
   for (const issue of issues) {
     await out(`issues/${issue.slug}/index.html`, issuePage(site, issue, issues, indexData));
+    { const parts = renderIssueWeb(issue).html.split('\n'); if (site.gate === 'soft' && parts.length > site.gate_after_blocks + 4) await out(`gated/${issue.slug}.html`, parts.slice(site.gate_after_blocks).join('\n')); }
     await out(`data/issues/${issue.slug}.json`, JSON.stringify(issue));
     if (issue.source.slug) await out(`p/${issue.source.slug}/index.html`, redirectPage(issueUrl(issue))); // old beehiiv permalink paths
     const email = renderIssueEmail(issue, site);

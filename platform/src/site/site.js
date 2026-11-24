@@ -34,17 +34,24 @@
     });
   });
 
-  // Soft reading gate. The full text is in the page; this is an invitation, not access control.
+  // Reading gate. Before launch the rest of the issue is only a preview behind a subscribe box (no way past it).
+  // From launch (data-slug present) the rest is not in the page at all: signed-in subscribers fetch it from the server.
   var gate = document.querySelector('[data-gate]');
-  if (gate) {
-    var rest = document.querySelector('[data-gated]');
-    var open = function () { rest.classList.remove('gate-fade'); gate.hidden = true; };
-    if (!local.get('prompted_reader') && !/[?&]reader=1/.test(location.search)) {
-      rest.classList.add('gate-fade'); gate.hidden = false;
-      gate.querySelector('.skip-gate').addEventListener('click', function () { local.set('prompted_reader', '1'); open(); });
-      document.addEventListener('prompted:subscribed', function () { setTimeout(open, 900); });
-    }
-    if (location.hash) { open(); }
+  if (gate && gate.dataset.slug) {
+    var slot = document.querySelector('[data-gated]'), slug = gate.dataset.slug;
+    var unlock = function () {
+      return fetch('/api/reader/rest/' + slug, { credentials: 'same-origin' }).then(function (r) { if (!r.ok) throw 0; return r.text(); })
+        .then(function (h) { slot.innerHTML = h; slot.hidden = false; gate.hidden = true; if (location.hash && location.hash !== '#keep-reading') { var t = document.getElementById(location.hash.slice(1)); if (t) t.scrollIntoView(); } });
+    };
+    fetch('/api/reader/me', { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (j) { if (j.signedIn) unlock().catch(function () {}); }).catch(function () {});
+    var rf = gate.querySelector('[data-reader-form]');
+    if (rf) rf.addEventListener('submit', function (ev) {
+      ev.preventDefault(); var msg = rf.querySelector('.signup-msg'), btn = rf.querySelector('button'); btn.disabled = true; msg.className = 'signup-msg'; msg.textContent = 'Sending…';
+      fetch('/api/reader/link', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ email: rf.email.value, next: location.pathname }) })
+        .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+        .then(function (res) { btn.disabled = false; msg.className = 'signup-msg ' + (res.ok ? 'ok' : 'err'); msg.textContent = res.j.message || 'Something went wrong. Please try again.'; })
+        .catch(function () { btn.disabled = false; msg.className = 'signup-msg err'; msg.textContent = 'Could not reach the server. Please try again.'; });
+    });
   }
 
   // Reading progress bar and "you are here" in the side contents list.
@@ -79,7 +86,7 @@
       count.textContent = term ? shown + ' of ' + items.length + ' issues match “' + box.value.trim() + '”' + (full ? '' : ' (titles and summaries; loading full text…)') : items.length + ' issues';
     };
     box.addEventListener('input', function () {
-      if (!full && !loading) { loading = true; fetch(box.dataset.search).then(function (r) { return r.json(); }).then(function (j) { full = j; run(); }).catch(function () {}); }
+      var tq = box.value.trim().toLowerCase(); clearTimeout(box._t); box._t = setTimeout(function () { if (tq.length < 2) { full = null; run(); return; } fetch(box.dataset.search + '?q=' + encodeURIComponent(tq)).then(function (r) { return r.json(); }).then(function (j) { if (box.value.trim().toLowerCase() !== tq) return; full = {}; (j.slugs || []).forEach(function (s) { full[s] = tq; }); run(); }).catch(function () {}); }, 160);
       run();
     });
   }
@@ -181,7 +188,7 @@
         });
       };
       apply();
-      if (t && !fullText) fetch(qbox.dataset.search).then(function (r) { return r.json(); }).then(function (j) { fullText = j; apply(); }).catch(function () {});
+      if (t.length > 1) fetch(qbox.dataset.search + '?q=' + encodeURIComponent(t)).then(function (r) { return r.json(); }).then(function (j) { if (qbox.value.trim().toLowerCase() !== t) return; fullText = {}; (j.slugs || []).forEach(function (s) { fullText[s] = t; }); apply(); }).catch(function () {});
     });
   }
 

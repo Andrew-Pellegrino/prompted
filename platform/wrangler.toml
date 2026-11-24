@@ -29,6 +29,7 @@ SITE_ENV = "preview"            # "production" only after an approved cutover
 # without lifting any sending fence. Both are ignored once SITE_ENV is "production".
 SIGNUP_URL = "https://readprompted.beehiiv.com/subscribe"
 SITE_PUBLIC = "true"             # "true" opens the website to search engines and removes the preview banner
+READER_GATE = ""                 # "on" at cutover: issue pages carry only the opening; subscribers sign in with an emailed link to read the rest
 SITE_URL = "https://readprompted.org"
 SEND_MODE = "dryrun"            # "live" sends real email; in preview only to TEST_RECIPIENTS
 DOUBLE_OPT_IN = "true"

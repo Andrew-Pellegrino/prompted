@@ -864,3 +864,9 @@ article.issue p.closing{border-top:1px solid var(--muted)}
 .lead-h .ul{padding-bottom:6px}
 article.issue h2{border-bottom:2px solid var(--red)}
 .mast-tag2{font-size:20px}
+.gate{scroll-margin-top:30px}
+.gate-alt{font:15px var(--head);color:var(--muted);margin-top:16px}
+.gate-alt a{color:inherit;text-decoration-color:var(--red)}
+.reader-in{margin:0 auto;justify-content:center}
+.gate-fade{max-height:220px;pointer-events:none;user-select:none}
+.gate h2,article.issue .gate h2{border:0;padding:0;margin:0 0 8px}
