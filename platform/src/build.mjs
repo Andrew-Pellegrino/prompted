@@ -12,7 +12,7 @@ import { renderIssueWeb, renderMasthead } from './lib/render-web.mjs';
 import { renderIssueEmail, fillRecipient } from './lib/render-email.mjs';
 import { termsInIssue } from './lib/index-terms.mjs';
 import { risingTerms, termTimeline } from './lib/trends.mjs';
-import { scheduledSendFor } from './lib/weeks.mjs';
+import { scheduledSendFor, mastheadWeek } from './lib/weeks.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const REPO = path.resolve(ROOT, '..');
@@ -148,7 +148,7 @@ ${body}
 
 const issueLi = (i) => `<li data-issue="${i.slug}" data-hay="${esc((i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ') + ' issue ' + i.number).toLowerCase())}"><a href="${issueUrl(i)}">
   <span class="no num">${pad2(i.number)}</span>
-  <span class="body"><span class="wk">Week of ${esc(i.week.label)}</span><span class="st">${esc(i.subtitle)}</span><span class="stories">${storyTitles(i).slice(0, 2).map(esc).join('<i>·</i>')}</span></span>
+  <span class="body"><span class="wk">Week of ${esc(i.week.label)}</span><span class="st"><span class="u">${esc(i.subtitle)}</span></span><span class="stories">${storyTitles(i).slice(0, 2).map(esc).join('<i>·</i>')}</span></span>
   ${ARROW}
 </a></li>`;
 
@@ -166,7 +166,7 @@ function homePage(site, issues, indexData) {
   const stories = storyAnchors(latest);
   const byNo = new Map(issues.map((i) => [i.number, i]));
   const N = issues.length, SHOW = 4;
-  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''} style="--d:${i}"><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span>${esc(s.text)}</span></a></li>`;
+  const story = (s, i) => `<li${i >= SHOW ? ' class="extra"' : ''} style="--d:${i}"><a href="${issueUrl(latest)}#${s.id}"><span class="rk">${i + 1}</span><span><span class="u">${esc(s.text)}</span></span></a></li>`;
   const mon = (i) => shortMonth(i.publication.date).slice(0, 3);
   const span = (a, b) => (mon(a) === mon(b) ? mon(a) : `${mon(a)}–${mon(b)}`);
   const timeline = (t) => {
@@ -220,12 +220,12 @@ function homePage(site, issues, indexData) {
   <h2 id="s-brief" class="fp-h sd">Worth Knowing Briefly</h2>
   <div class="split">
     <div class="split-main">
-      <ol class="brief-list">${earlier.map((i) => `<li class="sd"><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
+      <ol class="brief-list">${earlier.map((i) => `<li class="sd"><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st"><span class="u">${esc(i.subtitle)}</span></span></span></a></li>`).join('')}</ol>
     </div>
     <div class="split-side">
       <a class="card-link arch-card sd" href="/issues/">
         <span class="kicker">The Archive</span>
-        <b>${N} Issues and Counting</b>
+        <b><span class="u">${N} Issues and Counting</span></b>
         ${chart}
         <span class="go">Browse and search every issue ${ARROW}</span>
       </a>
@@ -307,12 +307,14 @@ function issuePage(site, issue, issues, indexData) {
   const head = gated ? parts.slice(0, site.gate_after_blocks).join('\n') : html;
   const rest = gated ? parts.slice(site.gate_after_blocks).join('\n') : '';
   const body = `<div class="progress" aria-hidden="true"><i></i></div>
-<header class="art-head wrap">
-  <p class="kicker"><a href="/issues/">Issue No. ${issue.number}</a> · Week of ${esc(issue.week.label)}</p>
-  <h1 class="art-h">${esc(issue.subtitle)}</h1>
-  <div class="art-meta">
-    <span>By ${esc(site.author)}</span><span>${esc(longDate(issue.publication.date))}</span><span>${readMinutes(issue)} min read</span>
-  </div>
+<header class="nl-head wrap">
+  <picture><source srcset="/img/lockup-dark.png" media="(prefers-color-scheme: dark)"><img class="nl-logo" src="/img/lockup-light.png" width="120" height="95" alt="Miami University, John W. Altman Institute for Entrepreneurship"></picture>
+  <p class="nl-name">${esc(site.name)}</p>
+  <p class="nl-tag">${esc(site.tagline)}</p>
+  <p class="nl-week">${esc(mastheadWeek(issue.week))}</p>
+  <p class="nl-for">${esc(site.attribution)}</p>
+  <h1 class="vh">${esc(issue.title)}</h1>
+  <div class="nl-meta"><a href="/issues/">Issue No. ${issue.number}</a><span>By ${esc(site.author)}</span><span>${esc(longDate(issue.publication.date))}</span><span>${readMinutes(issue)} min read</span></div>
 </header>
 <div class="wrap">
 <details class="toc"><summary>In This Issue</summary>${tocList}</details>
@@ -330,7 +332,7 @@ ${rest}
   ${terms.length ? `<section class="terms" aria-labelledby="terms-h"><h2 id="terms-h" class="sec-h">Terms From This Issue in the Prompted Index</h2><div class="tiles">${terms.map((t) => `<a href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>`).join('')}</div></section>` : ''}
   <div class="share"><span>Share this issue</span><a href="https://www.linkedin.com/sharing/share-offsite/?url=${share}" rel="noopener">LinkedIn</a><a href="mailto:?subject=${encodeURIComponent(issue.title)}&body=${share}">Email</a><a href="${esc(url)}">Permalink</a></div>
   <div class="subbox wide"><div><p class="kicker">Free Every Monday</p><h2>Get the Next Issue in Your Inbox</h2><p>${esc(site.promise)}</p></div><div>${signupForm('issue-end', 'Subscribe free', site)}<p class="fine">One email a week. No ads. Unsubscribe in one click.</p></div></div>
-  <nav class="pager" aria-label="Issues">${prev ? `<a href="${issueUrl(prev)}"><small>← Previous issue</small><b>Week of ${esc(prev.week.label)}</b><span>${esc(prev.subtitle)}</span></a>` : '<span></span>'}${next ? `<a class="next" href="${issueUrl(next)}"><small>Next issue →</small><b>Week of ${esc(next.week.label)}</b><span>${esc(next.subtitle)}</span></a>` : '<span></span>'}</nav>
+  <nav class="pager" aria-label="Issues">${prev ? `<a href="${issueUrl(prev)}"><small>← Previous issue</small><b><span class="u">Week of ${esc(prev.week.label)}</span></b><span>${esc(prev.subtitle)}</span></a>` : '<span></span>'}${next ? `<a class="next" href="${issueUrl(next)}"><small>Next issue →</small><b><span class="u">Week of ${esc(next.week.label)}</span></b><span>${esc(next.subtitle)}</span></a>` : '<span></span>'}</nav>
 </div>
 </div>`;
   return layout(site, { title: issue.title, description: issue.subtitle, pathName: issueUrl(issue), body, current: 'issue', ogType: 'article',
@@ -350,7 +352,7 @@ function subscribePage(site, issues) {
   </div>
   <a class="sub-sample" href="${issueUrl(latest)}">
     <span class="kicker">This Week’s Issue · No. ${latest.number}</span>
-    <b>${esc(latest.subtitle)}</b>
+    <b><span class="u">${esc(latest.subtitle)}</span></b>
     <ol>${stories.slice(0, 5).map((t, i) => `<li><span class="rk">${i + 1}</span>${esc(t.text)}</li>`).join('')}</ol>
     <span class="go">Read it before you subscribe ${ARROW}</span>
   </a>

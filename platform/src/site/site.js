@@ -140,8 +140,8 @@
       btn.classList.add('sel'); btn.setAttribute('aria-expanded', 'true');
       if (shown !== n) {
         panel.innerHTML = '<button class="cp-x" type="button" aria-label="Close">×</button><p class="kicker">Issue No. ' + n + ' · Week of ' + escH(d.week) + ' · ' + escH(d.date) + '</p>' +
-          '<h3><a href="' + d.url + '">' + escH(d.title) + '</a></h3>' +
-          (d.stories.length ? '<ol>' + d.stories.map(function (s, i) { return '<li><a href="' + d.url + '#' + s[0] + '"><span class="rk">' + (i + 1) + '</span><span>' + escH(s[1]) + '</span></a></li>'; }).join('') + '</ol>' : '') +
+          '<h3><a href="' + d.url + '"><span class="u">' + escH(d.title) + '</span></a></h3>' +
+          (d.stories.length ? '<ol>' + d.stories.map(function (s, i) { return '<li><a href="' + d.url + '#' + s[0] + '"><span class="rk">' + (i + 1) + '</span><span><span class="u">' + escH(s[1]) + '</span></span></a></li>'; }).join('') + '</ol>' : '') +
           '<a class="sub-btn" href="' + d.url + '">Read issue ' + n + ' →</a>';
         panel.querySelector('.cp-x').addEventListener('click', function () { close(true); });
         shown = n;
@@ -158,13 +158,17 @@
     var fine = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
     cal.querySelectorAll('.cd.iss').forEach(function (b) {
       b.setAttribute('aria-expanded', 'false');
-      b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true);  } });
       if (fine) {
-        b.addEventListener('mouseenter', function () { if (!pinned) show(b, false); });
-        b.addEventListener('mouseleave', function () { if (!pinned) hideT = setTimeout(function () { close(false); }, 900); });
+        // mouse: hovering shows the issue, leaving hides it at once (a short grace lets you move into the box); a click opens the issue
+        b.addEventListener('mouseenter', function () { show(b, false); });
+        b.addEventListener('mouseleave', function () { hideT = setTimeout(function () { close(true); }, 120); });
+        b.addEventListener('click', function () { var d = data[b.dataset.n]; if (d) location.href = d.url; });
+      } else {
+        b.addEventListener('click', function () { if (pinned === b.dataset.n) { close(true); } else { show(b, true); } });
       }
     });
     panel.addEventListener('mouseenter', function () { clearTimeout(hideT); });
+    panel.addEventListener('mouseleave', function () { if (fine) close(true); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !panel.hidden) close(true); });
     // search: light up matching Mondays
     var qbox = document.querySelector('[data-search]'), fullText = null;
