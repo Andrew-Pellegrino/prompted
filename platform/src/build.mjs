@@ -128,8 +128,8 @@ ${noindex ? '<div class="preview-banner">Development preview. Not the live Promp
     </nav>
   </div>
   ${current === 'home' && latest ? `<div class="mast-line"><p class="mast-tag2">${esc(site.tagline)}</p><p class="mast-when"><span class="dot"></span>Every Monday · 8:45 a.m. ET</p><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav></div>
-  <div class="plate-rule mast-rule"></div>` : `<div class="plate-rule"></div>
-  <div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>`}
+  <div class="plate-rule mast-rule"></div>` : `<div class="dateline"><nav class="mnav" aria-label="Sections">${navLink('/issues/', 'issues', 'Archive')}${navLink('/index/', 'index', 'Index')}</nav><span class="dl-tag">${esc(site.tagline)}</span><span class="dl-for">${esc(site.attribution)}</span><span>Every Monday, 8:45 a.m. ET</span></div>
+  <div class="plate-rule"></div>`}
 </div></header>
 <main id="main">
 ${body}
@@ -276,8 +276,7 @@ function archivePage(site, issues) {
   for (const i of issues) { const m = shortMonth(i.publication.date); if (!byMon.has(m)) byMon.set(m, []); byMon.get(m).push(i); }
   const cal = [...byMon].map(([m, list]) => `<div class="cal-m"><h3>${esc(m.replace(/ \d{4}$/, ''))}</h3><div class="dots">${list.map((i) => `<button class="cd iss" type="button" data-n="${i.number}" aria-label="Issue ${i.number}, week of ${esc(i.week.label)}: ${esc(i.subtitle)}"><span class="in num">${i.number}</span></button>`).join('')}</div></div>`);
   const data = Object.fromEntries(issues.map((i) => [i.number, { url: issueUrl(i), week: i.week.label, date: longDate(sendDate(i)), title: i.subtitle, stories: storyAnchors(i).map((t) => [t.id, t.text]), slug: i.slug, hay: (i.week.label + ' ' + i.subtitle + ' ' + storyTitles(i).join(' ')).toLowerCase() }]));
-  const body = `<header class="page-head wrap">
-  <p class="kicker">The Archive</p>
+  const body = `<header class="page-head wrap arch-head">
   <h1>Every Issue of ${esc(site.name)}</h1>
   <p class="dek">${issues.length} weekly issues since ${esc(shortMonth(issues[0].publication.date))}. Pick an issue to unfold it, or search every word of every issue.</p>
   <div class="search">${SEARCH_ICON}<label class="vh" for="q">Search the archive</label><input id="q" type="search" placeholder="Search ${issues.length} issues" data-search="/data/search.json" autocomplete="off"></div>
