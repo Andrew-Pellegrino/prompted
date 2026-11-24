@@ -151,23 +151,23 @@
     ],
     "lenses": [
       {
-        "label": "If you are a student or future knowledge worker,",
+        "label": "If you’re a student or future knowledge worker,",
         "text": "issue by issue you build a working understanding of AI that your classes, internships and first job will assume you already have."
       },
       {
-        "label": "If you are a founder or builder,",
+        "label": "If you’re a founder or builder,",
         "text": "you learn which way AI prices, capabilities and rules are moving, and that judgment is what your next product and pitch depend on."
       },
       {
-        "label": "If you are faculty,",
+        "label": "If you’re faculty,",
         "text": "you build a steady, well-sourced picture of what AI can and cannot do. That is what you need to redesign assignments, advise students and lead the conversation in your department."
       },
       {
-        "label": "If you are staff,",
+        "label": "If you’re staff,",
         "text": "you learn the tools, risks and rules well enough to use AI safely in your own work and to become the person colleagues bring their questions to."
       },
       {
-        "label": "If you are an administrator,",
+        "label": "If you’re an administrator,",
         "text": "you understand the AI decisions landing on your desk well enough to weigh them on their merits, from software purchases to campus policy."
       }
     ]
