@@ -173,16 +173,27 @@ function homePage(site, issues, indexData) {
     const sq = t.seen.map((x, i) => x ? `<a class="on" style="--i:${i}" href="${issueUrl(issues[i])}" aria-label="Issue ${issues[i].number}, week of ${esc(issues[i].week.label)}" data-tip="No. ${issues[i].number} · ${esc(issues[i].week.label.replace(/, \d{4}$/, ''))}"></a>` : `<i style="--i:${i}"></i>`).join('');
     const ticks = issues.map((i, n) => (n === 0 || mon(i) !== mon(issues[n - 1])) ? `<span style="grid-column:${n + 1}">${esc(mon(i))}</span>` : '').join('');
     return `<div class="tl2">
-      <div class="tl2-stat"><div><b class="num">${t.early}</b><span>${span(issues[0], issues[t.k - 1])}</span></div><i>→</i><div><b class="num">${t.late}</b><span>${span(issues[N - t.k], issues[N - 1])}</span></div></div>
-      <div class="tl2-body"><a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)} <small>issues using it, first ${t.k} vs. latest ${t.k}</small></a><div class="tl2-strip" style="--n:${N}">${sq}</div><div class="tl2-ticks" style="--n:${N}">${ticks}</div></div>
+      <a class="tl2-term" href="/index/#${encodeURIComponent(t.anchor)}">${esc(t.term)}</a>
+      <p class="tl2-note">In ${t.early} of the first ${t.k} issues and ${t.late} of the latest ${t.k}</p>
+      <div class="tl2-strip" style="--n:${N}">${sq}</div><div class="tl2-ticks" style="--n:${N}">${ticks}</div>
     </div>`;
   };
-  // archive card: an exponential arrow with ever-taller books under it, one per issue
-  const books = issues.map((_, n) => {
-    const w = 260 / N, x = 20 + n * w, h = 10 + 78 * (Math.exp(3 * n / (N - 1)) - 1) / (Math.exp(3) - 1);
-    return `<rect class="bk${n === N - 1 ? ' now' : ''}" style="--i:${n}" x="${(x + 0.6).toFixed(1)}" y="${(104 - h).toFixed(1)}" width="${(w - 1.4).toFixed(1)}" height="${h.toFixed(1)}"/>`;
-  }).join('');
-  const curve = Array.from({ length: 41 }, (_, j) => { const t = j / 40, x = 18 + t * 266, y = 96 - (10 + 82 * (Math.exp(3 * t) - 1) / (Math.exp(3) - 1)); return `${j ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }).join(' ');
+  // archive card: AI capability (stylized exponential) over time, one dot per issue, "you are here" at the latest
+  const X0 = 34, X1 = 286, Y0 = 118, YT = 14, cap = (t) => (Math.exp(3.2 * t) - 1) / (Math.exp(3.2) - 1);
+  const pt = (t) => [X0 + t * (X1 - X0), Y0 - 8 - cap(t) * (Y0 - YT - 8)];
+  const path = Array.from({ length: 61 }, (_, j) => { const [x, y] = pt(j / 60); return `${j ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`; }).join(' ');
+  const [lx, ly] = pt(1);
+  const dots = issues.map((_, n) => { const [x, y] = pt(n / (N - 1)); return `<circle class="dt${n === N - 1 ? ' now' : ''}" style="--i:${n}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${n === N - 1 ? 4.2 : 2.1}"/>`; }).join('');
+  const mticks = []; issues.forEach((i, n) => { if (n === 0 || mon(i) !== mon(issues[n - 1])) { const [x] = pt(n / (N - 1)); mticks.push(`<text class="mt" x="${x.toFixed(1)}" y="${Y0 + 14}">${esc(mon(i))}</text>`); } });
+  const chart = `<svg class="cap-chart" viewBox="0 0 300 140" role="img" aria-label="AI capability rising faster over time, with one dot for each of the ${N} issues and the latest marked: you are here">
+    <defs><linearGradient id="capfill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="g0"/><stop offset="1" class="g1"/></linearGradient></defs>
+    <path class="ax" d="M${X0} ${YT - 4} V${Y0} H${X1 + 6}"/>
+    <text class="al" x="${X0 - 6}" y="${YT + 2}" transform="rotate(-90 ${X0 - 6} ${YT + 2})" text-anchor="end">AI capability</text>
+    <path class="area" d="${path} L${X1} ${Y0} L${X0} ${Y0} Z"/>
+    <line class="here" x1="${X0}" x2="${X1}" y1="${ly.toFixed(1)}" y2="${ly.toFixed(1)}"/>
+    <text class="here-t" x="${X0 + 6}" y="${(ly - 5).toFixed(1)}">You are here. It has never moved faster.</text>
+    <path class="curve" d="${path}" pathLength="1"/>${dots}${mticks.join('')}
+  </svg>`;
   const dests = new Map((indexData?.destinations || []).map((d) => [d.id, d]));
   const total = indexData?.issuesTracked || N;
   const pool = (indexData?.terms || []).filter((t) => t.issues >= Math.round(total * 0.12) && t.issues <= Math.round(total * 0.5) && dests.get(t.dest)?.def && t.term.length > 3)
@@ -190,10 +201,11 @@ function homePage(site, issues, indexData) {
   const termHtml = (x) => `<a class="it" href="/index/#${encodeURIComponent(x.a)}"><b>${esc(x.t)}</b><span>${esc(x.d)}</span></a>`;
   const body = `<div class="fp wrap">
 <section class="fp-sec fp-top" aria-labelledby="s-big">
-  <div class="fp-top-head"><h2 id="s-big" class="fp-label">This Week in AI</h2><p class="chips"><span>No. ${latest.number}</span><span>${esc(latest.week.label.replace(/, \d{4}$/, ''))}</span><span>${readMinutes(latest)} min read</span></p></div>
+  <h2 id="s-big" class="fp-label">This Week in AI</h2>
   <div class="fp-top-grid">
     <div class="fp-lead">
-      <h3 class="lead-h"><a href="${issueUrl(latest)}">${esc(latest.subtitle)}</a></h3>
+      <h3 class="lead-h"><a href="${issueUrl(latest)}"><span class="ul">${esc(latest.subtitle)}</span></a></h3>
+      <p class="chips in-anim"><span>No. ${latest.number}</span><span>${esc(latest.week.label.replace(/, \d{4}$/, ''))}</span><span>${readMinutes(latest)} min read</span></p>
       ${opening ? `<div class="deck clamp in-anim"><p>${renderRuns(opening.children, { link: (href) => ({ href: localIndexHref(href, '/index/') }) })}</p></div>` : ''}
       <a class="sub-btn read-btn in-anim" href="${issueUrl(latest)}">Read this week's issue ${ARROW}</a>
     </div>
@@ -206,16 +218,16 @@ function homePage(site, issues, indexData) {
 </section>
 
 <section class="fp-sec" aria-labelledby="s-brief">
+  <h2 id="s-brief" class="fp-h sd">Worth Knowing Briefly</h2>
   <div class="split">
+    <div class="split-main">
+      <ol class="brief-list">${earlier.map((i) => `<li class="sd"><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
+    </div>
     <div class="split-side">
-      <h2 class="fp-h sd">Worth Knowing at Length</h2>
       <a class="card-link arch-card sd" href="/issues/">
         <span class="kicker">The archive</span>
         <b>${N} issues and counting.</b>
-        <svg class="books" viewBox="0 0 300 112" role="img" aria-label="An upward curve over a row of books, one per issue, each taller than the last">
-          <path class="axis" d="M18 104 H288"/>${books}
-          <path class="curve" d="${curve}" pathLength="1"/><path class="head" d="M276 6 L288 4 L283 15"/>
-        </svg>
+        ${chart}
         <span class="go">Browse every issue on a calendar ${ARROW}</span>
       </a>
       ${indexData ? `<div class="card-link idx-card sd">
@@ -225,10 +237,6 @@ function homePage(site, issues, indexData) {
         <a class="go" href="/index/">Open the Index ${ARROW}</a>
         <script type="application/json" id="term-pool">${JSON.stringify(pool).replace(/</g, '\\u003c')}</script>
       </div>` : ''}
-    </div>
-    <div class="split-main">
-      <h2 id="s-brief" class="fp-h sd">Worth Knowing Briefly</h2>
-      <ol class="brief-list">${earlier.map((i) => `<li class="sd"><a href="${issueUrl(i)}"><span class="no num">${i.number}</span><span class="body"><span class="wk">${esc(i.week.label.replace(/, \d{4}$/, ''))}</span><span class="st">${esc(i.subtitle)}</span></span></a></li>`).join('')}</ol>
     </div>
   </div>
 </section>
@@ -252,7 +260,7 @@ function homePage(site, issues, indexData) {
     <h2 id="s-end" class="fin-h">Get the next one in your inbox.</h2>
     <p class="fin-next" data-next-issue>The next issue arrives Monday at 8:45 a.m. Eastern.</p>
     ${signupForm('home-hero', 'Subscribe free', site)}
-    <p class="fin-facts"><span>Free</span><span>One email a week</span><span>No ads</span><span>Unsubscribe in one click</span></p>
+    <p class="fin-facts">Free, one email a week, no ads, and one click to unsubscribe.</p>
   </div>
   <div class="fin-close"><p>That’s the week. See you next Monday.</p><p class="fp-signoff">— Prompted</p></div>
 </section>

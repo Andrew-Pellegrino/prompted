@@ -684,3 +684,58 @@ html,body{overflow-x:clip}
   .tl2-strip{height:24px;gap:1.5px}
   .fp .deck p{font-size:18px}
 }
+
+/* ======================= round 6 ======================= */
+:root{--accent:#c3142d}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--accent:#f0475b}}
+:root[data-theme="dark"]{--accent:#f0475b}
+.kicker,.card-link .go,.read-on,.see a,.more-btn,.rk,.pager small{color:var(--accent)}
+.fp-label{font:700 17px var(--head);letter-spacing:-.01em;text-transform:none;color:var(--accent);margin-bottom:12px}
+.fp-label::before{display:none}
+.fp .lead-h{margin-bottom:14px}
+.lead-h .ul{background:linear-gradient(var(--accent),var(--accent)) 0 100%/0 3px no-repeat;transition:background-size .35s cubic-bezier(.2,.7,.2,1);padding-bottom:2px}
+.lead-h a:hover{text-decoration:none}
+.lead-h a:hover .ul,.lead-h a:focus-visible .ul{background-size:100% 3px}
+.fp-top .chips{margin:0 0 18px}
+.fp-top .fp-stories li.extra{animation:rise .3s cubic-bezier(.2,.7,.2,1) both!important;animation-delay:0s!important}
+/* one header for Worth Knowing Briefly: issues left, cards right */
+.split{grid-template-columns:minmax(0,1.35fr) minmax(0,1fr)}
+.split-main{order:0}
+.brief-list{border-top:0}
+/* capability chart */
+.cap-chart{width:100%;height:auto;display:block;margin:6px 0 4px;overflow:visible}
+.cap-chart .ax{fill:none;stroke:var(--muted);stroke-width:1;opacity:.6}
+.cap-chart .al,.cap-chart .mt{font:700 9px var(--head);fill:var(--muted)}
+.cap-chart .mt{text-anchor:middle}
+.cap-chart .g0{stop-color:var(--accent);stop-opacity:.28}
+.cap-chart .g1{stop-color:var(--accent);stop-opacity:0}
+.cap-chart .area{fill:url(#capfill)}
+.cap-chart .curve{fill:none;stroke:var(--accent);stroke-width:2.6;stroke-linecap:round;stroke-dasharray:1;stroke-dashoffset:0}
+.cap-chart .dt{fill:var(--ink)}
+.cap-chart .dt.now{fill:var(--accent);stroke:var(--paper);stroke-width:1.5}
+.cap-chart .here{stroke:var(--accent);stroke-width:1;stroke-dasharray:3 3;opacity:.7}
+.cap-chart .here-t{font:700 9.5px var(--head);fill:var(--accent)}
+/* patterns: no big figures; a plainer, lighter strip */
+.tl2{display:block}
+.tl2-term{font:700 16px var(--head);margin:0}
+.tl2-note{font:14px var(--head);color:var(--muted);margin:2px 0 10px}
+.tl2-strip{height:20px;gap:3px}
+.tl2-strip i{background:color-mix(in srgb,var(--ink) 9%,transparent);border-radius:2px}
+.tl2-strip a.on{background:var(--ink);border-radius:2px}
+.tl2-strip a.on:hover,.tl2-strip a.on:focus-visible{background:var(--accent)}
+.tl2-ticks{font:12px var(--head);color:var(--muted)}
+/* ending */
+.fin-facts{display:block;font:16px/1.5 var(--serif);color:var(--muted);margin-top:14px}
+.finale{padding-bottom:44px}
+@media (prefers-reduced-motion:no-preference){
+  @supports (animation-timeline: view()){
+    .cap-chart{view-timeline-name:--cap}
+    .cap-chart .curve{animation:draw linear both;animation-timeline:--cap;animation-range:cover 8% cover 50%}
+    .cap-chart .area{animation:fade linear both;animation-timeline:--cap;animation-range:cover 20% cover 50%}
+    .cap-chart .dt{animation:pop linear both;animation-timeline:--cap;animation-range:cover calc(8% + var(--i) * 1.25%) cover calc(12% + var(--i) * 1.25%)}
+    .cap-chart .here,.cap-chart .here-t{animation:fade linear both;animation-timeline:--cap;animation-range:cover 50% cover 56%}
+  }
+}
+@keyframes pop{from{opacity:0;transform:scale(0)}to{opacity:1;transform:none}}
+.cap-chart .dt{transform-box:fill-box;transform-origin:center}
+@media (max-width:1000px){.split-main{order:0}}

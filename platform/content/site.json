@@ -152,23 +152,23 @@
     "lenses": [
       {
         "label": "If you are a student or future knowledge worker,",
-        "text": "you will walk into class, interviews and your first job already knowing what changed in AI that week and why it matters. Most of the people next to you will not."
+        "text": "you build, issue by issue, a working understanding of AI that your classes, internships and first job will assume you already have."
       },
       {
         "label": "If you are a founder or builder,",
-        "text": "you hear about the price cut, the new capability or the platform rule while it can still change your plan, not after a competitor has shipped around it."
+        "text": "you learn how the economics of AI actually move: what gets cheaper, what gets restricted, what turns into someone else's feature. Your next product and pitch run on that judgment."
       },
       {
         "label": "If you are faculty,",
-        "text": "you know what your students can already do with AI before it shows up in their assignments, with a teaching case or two each week to bring to class."
+        "text": "you build a steady, well-sourced picture of what AI can and cannot do, which is what redesigning assignments, advising students and leading the conversation in your department requires."
       },
       {
         "label": "If you are staff,",
-        "text": "you see the new tools, policies and security risks coming before they land on your desk, which makes you the person colleagues ask."
+        "text": "you learn the tools, risks and rules well enough to use AI safely in your own work and to be the person colleagues bring their questions to."
       },
       {
         "label": "If you are an administrator,",
-        "text": "the budget, vendor and governance questions reach you months before they turn into decisions you have to make in a hurry."
+        "text": "you accumulate the context behind the budget, vendor and policy decisions AI keeps creating, so you can judge proposals on their merits when they reach your desk."
       }
     ]
   }
